@@ -1,0 +1,65 @@
+Planning Document for Dungeon Generator
+
+
+Dungeon Generator File
+    Inputs: 
+            Room Count (Optional) (Rough) (int)
+
+    Process:
+            Generate Dungeon Tilemap of Room locations and exits encoded using bitmaps
+                Init tilemap of given size
+                Seed and fill room locations
+                Calculation Pass to connect rooms
+                Calculation Pass to clear unconnected rooms
+                Calculation Pass to add single room extensions
+                Calculation Pass to trim tilemap to max size used
+
+    Output: 
+            numpy array of uint-8 values of size x * y, where each cell has:
+                0 - No Room
+                16 - Room Exists
+                +
+                Bitmap[
+                    1-North
+                    2-East
+                    4-South
+                    8-West
+                        ]
+                Example: A room with an exit in each direction would have a value of 31
+
+Room Generator File
+    Inputs:
+            Room Value (int)
+            Room Shape (string or ENUM)
+
+    Process:
+            Generate Room Tilemap that is populated with objects
+                Init Tilemap of given size
+                Use room value to generate shape and theme
+                Build room outline onto tilemap using shape
+                Populate room tilemap using theme
+
+    Output:
+            numpy array of uint-8 values of size x * x, where each cell has:
+                0-Wall
+                1-Floor
+                2-Loot Pile
+                3-Chest
+                4-Healing Station
+                5-Trap
+
+Room Stitcher File
+    Inputs:
+            Room Count (Optional) (Rough) (int)
+
+    Process:
+            Generate Dungeon Map
+                Output array of size DM_x * DM_y
+            Init tilemap of size (DM_x*25) * (DM_y*25)
+            For Each Existing Room in Dungeon Map
+                Generate Room Map
+                    Output array of size 25 * 25
+                Build room map onto stitched tilemap at designated location
+
+    Output:
+            numpy array of size (DM_x*25) * (DM_y*25)
