@@ -9,6 +9,7 @@ BOX_COUNT = 3
 ROOM_COUNT = 175
 
 WALL = 0
+TEMP = 1
 ROOM = 16
 
 NORTH = 1
