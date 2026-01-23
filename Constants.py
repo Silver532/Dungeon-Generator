@@ -1,12 +1,12 @@
 """
-Constants for Dungeon Generator
+**Constants for Dungeon Generator**
 """
 
-DUNGEON_SIZE = 15
+DUNGEON_SIZE = 20
 ROOM_SIZE = 25
 
-BOX_COUNT = 2
-ROOM_COUNT = 100
+BOX_COUNT = 3
+ROOM_COUNT = 175
 
 WALL = 0
 ROOM = 16

@@ -9,7 +9,7 @@ from random import randint as rand
 from os import system as sys
 from Constants import *
 
-def init_tilemap(size: int = 20):
+def init_tilemap(size: int = DUNGEON_SIZE):
     """
     Parameters
     ----------
