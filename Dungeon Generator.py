@@ -42,6 +42,17 @@ def room_fill(tilemap: NDArray[uint8]):
         tilemap[y_s:y_e, x_s:x_e] = ROOM
     return tilemap
 
+def room_count_balancer(tilemap: NDArray[uint8], roomcount: int = ROOM_COUNT):
+    current_rooms = (tilemap == ROOM).sum()
+    print(f"There are {current_rooms} Rooms") #DEBUG
+    if current_rooms >= roomcount:
+        #Erode Rooms
+        pass
+    else:
+        #Add Rooms
+        pass
+    return tilemap
+
 def main():
     """
     Local Handler for Dungeon Generation
@@ -51,12 +62,13 @@ def main():
     """
     tilemap = init_tilemap()
     tilemap = room_fill(tilemap)
-    print(tilemap)
+    tilemap = room_count_balancer(tilemap)
     #Room Erosion/Filling Pass
     #Room Connector
     #Room Clearing Pass
     #Room Extension Pass
     #Tilemap Trim
+    print(tilemap) #DEBUG
     return
 
 if __name__ == "__main__":
