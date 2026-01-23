@@ -44,15 +44,19 @@ def room_fill(tilemap: NDArray[uint8]):
         tilemap[y_s:y_e, x_s:x_e] = TEMP
     return tilemap
 
-def room_count_balancer(tilemap: NDArray[uint8], roomcount: int = ROOM_COUNT):
-    current_rooms = (tilemap == ROOM).sum()
-    print(f"There are {current_rooms} Rooms") #DEBUG
-    if current_rooms >= roomcount:
-        #Erode Rooms
-        pass
-    else:
-        #Add Rooms
-        pass
+def adj_map(tilemap: NDArray[uint8]):
+    orth_maps = []
+    for i in [-1,1]:
+        for j in [0,1]:
+            orth_maps.append(np.roll(tilemap, i, j))
+    neighbor_map = sum(orth_maps)
+    return neighbor_map
+
+def room_eroder(tilemap: NDArray[uint8]):
+    print(f"There are {((tilemap == TEMP)).sum()} Rooms")   #DEBUG
+    neighbor_map = adj_map(tilemap)
+    neighbor_map = ((neighbor_map == 2) + (neighbor_map == 3))
+    #print(neighbor_map)     #DEBUG
     return tilemap
 
 def main():
@@ -64,8 +68,7 @@ def main():
     """
     tilemap = init_tilemap()
     tilemap = room_fill(tilemap)
-    tilemap = room_count_balancer(tilemap)
-    #Room Erosion/Filling Pass
+    tilemap = room_eroder(tilemap)
     #Room Connector
     #Room Clearing Pass
     #Room Extension Pass
