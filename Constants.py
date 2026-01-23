@@ -2,10 +2,14 @@
 Constants for Dungeon Generator
 """
 
-Wall = 0
-Room = 16
+DUNGEON_SIZE = 15
+ROOM_SIZE = 25
+BOX_COUNT = 2
 
-North = 1
-East = 2
-South = 4
-West = 8
+WALL = 0
+ROOM = 16
+
+NORTH = 1
+EAST = 2
+SOUTH = 4
+WEST = 8
