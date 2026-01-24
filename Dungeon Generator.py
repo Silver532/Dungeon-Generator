@@ -45,6 +45,17 @@ def room_fill(tilemap: NDArray[uint8]):
     return tilemap
 
 def adj_map(tilemap: NDArray[uint8]):
+    """
+    Parameters
+    ----------
+    tilemap : NDArray[uint8]
+        2D array with rooms placed.
+
+    Returns
+    -------
+    tilemap : NDArray[int]
+        2D array counting how many neighbors each cell has in orthogonal directions.
+    """
     orth_maps = []
     for i in [-1,1]:
         for j in [0,1]:
