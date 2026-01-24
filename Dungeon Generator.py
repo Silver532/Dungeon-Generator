@@ -60,11 +60,11 @@ def adj_map(tilemap: NDArray[uint8]):
     for i in [-1,1]:
         for j in [0,1]:
             orth_maps.append(np.roll(tilemap, i, j))
-    neighbor_map = sum(orth_maps)
+    neighbor_map = np.sum(orth_maps, axis = 0)
     return neighbor_map
 
 def room_eroder(tilemap: NDArray[uint8]):
-    print(f"There are {((tilemap == TEMP)).sum()} Rooms")   #DEBUG
+    #print(f"There are {((tilemap == TEMP)).sum()} Rooms")   #DEBUG
     neighbor_map = adj_map(tilemap)
     neighbor_map = ((neighbor_map == 2) + (neighbor_map == 3))
     #print(neighbor_map)     #DEBUG
@@ -80,6 +80,7 @@ def main():
     tilemap = init_tilemap()
     tilemap = room_fill(tilemap)
     tilemap = room_eroder(tilemap)
+    tilemap *= 16
     #Room Connector
     #Room Clearing Pass
     #Room Extension Pass
