@@ -77,5 +77,10 @@ def main():
     return
 
 if __name__ == "__main__":
+    from time import perf_counter_ns as clock
+    start_time = clock()
     sys("cls")
     main()
+    end_time = clock()
+    delta_time = (end_time - start_time)
+    print(f"Program ran in {delta_time/1000000} milliseconds")
