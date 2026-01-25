@@ -64,9 +64,20 @@ def adj_map(tilemap: NDArray[uint8]):
     return neighbor_map
 
 def room_eroder(tilemap: NDArray[uint8]):
-    #print(f"There are {((tilemap == TEMP)).sum()} Rooms")   #DEBUG
+    """
+    Parameters
+    ----------
+    tilemap : NDArray[uint8]
+        2D array with rooms placed.
+
+    Returns
+    -------
+    tilemap : NDArray[int]
+        2D array with room edges eroded for smoother generation.
+    """
     neighbor_map = adj_map(tilemap)
     neighbor_map = ((neighbor_map == 2) + (neighbor_map == 3))
+    #print(f"There are {((tilemap == TEMP)).sum()} Rooms")   #DEBUG
     #print(neighbor_map)     #DEBUG
     return tilemap
 
