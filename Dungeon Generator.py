@@ -40,7 +40,7 @@ def room_fill(tilemap: NDArray[uint8]):
         y_s, y_e = rand(1, mid - 1), rand(mid + 2, DUNGEON_SIZE - 2)
         room_dims = 16 - (y_e-y_s)
         x_s = rand(1, mid - 1)
-        x_e = min(x_s + room_dims + 1, DUNGEON_SIZE - 4)+2
+        x_e = min(x_s + room_dims + 3, DUNGEON_SIZE - 4)+2
         tilemap[y_s:y_e, x_s:x_e] = TEMP
     return tilemap
 
