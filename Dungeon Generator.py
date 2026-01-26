@@ -90,6 +90,10 @@ def main():
     Only for use when running program from file\n
     Visualizer will be placed here once made
     """
+    from time import perf_counter_ns as clock
+    start_time = clock()
+    sys("cls")
+
     tilemap = init_tilemap()
     tilemap = room_fill(tilemap)
     tilemap = room_eroder(tilemap)
@@ -99,13 +103,11 @@ def main():
     #Room Extension Pass
     #Tilemap Trim
     print(tilemap) #DEBUG
-    return
 
-if __name__ == "__main__":
-    from time import perf_counter_ns as clock
-    start_time = clock()
-    sys("cls")
-    main()
     end_time = clock()
     delta_time = (end_time - start_time)
     print(f"Program ran in {delta_time/1000000} milliseconds")
+    return
+
+if __name__ == "__main__":
+    main()
