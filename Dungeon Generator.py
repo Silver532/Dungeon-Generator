@@ -4,7 +4,7 @@ Dungeon Map Generator
 
 import numpy as np
 from numpy import uint8
-from numpy.typing import NDArray
+from numpy.typing import NDArray as array
 from random import randint as rand
 from Constants import *
 
@@ -22,7 +22,7 @@ def init_tilemap(size: int = DUNGEON_SIZE):
     """
     return np.zeros((size,size), uint8)
 
-def room_fill(tilemap: NDArray[uint8]):
+def room_fill(tilemap: array[uint8]):
     """
     Parameters
     ----------
@@ -43,7 +43,7 @@ def room_fill(tilemap: NDArray[uint8]):
         tilemap[y_s:y_e, x_s:x_e] = TEMP
     return tilemap
 
-def adj_map(tilemap: NDArray[uint8], neighbor_map: NDArray[uint8]):
+def adj_map(tilemap: array[uint8], neighbor_map: array[uint8]):
     """
     Parameters
     ----------
@@ -62,7 +62,7 @@ def adj_map(tilemap: NDArray[uint8], neighbor_map: NDArray[uint8]):
     neighbor_map *= tilemap
     return neighbor_map
 
-def room_eroder(tilemap: NDArray[uint8]):
+def room_eroder(tilemap: array[uint8]):
     """
     Parameters
     ----------
@@ -78,7 +78,7 @@ def room_eroder(tilemap: NDArray[uint8]):
     neighbor_map = np.zeros_like(tilemap, uint8)
     for _ in range(ERODE_COUNT):
         neighbor_map = adj_map(tilemap, zeroes)
-    print(neighbor_map)
+    print(neighbor_map, end = "\n\n")
     return tilemap
 
 def main():
