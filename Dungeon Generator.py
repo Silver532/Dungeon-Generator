@@ -84,7 +84,6 @@ def room_eroder(tilemap: array[uint8]):
     neighbor_map = adj_map(tilemap, zeroes)
     for index, i in np.ndenumerate(neighbor_map==0):
         if i: tilemap[index] = WALL
-    #print(neighbor_map, end = "\n\n")  #DEBUG
     return tilemap
 
 def main():
