@@ -43,7 +43,7 @@ def room_fill(tilemap: array[uint8]):
         tilemap[y_s:y_e, x_s:x_e] = TEMP
     return tilemap
 
-def adj_map(tilemap: array[uint8], neighbor_map: array[uint8]):
+def adj_map(tilemap: array[uint8], neighbor_map: array[uint8], iso: bool = True):
     """
     Parameters
     ----------
@@ -59,7 +59,8 @@ def adj_map(tilemap: array[uint8], neighbor_map: array[uint8]):
 
     neighbor_map[1:19, :] = tilemap[0:18, :] + tilemap[2:20, :]
     neighbor_map[:, 1:19] += tilemap[:, 0:18] + tilemap[:, 2:20]
-    neighbor_map *= tilemap
+    if iso:
+        neighbor_map *= tilemap
     return neighbor_map
 
 def room_eroder(tilemap: array[uint8]):
