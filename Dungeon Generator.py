@@ -77,6 +77,13 @@ def room_eroder(tilemap: array[uint8]):
     zeroes = np.zeros_like(tilemap, uint8)
     for _ in range(ERODE_COUNT):
         neighbor_map = adj_map(tilemap, zeroes)
+        for index, i in np.ndenumerate(neighbor_map==2):
+            if i & rand(0,1): tilemap[index] = WALL
+        for index, i in np.ndenumerate(neighbor_map==3):
+            if i & (rand(0,9)==0): tilemap[index] = WALL
+    neighbor_map = adj_map(tilemap, zeroes)
+    for index, i in np.ndenumerate(neighbor_map==0):
+        if i: tilemap[index] = WALL
     #print(neighbor_map, end = "\n\n")  #DEBUG
     return tilemap
 
