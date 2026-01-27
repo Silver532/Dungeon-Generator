@@ -6,7 +6,6 @@ import numpy as np
 from numpy import uint8
 from numpy.typing import NDArray
 from random import randint as rand
-from os import system as sys
 from Constants import *
 
 def init_tilemap(size: int = DUNGEON_SIZE):
@@ -91,8 +90,9 @@ def main():
     Visualizer will be placed here once made
     """
     from time import perf_counter_ns as clock
-    start_time = clock()
+    from os import system as sys
     sys("cls")
+    start_time = clock()
 
     tilemap = init_tilemap()
     tilemap = room_fill(tilemap)
