@@ -76,7 +76,7 @@ def room_eroder(tilemap: NDArray[uint8]):
     """
     zeroes = np.zeros_like(tilemap, uint8)
     neighbor_map = np.zeros_like(tilemap, uint8)
-    for i in range(ERODE_COUNT):
+    for _ in range(ERODE_COUNT):
         neighbor_map = adj_map(tilemap, zeroes)
     print(neighbor_map)
     return tilemap
