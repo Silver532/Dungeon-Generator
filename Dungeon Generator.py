@@ -43,7 +43,7 @@ def room_fill(tilemap: NDArray[uint8]):
         tilemap[y_s:y_e, x_s:x_e] = TEMP
     return tilemap
 
-def adj_map(tilemap: NDArray[uint8]):
+def adj_map(tilemap: NDArray[uint8], neighbor_map: NDArray[uint8]):
     """
     Parameters
     ----------
@@ -55,11 +55,10 @@ def adj_map(tilemap: NDArray[uint8]):
     tilemap : NDArray[int]
         2D array counting how many neighbors each cell has in orthogonal directions.
     """
-    orth_maps = []
-    for i in [-1,1]:
-        for j in [0,1]:
-            orth_maps.append(np.roll(tilemap, i, j))
-    neighbor_map = np.sum(orth_maps, axis = 0)
+    neighbor_map.fill(0)
+
+    neighbor_map[1:19, :] = tilemap[0:18, :] + tilemap[2:20, :]
+    neighbor_map[:, 1:19] += tilemap[:, 0:18] + tilemap[:, 2:20]
     neighbor_map *= tilemap
     return neighbor_map
 
@@ -75,11 +74,11 @@ def room_eroder(tilemap: NDArray[uint8]):
     tilemap : NDArray[int]
         2D array with room edges eroded for smoother generation.
     """
-    neighbor_map = adj_map(tilemap)
-
-    #print(f"There are {((tilemap == TEMP)).sum()} Rooms")   #DEBUG
-    #print(neighbor_map,end="\n\n") #DEBUG
-    #print(tilemap, end = "\n\n")   #DEBUG
+    zeroes = np.zeros_like(tilemap, uint8)
+    neighbor_map = np.zeros_like(tilemap, uint8)
+    for i in range(ERODE_COUNT):
+        neighbor_map = adj_map(tilemap, zeroes)
+    print(neighbor_map)
     return tilemap
 
 def main():
