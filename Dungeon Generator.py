@@ -89,8 +89,7 @@ def main():
     Visualizer will be placed here once made
     """
     from time import perf_counter_ns as clock
-    from os import system as sys
-    sys("cls")
+    print("\033c", end="")
     start_time = clock()
 
     tilemap = init_tilemap()
