@@ -59,8 +59,7 @@ def adj_map(tilemap: array[uint8], neighbor_map: array[uint8], iso: bool = True)
 
     neighbor_map[1:19, :] = tilemap[0:18, :] + tilemap[2:20, :]
     neighbor_map[:, 1:19] += tilemap[:, 0:18] + tilemap[:, 2:20]
-    if iso:
-        neighbor_map *= tilemap
+    if iso: neighbor_map *= tilemap
     return neighbor_map
 
 def room_eroder(tilemap: array[uint8]):
@@ -76,7 +75,6 @@ def room_eroder(tilemap: array[uint8]):
         2D array with room edges eroded for smoother generation.
     """
     zeroes = np.zeros_like(tilemap, uint8)
-    neighbor_map = np.zeros_like(tilemap, uint8)
     for _ in range(ERODE_COUNT):
         neighbor_map = adj_map(tilemap, zeroes)
     #print(neighbor_map, end = "\n\n")  #DEBUG
