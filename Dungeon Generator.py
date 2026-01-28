@@ -86,6 +86,15 @@ def room_eroder(tilemap: array[uint8]):
         if i: tilemap[index] = WALL
     return tilemap
 
+def _make_exit_map(tilemap):
+    """
+    Local Subhandler for Dungeon Map visualizer
+    """
+    debug_map = np.zeros_like(tilemap, uint8)
+    for index, val in np.ndenumerate(tilemap):
+        debug_map[index] = np.bitwise_count(val)
+    return debug_map
+
 def _debug(tilemap):
     """
     Local Handler for Debug Purposes
