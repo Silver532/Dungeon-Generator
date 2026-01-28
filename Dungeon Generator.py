@@ -118,7 +118,6 @@ def _debug(tilemap):
     --------------------------------
     Visualizer and debug info for dungeon map
     """
-    from matplotlib.colors import ListedColormap, BoundaryNorm
     import matplotlib as mpl, matplotlib.pyplot as plt
 
     debug_map = _make_exit_map(tilemap)
