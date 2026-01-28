@@ -112,7 +112,7 @@ def _debug(tilemap):
     plt.title("Dungeon Map"); plt.xticks([]); plt.yticks([]); plt.show()
     return
 
-def main():
+def _main():
     """
     Local Handler for Dungeon Generation
     ------------------------------------
@@ -139,4 +139,4 @@ def main():
     return
 
 if __name__ == "__main__":
-    main()
+    _main()
