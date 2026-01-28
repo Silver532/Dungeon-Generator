@@ -86,12 +86,19 @@ def room_eroder(tilemap: array[uint8]):
         if i: tilemap[index] = WALL
     return tilemap
 
+def _debug():
+    """
+    Local Handler for Debug Purposes
+    --------------------------------
+    Visualizer and debug info for dungeon map
+    """
+    return
+
 def main():
     """
     Local Handler for Dungeon Generation
     ------------------------------------
-    Only for use when running program from file\n
-    Visualizer will be placed here once made
+    Only for use when running program from file
     """
     from time import perf_counter_ns as clock
     print("\033c", end="")
