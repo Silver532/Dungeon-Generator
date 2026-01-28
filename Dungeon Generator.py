@@ -124,12 +124,12 @@ def _debug(tilemap):
     debug_map = _make_exit_map(tilemap)
 
     mpl.rcParams["toolbar"]="None"
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize = (5,5), dpi = 120)
     manager = getattr(fig.canvas, "manager", None)
     if manager is not None and hasattr(manager, "set_window_title"):
-        manager.set_window_title("DungeonMap DEBUG Window")
+        manager.set_window_title("DEBUG Window")
     ax.imshow(debug_map,"gist_yarg",interpolation="nearest")
-    ax.set_title("Dungeon Map"); ax.set_xticks([]); ax.set_yticks([]); plt.show()
+    ax.set_xticks([]); ax.set_yticks([]); plt.show()
     return
 
 def _main():
