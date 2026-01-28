@@ -87,6 +87,22 @@ def room_eroder(tilemap: array[uint8]):
         if i: tilemap[index] = WALL
     return tilemap
 
+def dungeon_map_generator():
+    """
+    Dungeon Map Generator
+    _____________________
+    Importable Handler for Dungeon Map Generation
+    """
+    tilemap = init_tilemap()
+    tilemap = room_fill(tilemap)
+    tilemap = room_eroder(tilemap)
+    tilemap *= 16
+    #Room Connector
+    #Room Clearing Pass
+    #Room Extension Pass
+    #Tilemap Trim
+    return tilemap
+
 def _make_exit_map(tilemap):
     """
     Local Subhandler for Dungeon Map visualizer
