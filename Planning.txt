@@ -3,12 +3,12 @@ Planning Document for Dungeon Generator
 
 Dungeon Generator File
     Inputs: 
-            Room Count (Optional) (Rough) (int)
+            None
 
     Process:
             Generate Dungeon Tilemap of Room locations and exits encoded using bitmaps
-                Init tilemap of given size
-                Seed and fill room locations
+#Complete       Init tilemap of given
+#Complete       Seed and fill room locations
                 Calculation Pass to connect rooms
                 Calculation Pass to clear unconnected rooms
                 Calculation Pass to add single room extensions
