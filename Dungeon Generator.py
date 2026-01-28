@@ -1,5 +1,5 @@
 """
-Dungeon Map Generator
+**Dungeon Map Generator**
 """
 
 import numpy as np
@@ -43,7 +43,7 @@ def room_fill(tilemap: array[uint8]):
         tilemap[y_s:y_e, x_s:x_e] = TEMP
     return tilemap
 
-def adj_map(tilemap: array[uint8], neighbor_map: array[uint8], iso: bool = True):
+def adj_map(tilemap: array[uint8], neighbor_map:array[uint8], iso:bool=True):
     """
     Parameters
     ----------
@@ -53,7 +53,8 @@ def adj_map(tilemap: array[uint8], neighbor_map: array[uint8], iso: bool = True)
     Returns
     -------
     tilemap : NDArray[int]
-        2D array counting how many neighbors each cell has in orthogonal directions.
+        2D array counting how many neighbors each
+        cell has in orthogonal directions.
     """
     neighbor_map.fill(0)
 
