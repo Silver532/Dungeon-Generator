@@ -101,12 +101,14 @@ def _debug(tilemap):
     --------------------------------
     Visualizer and debug info for dungeon map
     """
-    import matplotlib as mpl
-    import matplotlib.pyplot as plt
-    mpl.rcParams["toolbar"] = "None"
-    _ = plt.imshow(tilemap,"gist_yarg",interpolation="nearest")
-    plt.title("Dungeon Map"); plt.xticks([]); plt.yticks([])
-    plt.show()
+    from matplotlib.colors import ListedColormap, BoundaryNorm
+    import matplotlib as mpl, matplotlib.pyplot as plt
+
+    debug_map = _make_exit_map(tilemap)
+
+    mpl.rcParams["toolbar"]="None"
+    plt.imshow(debug_map,"gist_yarg",interpolation="nearest")
+    plt.title("Dungeon Map"); plt.xticks([]); plt.yticks([]); plt.show()
     return
 
 def main():
