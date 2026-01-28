@@ -7,8 +7,9 @@ Dungeon Generator File
 
     Process:
             Generate Dungeon Tilemap of Room locations and exits encoded using bitmaps
-#Complete       Init tilemap of given
-#Complete       Seed and fill room locations
+#Complete       Init tilemap of given size
+#Complete       Fill initial room locations
+#Complete       Erosion pass on Tilemap to generate more natural shape
                 Calculation Pass to connect rooms
                 Calculation Pass to clear unconnected rooms
                 Calculation Pass to add single room extensions
