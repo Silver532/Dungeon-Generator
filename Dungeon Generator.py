@@ -86,12 +86,18 @@ def room_eroder(tilemap: array[uint8]):
         if i: tilemap[index] = WALL
     return tilemap
 
-def _debug():
+def _debug(tilemap):
     """
     Local Handler for Debug Purposes
     --------------------------------
     Visualizer and debug info for dungeon map
     """
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
+    mpl.rcParams["toolbar"] = "None"
+    _ = plt.imshow(tilemap,"gist_yarg",interpolation="nearest")
+    plt.title("Dungeon Map"); plt.xticks([]); plt.yticks([])
+    plt.show()
     return
 
 def main():
@@ -117,6 +123,7 @@ def main():
     end_time = clock()
     delta_time = (end_time - start_time)
     print(f"Program ran in {delta_time/1000000} milliseconds")
+    _debug(tilemap)
     return
 
 if __name__ == "__main__":
