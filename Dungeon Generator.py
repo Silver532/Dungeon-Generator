@@ -90,7 +90,7 @@ def room_eroder(tilemap: array[uint8]):
 def dungeon_map_generator():
     """
     Dungeon Map Generator
-    _____________________
+    ---------------------
     Importable Handler for Dungeon Map Generation
     """
     tilemap = init_tilemap()
@@ -124,8 +124,12 @@ def _debug(tilemap):
     debug_map = _make_exit_map(tilemap)
 
     mpl.rcParams["toolbar"]="None"
-    plt.imshow(debug_map,"gist_yarg",interpolation="nearest")
-    plt.title("Dungeon Map"); plt.xticks([]); plt.yticks([]); plt.show()
+    fig, ax = plt.subplots()
+    manager = getattr(fig.canvas, "manager", None)
+    if manager is not None and hasattr(manager, "set_window_title"):
+        manager.set_window_title("DungeonMap DEBUG Window")
+    ax.imshow(debug_map,"gist_yarg",interpolation="nearest")
+    ax.set_title("Dungeon Map"); ax.set_xticks([]); ax.set_yticks([]); plt.show()
     return
 
 def _main():
