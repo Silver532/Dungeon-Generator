@@ -175,8 +175,8 @@ def _main():
     print(tilemap)  #DEBUG
 
     end_time = clock()
-    delta_time = (end_time - start_time)
-    print(f"Program ran in {delta_time/1000000} milliseconds")
+    delta_time = (end_time - start_time)/1000000
+    print(f"Program ran in {delta_time} milliseconds")
     _debug(tilemap)
     return
 
