@@ -119,15 +119,30 @@ def _debug(tilemap):
     Visualizer and debug info for dungeon map
     """
     import matplotlib as mpl, matplotlib.pyplot as plt
+    from matplotlib.colors import ListedColormap, BoundaryNorm
 
     debug_map = _make_exit_map(tilemap)
+
+    colours = [
+        "white",
+        "black",
+        "red",
+        "blue",
+        "green",
+        "yellow"
+    ]
+    cmap = ListedColormap(colours)
+    norm = BoundaryNorm(range(len(colours)+1), cmap.N)
+
+    #for index, i in np.ndenumerate(debug_map): #DEBUG
+        #if i: debug_map[index] *= rand(1,4)    #DEBUG
 
     mpl.rcParams["toolbar"]="None"
     fig, ax = plt.subplots(figsize = (5,5), dpi = 120)
     manager = getattr(fig.canvas, "manager", None)
     if manager is not None and hasattr(manager, "set_window_title"):
         manager.set_window_title("DEBUG Window")
-    ax.imshow(debug_map,"gist_yarg",interpolation="nearest")
+    ax.imshow(debug_map,cmap=cmap,norm=norm,interpolation="nearest")
     ax.set_xticks([]); ax.set_yticks([]); plt.show()
     return
 
