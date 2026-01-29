@@ -3,12 +3,14 @@
 """
 
 import numpy as np
+import matplotlib.pyplot as plt
+
 from numpy import uint8
 from numpy.typing import NDArray as array
 from random import randint as rand
-import matplotlib.pyplot as plt
 from matplotlib import rcParams
 from matplotlib.colors import ListedColormap, BoundaryNorm
+
 from Constants import *
 
 def init_tilemap(size: int = DUNGEON_SIZE):
@@ -52,6 +54,10 @@ def adj_map(tilemap: array[uint8], neighbor_map:array[uint8], iso:bool=True):
     ----------
     tilemap : NDArray[uint8]
         2D array with rooms placed.
+    neighbor_map : NDArray[uint8]
+        2D array for placing neighbor count in
+    iso : bool
+        Trim values to only active tiles in the tilemap
 
     Returns
     -------
