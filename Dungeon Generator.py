@@ -130,10 +130,11 @@ def _make_exit_map(tilemap):
 def _on_click(event, ax, tilemap):
     if event.inaxes != ax:
         return
-    col = int(event.xdata)
-    row = int(event.ydata)
+    col = int(event.xdata+0.5)
+    row = int(event.ydata+0.5)
     if 0 <= row < tilemap.shape[0] and 0 <= col < tilemap.shape[1]:
         print(f"\033cTile Clicked: {row}, {col}")
+        print(f"Tile Value: {tilemap[row,col]}")
     return
 
 def _debug(tilemap):
@@ -144,25 +145,32 @@ def _debug(tilemap):
     """
     debug_map = _make_exit_map(tilemap)
 
-    colours = [
-        "white", "black",
-        "red", "blue",
-        "green", "yellow"
-    ]
+    colours = ["white", "black", "red", "blue", "green", "yellow"]
+    
     cmap = ListedColormap(colours)
     norm = BoundaryNorm(range(len(colours)+1), cmap.N)
+    
+    rcParams["toolbar"]="None"
+    fig, ax = plt.subplots(figsize = (5,5), dpi = 120)
 
     #for index, i in np.ndenumerate(debug_map): #DEBUG
         #if i: debug_map[index] *= rand(1,4)    #DEBUG
 
-    rcParams["toolbar"]="None"
-    fig, ax = plt.subplots(figsize = (5,5), dpi = 120)
     manager = getattr(fig.canvas, "manager", None)
     if manager is not None and hasattr(manager, "set_window_title"):
         manager.set_window_title("DEBUG Window")
+    
+    rows, cols = debug_map.shape
+
     ax.imshow(debug_map,cmap=cmap,norm=norm,interpolation="nearest")
+    ax.grid(which="minor", color="white", linewidth=0.5)
+    ax.tick_params(which="both", bottom=False, left=False, labelbottom=False, labelleft=False)
+    ax.set_xticks(np.arange(-0.5, cols, 1), minor=True)
+    ax.set_yticks(np.arange(-0.5, rows, 1), minor=True)
+
     fig.canvas.mpl_connect("button_press_event",lambda event: _on_click(event, ax, tilemap))
-    ax.set_xticks([]); ax.set_yticks([]); plt.show()
+
+    plt.show()
     return
 
 def _main():
