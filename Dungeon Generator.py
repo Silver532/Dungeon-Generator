@@ -127,6 +127,15 @@ def _make_exit_map(tilemap):
         debug_map[index] = np.bitwise_count(val)
     return debug_map
 
+def _on_click(event, ax, tilemap):
+    if event.inaxes != ax:
+        return
+    col = int(event.xdata)
+    row = int(event.ydata)
+    if 0 <= row < tilemap.shape[0] and 0 <= col < tilemap.shape[1]:
+        print(f"\033cTile Clicked: {row}, {col}")
+    return
+
 def _debug(tilemap):
     """
     Local Handler for Debug Purposes
@@ -152,6 +161,7 @@ def _debug(tilemap):
     if manager is not None and hasattr(manager, "set_window_title"):
         manager.set_window_title("DEBUG Window")
     ax.imshow(debug_map,cmap=cmap,norm=norm,interpolation="nearest")
+    fig.canvas.mpl_connect("button_press_event",lambda event: _on_click(event, ax, tilemap))
     ax.set_xticks([]); ax.set_yticks([]); plt.show()
     return
 
@@ -172,7 +182,6 @@ def _main():
     tilemap = tilemap_trim(tilemap)
     #Room Connector
     #Room Clearing Pass
-    print(tilemap)  #DEBUG
 
     end_time = clock()
     delta_time = (end_time - start_time)/1000000
