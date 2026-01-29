@@ -65,10 +65,10 @@ def adj_map(tilemap: array[uint8], neighbor_map:array[uint8], iso:bool=True):
         2D array counting how many neighbors each
         cell has in orthogonal directions.
     """
+    h, w = tilemap.shape
     neighbor_map.fill(0)
-
-    neighbor_map[1:19, :] = tilemap[0:18, :] + tilemap[2:20, :]
-    neighbor_map[:, 1:19] += tilemap[:, 0:18] + tilemap[:, 2:20]
+    neighbor_map[1:h-1, :] = tilemap[0:h-2, :] + tilemap[2:h, :]
+    neighbor_map[:, 1:w-1] += tilemap[:, 0:w-2] + tilemap[:, 2:w]
     if iso: neighbor_map *= tilemap
     return neighbor_map
 
