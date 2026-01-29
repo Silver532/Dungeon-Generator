@@ -6,6 +6,9 @@ import numpy as np
 from numpy import uint8
 from numpy.typing import NDArray as array
 from random import randint as rand
+import matplotlib.pyplot as plt
+from matplotlib import rcParams
+from matplotlib.colors import ListedColormap, BoundaryNorm
 from Constants import *
 
 def init_tilemap(size: int = DUNGEON_SIZE):
@@ -118,9 +121,6 @@ def _debug(tilemap):
     --------------------------------
     Visualizer and debug info for dungeon map
     """
-    import matplotlib as mpl, matplotlib.pyplot as plt
-    from matplotlib.colors import ListedColormap, BoundaryNorm
-
     debug_map = _make_exit_map(tilemap)
 
     colours = [
@@ -134,7 +134,7 @@ def _debug(tilemap):
     #for index, i in np.ndenumerate(debug_map): #DEBUG
         #if i: debug_map[index] *= rand(1,4)    #DEBUG
 
-    mpl.rcParams["toolbar"]="None"
+    rcParams["toolbar"]="None"
     fig, ax = plt.subplots(figsize = (5,5), dpi = 120)
     manager = getattr(fig.canvas, "manager", None)
     if manager is not None and hasattr(manager, "set_window_title"):
