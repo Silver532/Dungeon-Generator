@@ -67,6 +67,7 @@ def adj_map(tilemap: array[uint8], neighbor_map:array[uint8], iso:bool=True):
     """
     h, w = tilemap.shape
     neighbor_map.fill(0)
+
     neighbor_map[1:h-1, :] = tilemap[0:h-2, :] + tilemap[2:h, :]
     neighbor_map[:, 1:w-1] += tilemap[:, 0:w-2] + tilemap[:, 2:w]
     if iso: neighbor_map *= tilemap
@@ -96,6 +97,12 @@ def room_eroder(tilemap: array[uint8]):
         if i: tilemap[index] = WALL
     return tilemap
 
+def tilemap_trim(tilemap):
+    active_rows = np.any(tilemap != 0, axis=1)
+    active_cols = np.any(tilemap != 0, axis=0)
+    trimmed_tilemap = tilemap[np.ix_(active_rows, active_cols)]
+    return trimmed_tilemap
+
 def dungeon_map_generator():
     """
     Dungeon Map Generator
@@ -106,10 +113,9 @@ def dungeon_map_generator():
     tilemap = room_fill(tilemap)
     tilemap = room_eroder(tilemap)
     tilemap *= 16
+    tilemap = tilemap_trim(tilemap)
     #Room Connector
     #Room Clearing Pass
-    #Room Extension Pass
-    #Tilemap Trim
     return tilemap
 
 def _make_exit_map(tilemap):
@@ -163,11 +169,10 @@ def _main():
     tilemap = room_fill(tilemap)
     tilemap = room_eroder(tilemap)
     tilemap *= 16
+    tilemap = tilemap_trim(tilemap)
     #Room Connector
     #Room Clearing Pass
-    #Room Extension Pass
-    #Tilemap Trim
-    print(tilemap) #DEBUG
+    print(tilemap)  #DEBUG
 
     end_time = clock()
     delta_time = (end_time - start_time)
