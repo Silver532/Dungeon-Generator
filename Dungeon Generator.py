@@ -124,12 +124,9 @@ def _debug(tilemap):
     debug_map = _make_exit_map(tilemap)
 
     colours = [
-        "white",
-        "black",
-        "red",
-        "blue",
-        "green",
-        "yellow"
+        "white", "black",
+        "red", "blue",
+        "green", "yellow"
     ]
     cmap = ListedColormap(colours)
     norm = BoundaryNorm(range(len(colours)+1), cmap.N)
