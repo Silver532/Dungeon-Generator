@@ -11,6 +11,7 @@ from random import randint as rand
 from random import choice
 from matplotlib import rcParams
 from matplotlib.colors import ListedColormap, BoundaryNorm
+from matplotlib.axes import Axes
 
 from Constants import *
 
@@ -98,7 +99,7 @@ def room_eroder(tilemap: array[uint8]):
         if i: tilemap[index] = WALL
     return tilemap
 
-def tilemap_trim(tilemap):
+def tilemap_trim(tilemap: array[uint8]):
     active_rows = np.any(tilemap != 0, axis=1)
     active_cols = np.any(tilemap != 0, axis=0)
     trimmed_tilemap = tilemap[np.ix_(active_rows, active_cols)]
@@ -119,14 +120,13 @@ def dungeon_map_generator():
     #Room Clearing Pass
     return tilemap
 
-def _get_directions(value):
+def _get_directions(value: int):
     bits = value & 0b01111
     directions = ["North","East","South","West"]
+    dirs = [directions[i] for i in range(4) if bits & (1 << i)]
+    return dirs
 
-    
-    return
-
-def _make_exit_map(tilemap):
+def _make_exit_map(tilemap: array[uint8]):
     """
     Local Subhandler for Dungeon Map visualizer
     """
@@ -135,19 +135,18 @@ def _make_exit_map(tilemap):
         debug_map[index] = np.bitwise_count(val)
     return debug_map
 
-def _on_click(event, ax, tilemap):
-    if event.inaxes != ax:
-        return
+def _on_click(event, ax: Axes, tilemap: array[uint8]):
+    if event.inaxes != ax: return
     col = int(event.xdata+0.5)
     row = int(event.ydata+0.5)
     if 0 <= row < tilemap.shape[0] and 0 <= col < tilemap.shape[1]:
-
-        print(f"\033cTile Clicked: {row}, {col}")
-        print(f"Tile Value: {tilemap[row,col]}")
-        print(f"Exits: ")
+        dirs = _get_directions(tilemap[row,col])
+        print(f"\033cTile Clicked: {row}, {col}\n"+
+              f"Tile Value: {tilemap[row,col]}\n"+
+              f"Exits: {", ".join(dirs)}")
     return
 
-def _debug(tilemap):
+def _debug(tilemap: array[uint8]):
     """
     Local Handler for Debug Purposes
     --------------------------------
