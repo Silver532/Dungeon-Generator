@@ -10,10 +10,9 @@ Dungeon Generator File
 #Complete       Init tilemap of given size
 #Complete       Fill initial room locations
 #Complete       Erosion pass on Tilemap to generate more natural shape
-                Calculation Pass to connect rooms
+#Complete       Calculation Pass to connect rooms
+#Complete       Calculation Pass to trim tilemap to max size used
                 Calculation Pass to clear unconnected rooms
-                Calculation Pass to add single room extensions
-                Calculation Pass to trim tilemap to max size used
 
     Output: 
             numpy array of uint-8 values of size x * y, where each cell has:
