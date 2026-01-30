@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from numpy import uint8
 from numpy.typing import NDArray as array
 from random import randint as rand
+from random import choice
 from matplotlib import rcParams
 from matplotlib.colors import ListedColormap, BoundaryNorm
 
@@ -118,6 +119,13 @@ def dungeon_map_generator():
     #Room Clearing Pass
     return tilemap
 
+def _get_directions(value):
+    bits = value & 0b01111
+    directions = ["North","East","South","West"]
+
+    
+    return
+
 def _make_exit_map(tilemap):
     """
     Local Subhandler for Dungeon Map visualizer
@@ -133,8 +141,10 @@ def _on_click(event, ax, tilemap):
     col = int(event.xdata+0.5)
     row = int(event.ydata+0.5)
     if 0 <= row < tilemap.shape[0] and 0 <= col < tilemap.shape[1]:
+
         print(f"\033cTile Clicked: {row}, {col}")
         print(f"Tile Value: {tilemap[row,col]}")
+        print(f"Exits: ")
     return
 
 def _debug(tilemap):
@@ -143,6 +153,9 @@ def _debug(tilemap):
     --------------------------------
     Visualizer and debug info for dungeon map
     """
+    #for index, i in np.ndenumerate(tilemap):       #DEBUG
+    #    if i: tilemap[index] += choice([1,2,4,8])  #DEBUG
+
     debug_map = _make_exit_map(tilemap)
 
     colours = ["white", "black", "red", "blue", "green", "yellow"]
@@ -152,9 +165,6 @@ def _debug(tilemap):
     
     rcParams["toolbar"]="None"
     fig, ax = plt.subplots(figsize = (5,5), dpi = 120)
-
-    #for index, i in np.ndenumerate(debug_map): #DEBUG
-        #if i: debug_map[index] *= rand(1,4)    #DEBUG
 
     manager = getattr(fig.canvas, "manager", None)
     if manager is not None and hasattr(manager, "set_window_title"):
