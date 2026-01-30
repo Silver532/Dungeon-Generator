@@ -8,7 +8,8 @@ import matplotlib.pyplot as plt
 from numpy import uint8
 from numpy.typing import NDArray as array
 from random import randint as rand
-from random import choice
+from random import random
+from random import sample
 from matplotlib import rcParams
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from matplotlib.axes import Axes
@@ -105,6 +106,57 @@ def tilemap_trim(tilemap: array[uint8]):
     trimmed_tilemap = tilemap[np.ix_(active_rows, active_cols)]
     return trimmed_tilemap
 
+def get_directions(value: int):
+    bits = value & 0b01111
+    directions = ["North","East","South","West"]
+    dirs = [directions[i] for i in range(4) if bits & (1 << i)]
+    return dirs
+
+def get_possible_connections(tilemap: array[uint8]):
+    up    = tilemap[:-2, 1:-1] != 0
+    right = tilemap[1:-1, 2:] != 0
+    down  = tilemap[2:, 1:-1] != 0
+    left  = tilemap[1:-1, :-2] != 0
+
+    connections = (
+        up.astype(np.uint8)
+        | (right.astype(np.uint8) << 1)
+        | (down.astype(np.uint8) << 2)
+        | (left.astype(np.uint8) << 3)
+    )
+    connections *= tilemap[1:-1, 1:-1] != 0
+    return connections
+
+def room_random():
+    r = random()
+    if r < 0.60:    return 1
+    elif r < 0.85:  return 2
+    else:           return 3
+
+def room_connector(tilemap: array[uint8]):
+    connection_map = get_possible_connections(tilemap)
+    H, W = tilemap.shape
+    dir_to_bit = {"North": 1 << 0, "East":  1 << 1, "South": 1 << 2, "West":  1 << 3}
+    opposite = {"North": "South", "East":  "West", "South": "North", "West":  "East",}
+    for y in range(1, H - 1):
+        for x in range(1, W - 1):
+            if tilemap[y, x] == 0: continue
+            possible_dirs = connection_map[y - 1, x - 1]
+            dir_list = get_directions(possible_dirs)
+            connect_count = min(room_random(), len(dir_list))
+            chosen_dirs = sample(dir_list, connect_count)
+            for d in chosen_dirs:
+                tilemap[y,x] |= dir_to_bit[d]
+                match d:
+                    case "North": ny, nx = y-1, x
+                    case "South": ny, nx = y+1, x
+                    case "East": ny, nx = y, x+1
+                    case "West": ny, nx = y, x-1
+                    case _: ny, nx = y,x
+
+                tilemap[ny, nx] |= dir_to_bit[opposite[d]]
+    return tilemap
+
 def dungeon_map_generator():
     """
     Dungeon Map Generator
@@ -115,16 +167,10 @@ def dungeon_map_generator():
     tilemap = room_fill(tilemap)
     tilemap = room_eroder(tilemap)
     tilemap *= 16
+    tilemap = room_connector(tilemap)
     tilemap = tilemap_trim(tilemap)
-    #Room Connector
     #Room Clearing Pass
     return tilemap
-
-def _get_directions(value: int):
-    bits = value & 0b01111
-    directions = ["North","East","South","West"]
-    dirs = [directions[i] for i in range(4) if bits & (1 << i)]
-    return dirs
 
 def _make_exit_map(tilemap: array[uint8]):
     """
@@ -140,7 +186,7 @@ def _on_click(event, ax: Axes, tilemap: array[uint8]):
     col = int(event.xdata+0.5)
     row = int(event.ydata+0.5)
     if 0 <= row < tilemap.shape[0] and 0 <= col < tilemap.shape[1]:
-        dirs = _get_directions(tilemap[row,col])
+        dirs = get_directions(tilemap[row,col])
         print(f"\033cTile Clicked: {row}, {col}\n"+
               f"Tile Value: {tilemap[row,col]}\n"+
               f"Exits: {", ".join(dirs)}")
@@ -196,8 +242,8 @@ def _main():
     tilemap = room_fill(tilemap)
     tilemap = room_eroder(tilemap)
     tilemap *= 16
+    tilemap = room_connector(tilemap)
     tilemap = tilemap_trim(tilemap)
-    #Room Connector
     #Room Clearing Pass
 
     end_time = clock()
