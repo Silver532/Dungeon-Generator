@@ -1,0 +1,5 @@
+This is my 4th iteration of this project, and I am pleased to say that it is my best one yet,
+even in it's unfinished state.  Iteration 1 can be found on my "Personal Projects" repo, and
+is entirely different from what you can see here.  Iterations 2 and 3 will not be put on GitHub,
+as I no longer have the source code, and was not rigourous enough with documentation to recreate
+them in a reasonable time frame.
