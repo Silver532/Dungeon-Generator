@@ -203,7 +203,7 @@ def _debug(tilemap: array[uint8]):
 
     debug_map = _make_exit_map(tilemap)
 
-    colours = ["white", "black", "red", "blue", "green", "yellow"]
+    colours = ["white", "black", "green", "blue", "red", "yellow"]
     
     cmap = ListedColormap(colours)
     norm = BoundaryNorm(range(len(colours)+1), cmap.N)
