@@ -1,5 +1,34 @@
 This is my 4th iteration of this project, and I am pleased to say that it is my best one yet,
 even in it's unfinished state.  Iteration 1 can be found on my "Personal Projects" repo, and
 is entirely different from what you can see here.  Iterations 2 and 3 will not be put on GitHub,
-as I no longer have the source code, and was not rigourous enough with documentation to recreate
-them in a reasonable time frame.
+as I no longer have the source code, and do not wish to recreate them.
+
+What each iteration improved on:
+Iteration 1: Started this project.  i1 is an unfinished text based dungeon crawler.
+             There were planned systems for save/load, combat, and looting.  Game
+             was controlled through terminal commands (eg. go north), and was not
+             optimized particularly well.
+
+Iteration 2: Complete rewrite of the code, i2 gave the game graphics for both the
+             dungeon and the room maps.  Room generation had a complete overhaul,
+             with procedurally generating layouts.  Similarly to i1, this game was
+             incomplete, with planned systems for player control, combat, and the
+             stitched tilemap system.
+
+Iteration 3: Partial rewrite of i2, with dungeon generation having a complete rewrite.
+             This iteration was incredibly unoptimized, though I really liked the room
+             system.  This was also the first implementation of the stitched tilemap
+             and full dungeon view. Enemies were added for this iteration, but I couldnt
+             get them to do anything.
+
+Iteration 4: Complete rewrite of the program. Dungeon generation entirely reworked.
+             There is a major focus on optimization this iteration, as well as fixing
+             the issues from previous iterations.
+             Current Features: Dungeon Map Generation
+             Planned Features: Room Map Gen
+                               Tilemap Stitching
+                               Game Timer
+                               Bosses
+                               Enemies
+                               Player Movement
+                               Combat
