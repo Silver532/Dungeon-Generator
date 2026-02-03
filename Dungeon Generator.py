@@ -193,19 +193,22 @@ def _make_exit_map(tilemap: array[uint8]):
         debug_map[index] = np.bitwise_count(val)
     return debug_map
 
-def _on_click(event, ax: Axes, tilemap: array[uint8], time: float):
-    if event.inaxes != ax: return
-    col = int(event.xdata+0.5)
-    row = int(event.ydata+0.5)
-    if 0 <= row < tilemap.shape[0] and 0 <= col < tilemap.shape[1]:
-        dirs = get_directions(tilemap[row,col])
+def _on_click(event, ax: Axes, tilemap: array[uint8], time: float, room_count: int):
+    if event.inaxes == ax:
+        col = int(event.xdata+0.5)
+        row = int(event.ydata+0.5)
+        if 0 <= row < tilemap.shape[0] and 0 <= col < tilemap.shape[1]:
+            dirs = get_directions(tilemap[row,col])
+            print(f"\033cProgram ran in {time} milliseconds\n"+
+                f"Tile Clicked: {row}, {col}\n"+
+                f"Tile Value: {tilemap[row,col]}\n"+
+                f"Exits: {", ".join(dirs)}")
+    else:
         print(f"\033cProgram ran in {time} milliseconds\n"+
-              f"Tile Clicked: {row}, {col}\n"+
-              f"Tile Value: {tilemap[row,col]}\n"+
-              f"Exits: {", ".join(dirs)}")
+              f"Dungeon contains {room_count} rooms")
     return
 
-def _debug(tilemap: array[uint8], time: float):
+def _debug(tilemap: array[uint8], time: float, room_count: int):
     """
     Local Handler for Debug Purposes
     --------------------------------
@@ -233,7 +236,7 @@ def _debug(tilemap: array[uint8], time: float):
     ax.set_xticks(np.arange(-0.5, cols, 1), minor=True)
     ax.set_yticks(np.arange(-0.5, rows, 1), minor=True)
 
-    fig.canvas.mpl_connect("button_press_event",lambda event: _on_click(event, ax, tilemap, time))
+    fig.canvas.mpl_connect("button_press_event",lambda event: _on_click(event, ax, tilemap, time, room_count))
 
     plt.show()
     return
@@ -248,18 +251,14 @@ def _main():
     print("\033c", end="")
     start_time = clock()
 
-    tilemap = init_tilemap()
-    tilemap = room_fill(tilemap)
-    tilemap = room_eroder(tilemap)
-    tilemap *= 16
-    tilemap = room_connector(tilemap)
-    tilemap = tilemap_trim(tilemap)
-    tilemap = room_clear(tilemap)
+    tilemap = dungeon_map_generator()
 
     end_time = clock()
     delta_time = (end_time - start_time)/1000000
+    room_count = np.count_nonzero(tilemap)
     print(f"Program ran in {delta_time} milliseconds")
-    _debug(tilemap, delta_time)
+    print(f"Dungeon contains {room_count} rooms")
+    _debug(tilemap, delta_time, room_count)
     return
 
 if __name__ == "__main__":
