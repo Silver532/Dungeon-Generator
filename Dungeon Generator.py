@@ -181,26 +181,24 @@ def _make_exit_map(tilemap: array[uint8]):
         debug_map[index] = np.bitwise_count(val)
     return debug_map
 
-def _on_click(event, ax: Axes, tilemap: array[uint8]):
+def _on_click(event, ax: Axes, tilemap: array[uint8], time: float):
     if event.inaxes != ax: return
     col = int(event.xdata+0.5)
     row = int(event.ydata+0.5)
     if 0 <= row < tilemap.shape[0] and 0 <= col < tilemap.shape[1]:
         dirs = get_directions(tilemap[row,col])
-        print(f"\033cTile Clicked: {row}, {col}\n"+
+        print(f"\033cProgram ran in {time} milliseconds\n"+
+              f"Tile Clicked: {row}, {col}\n"+
               f"Tile Value: {tilemap[row,col]}\n"+
               f"Exits: {", ".join(dirs)}")
     return
 
-def _debug(tilemap: array[uint8]):
+def _debug(tilemap: array[uint8], time: float):
     """
     Local Handler for Debug Purposes
     --------------------------------
     Visualizer and debug info for dungeon map
     """
-    #for index, i in np.ndenumerate(tilemap):       #DEBUG
-    #    if i: tilemap[index] += choice([1,2,4,8])  #DEBUG
-
     debug_map = _make_exit_map(tilemap)
 
     colours = ["white", "black", "green", "blue", "red", "yellow"]
@@ -223,7 +221,7 @@ def _debug(tilemap: array[uint8]):
     ax.set_xticks(np.arange(-0.5, cols, 1), minor=True)
     ax.set_yticks(np.arange(-0.5, rows, 1), minor=True)
 
-    fig.canvas.mpl_connect("button_press_event",lambda event: _on_click(event, ax, tilemap))
+    fig.canvas.mpl_connect("button_press_event",lambda event: _on_click(event, ax, tilemap, time))
 
     plt.show()
     return
@@ -249,7 +247,7 @@ def _main():
     end_time = clock()
     delta_time = (end_time - start_time)/1000000
     print(f"Program ran in {delta_time} milliseconds")
-    _debug(tilemap)
+    _debug(tilemap, delta_time)
     return
 
 if __name__ == "__main__":
