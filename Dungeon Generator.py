@@ -157,6 +157,18 @@ def room_connector(tilemap: array[uint8]):
                 tilemap[ny, nx] |= dir_to_bit[opposite[d]]
     return tilemap
 
+def room_clear(tilemap):
+    dir_dict = {17:(-1,0), 18:(0,1), 20:(1,0), 24:(0,-1)}
+    one_exit_tiles = [17,18,20,24]
+    for index, i in np.ndenumerate(tilemap):
+        if i in one_exit_tiles:
+            adj_tile = dir_dict[i]
+            adj_tile_val = tuple(a + b for a, b in zip(index, adj_tile))
+            if tilemap[adj_tile_val] in one_exit_tiles:
+                tilemap[index] = 0
+                tilemap[adj_tile_val] = 0
+    return tilemap
+
 def dungeon_map_generator():
     """
     Dungeon Map Generator
@@ -169,7 +181,7 @@ def dungeon_map_generator():
     tilemap *= 16
     tilemap = room_connector(tilemap)
     tilemap = tilemap_trim(tilemap)
-    #Room Clearing Pass
+    tilemap = room_clear(tilemap)
     return tilemap
 
 def _make_exit_map(tilemap: array[uint8]):
@@ -242,7 +254,7 @@ def _main():
     tilemap *= 16
     tilemap = room_connector(tilemap)
     tilemap = tilemap_trim(tilemap)
-    #Room Clearing Pass
+    tilemap = room_clear(tilemap)
 
     end_time = clock()
     delta_time = (end_time - start_time)/1000000
