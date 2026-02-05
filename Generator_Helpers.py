@@ -2,8 +2,6 @@ import numpy as np
 from numpy import uint8
 from numpy.typing import NDArray as array
 
-from Constants import *
-
 def init_tilemap(height: int, width: int = 0) -> array[uint8]:
     """
     Parameters
