@@ -16,7 +16,7 @@ from matplotlib.axes import Axes
 
 from Constants import *
 
-def init_tilemap(size: int = DUNGEON_SIZE):
+def init_tilemap(size: int = DUNGEON_SIZE) -> array[uint8]:
     """
     Parameters
     ----------
@@ -30,7 +30,7 @@ def init_tilemap(size: int = DUNGEON_SIZE):
     """
     return np.zeros((size,size), uint8)
 
-def room_fill(tilemap: array[uint8]):
+def room_fill(tilemap: array[uint8]) -> array[uint8]:
     """
     Parameters
     ----------
@@ -51,7 +51,7 @@ def room_fill(tilemap: array[uint8]):
         tilemap[y_s:y_e, x_s:x_e] = TEMP
     return tilemap
 
-def adj_map(tilemap: array[uint8], neighbor_map:array[uint8], iso:bool=True):
+def adj_map(tilemap: array[uint8], neighbor_map:array[uint8], iso:bool=True) -> array[uint8]:
     """
     Parameters
     ----------
@@ -76,7 +76,7 @@ def adj_map(tilemap: array[uint8], neighbor_map:array[uint8], iso:bool=True):
     if iso: neighbor_map *= tilemap
     return neighbor_map
 
-def room_eroder(tilemap: array[uint8]):
+def room_eroder(tilemap: array[uint8]) -> array[uint8]:
     """
     Parameters
     ----------
@@ -100,19 +100,57 @@ def room_eroder(tilemap: array[uint8]):
         if i: tilemap[index] = WALL
     return tilemap
 
-def tilemap_trim(tilemap: array[uint8]):
+def tilemap_trim(tilemap: array[uint8]) -> array[uint8]:
+    """
+    Parameters
+    ----------
+    tilemap : NDArray[uint8]
+        2D array with rooms in final positions.
+
+    Returns
+    -------
+    tilemap : NDArray[int]
+        2D array that contains only the bounding box of the room positions.
+    """
     active_rows = np.any(tilemap != 0, axis=1)
     active_cols = np.any(tilemap != 0, axis=0)
     trimmed_tilemap = tilemap[np.ix_(active_rows, active_cols)]
     return trimmed_tilemap
 
-def get_directions(value: int):
+def get_directions(value: int) -> list[str]:
+    """
+    Parameters
+    ----------
+    value: int
+        Bitmask value to grab directions from\n
+        1 = North\n
+        2 = East\n
+        4 = South\n
+        8 = West
+
+    Returns
+    -------
+    dirs: list[str]
+        List of direction strings
+    """
     bits = value & 0b01111
     directions = ["North","East","South","West"]
     dirs = [directions[i] for i in range(4) if bits & (1 << i)]
     return dirs
 
-def get_possible_connections(tilemap: array[uint8]):
+def get_possible_connections(tilemap: array[uint8]) -> array[uint8]:
+    """
+    Parameters
+    ----------
+    tilemap : NDArray[uint8]
+        2D array containing active and inactive tiles.
+
+    Returns
+    -------
+    tilemap : NDArray[int]
+        2D array of same dimensions, containing number
+        of active tiles adjacent to each tile.
+    """
     up    = tilemap[:-2, 1:-1] != 0
     right = tilemap[1:-1, 2:] != 0
     down  = tilemap[2:, 1:-1] != 0
@@ -128,12 +166,29 @@ def get_possible_connections(tilemap: array[uint8]):
     return connections
 
 def room_random():
+    """
+    Returns
+    -------
+    Literal[1, 2, 3]
+        returns 1, 2 or 3 with a weighted random
+    """
     r = random()
     if r < 0.60:    return 1
     elif r < 0.85:  return 2
     else:           return 3
 
-def room_connector(tilemap: array[uint8]):
+def room_connector(tilemap: array[uint8]) -> array[uint8]:
+    """
+    Parameters
+    ----------
+    tilemap : NDArray[uint8]
+        2D array with active rooms (bit 4).
+
+    Returns
+    -------
+    tilemap : NDArray[uint8]
+        2D array with rooms connected (bits 0-3).
+    """
     connection_map = get_possible_connections(tilemap)
     H, W = tilemap.shape
     dir_to_bit = {"North": 1 << 0, "East":  1 << 1, "South": 1 << 2, "West":  1 << 3}
@@ -157,7 +212,19 @@ def room_connector(tilemap: array[uint8]):
                 tilemap[ny, nx] |= dir_to_bit[opposite[d]]
     return tilemap
 
-def room_clear(tilemap):
+def room_clear(tilemap) -> array[uint8]:
+    """
+    Parameters
+    ----------
+    tilemap : NDArray[uint8]
+        2D array with room connections.
+
+    Returns
+    -------
+    tilemap : NDArray[unit8]
+        2D array with unconnected rooms removed.
+        Only affects groups of 2.
+    """
     dir_dict = {17:(-1,0), 18:(0,1), 20:(1,0), 24:(0,-1)}
     one_exit_tiles = [17,18,20,24]
     for index, i in np.ndenumerate(tilemap):
@@ -169,7 +236,7 @@ def room_clear(tilemap):
                 tilemap[adj_tile_val] = 0
     return tilemap
 
-def dungeon_map_generator():
+def dungeon_map_generator() -> array[uint8]:
     """
     Dungeon Map Generator
     ---------------------
@@ -184,7 +251,7 @@ def dungeon_map_generator():
     tilemap = room_clear(tilemap)
     return tilemap
 
-def _make_exit_map(tilemap: array[uint8]):
+def _make_exit_map(tilemap: array[uint8]) -> array[uint8]:
     """
     Local Subhandler for Dungeon Map visualizer
     """
@@ -193,7 +260,10 @@ def _make_exit_map(tilemap: array[uint8]):
         debug_map[index] = np.bitwise_count(val)
     return debug_map
 
-def _on_click(event, ax: Axes, tilemap: array[uint8], time: float, room_count: int):
+def _on_click(event, ax: Axes, tilemap: array[uint8], time: float, room_count: int) -> None:
+    """
+    Local handler for debug on click event.
+    """
     if event.inaxes == ax:
         col = int(event.xdata+0.5)
         row = int(event.ydata+0.5)
@@ -208,7 +278,7 @@ def _on_click(event, ax: Axes, tilemap: array[uint8], time: float, room_count: i
               f"Dungeon contains {room_count} rooms")
     return
 
-def _debug(tilemap: array[uint8], time: float, room_count: int):
+def _debug(tilemap: array[uint8], time: float, room_count: int) -> None:
     """
     Local Handler for Debug Purposes
     --------------------------------
@@ -241,7 +311,7 @@ def _debug(tilemap: array[uint8], time: float, room_count: int):
     plt.show()
     return
 
-def _main():
+def _main() -> None:
     """
     Local Handler for Dungeon Generation
     ------------------------------------
