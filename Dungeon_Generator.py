@@ -15,20 +15,7 @@ from matplotlib.colors import ListedColormap, BoundaryNorm
 from matplotlib.axes import Axes
 
 from Constants import *
-
-def init_tilemap(size: int = DUNGEON_SIZE) -> array[uint8]:
-    """
-    Parameters
-    ----------
-    size : int
-        Size of tilemap.
-
-    Returns
-    -------
-    tilemap : NDArray[uint8]
-        2D array of given size.
-    """
-    return np.zeros((size,size), uint8)
+from Generator_Helpers import *
 
 def room_fill(tilemap: array[uint8]) -> array[uint8]:
     """
@@ -242,7 +229,7 @@ def dungeon_map_generator() -> array[uint8]:
     ---------------------
     Importable Handler for Dungeon Map Generation
     """
-    tilemap = init_tilemap()
+    tilemap = init_tilemap(DUNGEON_SIZE)
     tilemap = room_fill(tilemap)
     tilemap = room_eroder(tilemap)
     tilemap *= 16
