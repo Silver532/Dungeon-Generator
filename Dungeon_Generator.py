@@ -104,27 +104,6 @@ def tilemap_trim(tilemap: array[uint8]) -> array[uint8]:
     trimmed_tilemap = tilemap[np.ix_(active_rows, active_cols)]
     return trimmed_tilemap
 
-def get_directions(value: int) -> list[str]:
-    """
-    Parameters
-    ----------
-    value: int
-        Bitmask value to grab directions from\n
-        1 = North\n
-        2 = East\n
-        4 = South\n
-        8 = West
-
-    Returns
-    -------
-    dirs: list[str]
-        List of direction strings
-    """
-    bits = value & 0b01111
-    directions = ["North","East","South","West"]
-    dirs = [directions[i] for i in range(4) if bits & (1 << i)]
-    return dirs
-
 def get_possible_connections(tilemap: array[uint8]) -> array[uint8]:
     """
     Parameters
