@@ -13,6 +13,7 @@ from random import sample
 from matplotlib import rcParams
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from matplotlib.axes import Axes
+from typing import Literal
 
 from Constants import *
 from Generator_Helpers import *
@@ -131,7 +132,7 @@ def get_possible_connections(tilemap: array[uint8]) -> array[uint8]:
     connections *= tilemap[1:-1, 1:-1] != 0
     return connections
 
-def room_random():
+def room_random() -> Literal[1,2,3]:
     """
     Returns
     -------
