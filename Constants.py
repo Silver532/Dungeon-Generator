@@ -2,6 +2,8 @@
 **Constants for Dungeon Generator**
 """
 
+DEBUG_ROOM_VAL = 17
+
 DUNGEON_SIZE = 20
 ROOM_SIZE = 25
 
