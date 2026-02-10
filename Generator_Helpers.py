@@ -20,7 +20,7 @@ def init_tilemap(height: int, width: int = 0) -> array[uint8]:
     else: tilemap = np.zeros((height,height), uint8)
     return tilemap
 
-def get_directions(value: int) -> list[str]:
+def get_directions(value: int) -> set[str]:
     """
     Parameters
     ----------
@@ -38,7 +38,7 @@ def get_directions(value: int) -> list[str]:
     """
     bits = value & 0b01111
     directions = ["North","East","South","West"]
-    dirs = [directions[i] for i in range(4) if bits & (1 << i)]
+    dirs = {directions[i] for i in range(4) if bits & (1 << i)}
     return dirs
 
 def _main() -> None:

@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from numpy import uint8
 from numpy.typing import NDArray as array
 from random import randint as rand
+from random import choice
 from random import choices
 from matplotlib import rcParams
 from matplotlib.colors import ListedColormap, BoundaryNorm
@@ -12,22 +13,22 @@ from matplotlib.axes import Axes
 from Constants import *
 from Generator_Helpers import *
 
-def get_shape(room_val: int) -> tuple[str, list[str]]:
+def get_shape(room_val: int) -> tuple[str, set[str]]:
     exits = get_directions(room_val)
     match len(exits):
         case 1:
             shape = choices(["Dead_End", "Boss_Room", "Small_Room"],[35, 15, 50], k=1)[0]
         case 2:
-            shape = choices(["Connection", "Small_Room", "Circle", "Large_Room", "Corner"], [15, 20, 15, 25, 25], k=1)[0]
+            shape = "Corner"#choices(["Connection", "Small_Room", "Large_Room", "Corner"], [15, 25, 30, 30], k=1)[0]
         case 3:
-            shape = choices(["Connection", "Small_Room", "Circle", "Large_Room", "Half"], [20, 15, 15, 30, 20], k=1)[0]
+            shape = choices(["Connection", "Small_Room", "Large_Room", "Half"], [20, 20, 30, 30], k=1)[0]
         case 4:
-            shape = choices(["Connection", "Small_Room", "Circle", "Large_Room"], [20, 30, 15, 35], k=1)[0]
+            shape = choices(["Connection", "Small_Room", "Large_Room"], [20, 30, 50], k=1)[0]
         case _:
             shape = "Boss_Room"
     return shape, exits
 
-def build_room(tilemap: array[uint8], shape: str, exits: list[str]) -> array[uint8]:
+def build_room(tilemap: array[uint8], shape: str, exits: set[str]) -> array[uint8]:
     half = ROOM_SIZE//2
     if "North" in exits:
         tilemap[0:half+1, half-1:half+2] = FLOOR
@@ -40,19 +41,25 @@ def build_room(tilemap: array[uint8], shape: str, exits: list[str]) -> array[uin
     
     match shape:
         case "Dead_End":
-            pass
+            tilemap[half-6:half+7, half-6:half+7] = WALL
         case "Boss_Room":
             tilemap[1:-1, 1:-1] = FLOOR
         case "Small_Room":
             tilemap[half-3:half+4, half-3:half+4] = FLOOR
         case "Connection":
             tilemap[half-1:half+2, half-1:half+2] = FLOOR
-        case "Circle":
-            ...
         case "Large_Room":
-            ...
+            tilemap[half-6:half+7, half-6:half+7] = FLOOR
         case "Corner":
-            ...
+            mapping = {
+                frozenset(("North", "West")):  (slice(1, half+2),      slice(1, half+2)),
+                frozenset(("North", "East")):  (slice(1, half+2),      slice(half-1, -1)),
+                frozenset(("South", "West")):  (slice(half-1, -1),     slice(1, half+2)),
+                frozenset(("South", "East")):  (slice(half-1, -1),     slice(half-1, -1)),
+            }
+            pair = frozenset(exits)
+            if pair in mapping: r, c = mapping[pair]; tilemap[r, c] = FLOOR
+            else: tilemap[half-3:half+4, half-3:half+4] = FLOOR
         case "Half":
             ...
         case _:
@@ -62,7 +69,8 @@ def build_room(tilemap: array[uint8], shape: str, exits: list[str]) -> array[uin
 def get_theme(shape: str) -> str:
     return "NYI"
 
-def room_map_generator(room_val: int) -> tuple[array[uint8], str, str]:
+def room_map_generator(room_val: int = -1) -> tuple[array[uint8], str, str]:
+    if room_val == -1: room_val = int(input("Input Room Value: "))    #DEBUG
     tilemap = init_tilemap(ROOM_SIZE)
     shape, exits = get_shape(room_val)
     tilemap = build_room(tilemap, shape, exits)
@@ -114,8 +122,7 @@ def _main() -> None:
     print("\033c", end="")
     start_time = clock()
 
-    DEBUG_ROOM_VAL = rand(17,31)  #DEBUG
-    tilemap, shape, theme = room_map_generator(DEBUG_ROOM_VAL)
+    tilemap, shape, theme = room_map_generator()
 
     end_time = clock()
     delta_time = (end_time - start_time)/1000000
