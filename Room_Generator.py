@@ -4,8 +4,7 @@ import matplotlib.pyplot as plt
 from numpy import uint8
 from numpy.typing import NDArray as array
 from random import randint as rand
-from random import random
-from random import sample
+from random import choices
 from matplotlib import rcParams
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from matplotlib.axes import Axes
@@ -13,23 +12,76 @@ from matplotlib.axes import Axes
 from Constants import *
 from Generator_Helpers import *
 
-def room_map_generator() -> array[uint8]:
-    tilemap = init_tilemap(ROOM_SIZE)
+def get_shape(room_val: int) -> tuple[str, list[str]]:
+    exits = get_directions(room_val)
+    match len(exits):
+        case 1:
+            shape = choices(["Dead_End", "Boss_Room", "Small_Room"],[35, 15, 50], k=1)[0]
+        case 2:
+            shape = choices(["Connection", "Small_Room", "Circle", "Large_Room", "Corner"], [15, 20, 15, 25, 25], k=1)[0]
+        case 3:
+            shape = choices(["Connection", "Small_Room", "Circle", "Large_Room", "Half"], [20, 15, 15, 30, 20], k=1)[0]
+        case 4:
+            shape = choices(["Connection", "Small_Room", "Circle", "Large_Room"], [20, 30, 15, 35], k=1)[0]
+        case _:
+            shape = "Boss_Room"
+    return shape, exits
+
+def build_room(tilemap: array[uint8], shape: str, exits: list[str]) -> array[uint8]:
+    half = ROOM_SIZE//2
+    if "North" in exits:
+        tilemap[0:half+1, half-1:half+2] = FLOOR
+    if "East" in exits:
+        tilemap[half-1:half+2, half:ROOM_SIZE] = FLOOR
+    if "South" in exits:
+        tilemap[half:ROOM_SIZE, half-1:half+2] = FLOOR
+    if "West" in exits:
+        tilemap[half-1:half+2, 0:half+1] = FLOOR
+    
+    match shape:
+        case "Dead_End":
+            pass
+        case "Boss_Room":
+            tilemap[1:-1, 1:-1] = FLOOR
+        case "Small_Room":
+            tilemap[half-3:half+4, half-3:half+4] = FLOOR
+        case "Connection":
+            tilemap[half-1:half+2, half-1:half+2] = FLOOR
+        case "Circle":
+            ...
+        case "Large_Room":
+            ...
+        case "Corner":
+            ...
+        case "Half":
+            ...
+        case _:
+            ...
     return tilemap
 
-def _on_click(event, ax: Axes, tilemap: array[uint8], time: float) -> None:
+def get_theme(shape: str) -> str:
+    return "NYI"
+
+def room_map_generator(room_val: int) -> tuple[array[uint8], str, str]:
+    tilemap = init_tilemap(ROOM_SIZE)
+    shape, exits = get_shape(room_val)
+    tilemap = build_room(tilemap, shape, exits)
+    theme = get_theme(shape)
+    return tilemap, shape, theme
+
+def _on_click(event, ax: Axes, tilemap: array[uint8], time: float, shape: str, theme: str) -> None:
     if event.inaxes == ax:
         col = int(event.xdata+0.5)
         row = int(event.ydata+0.5)
         if 0 <= row < tilemap.shape[0] and 0 <= col < tilemap.shape[1]:
-            print(f"\033cProgram ran in {time} milliseconds\n"+
+            print(f"\033cProgram ran in {time} milliseconds\nShape: {shape}\nTheme: {theme}\n"+
                 f"Tile Clicked: {row}, {col}\n"+
-                f"Tile Value: {tilemap[row,col]}\n")
+                f"Tile Value: {tilemap[row,col]}")
     else:
-        print(f"\033cProgram ran in {time} milliseconds\n")
+        print(f"\033cProgram ran in {time} milliseconds\nShape: {shape}\nTheme: {theme}")
     return
 
-def _debug(tilemap: array[uint8], time: float) -> None:
+def _debug(tilemap: array[uint8], time: float, shape: str, theme: str) -> None:
     debug_map = tilemap
 
     colours = ["black", "white", "gray", "blue", "red", "green", "brown", "yellow"]
@@ -52,7 +104,7 @@ def _debug(tilemap: array[uint8], time: float) -> None:
     ax.set_xticks(np.arange(-0.5, cols, 1), minor=True)
     ax.set_yticks(np.arange(-0.5, rows, 1), minor=True)
 
-    fig.canvas.mpl_connect("button_press_event",lambda event: _on_click(event, ax, tilemap, time))
+    fig.canvas.mpl_connect("button_press_event",lambda event: _on_click(event, ax, tilemap, time, shape, theme))
 
     plt.show()
     return
@@ -62,12 +114,13 @@ def _main() -> None:
     print("\033c", end="")
     start_time = clock()
 
-    tilemap = room_map_generator()
+    DEBUG_ROOM_VAL = rand(17,31)  #DEBUG
+    tilemap, shape, theme = room_map_generator(DEBUG_ROOM_VAL)
 
     end_time = clock()
     delta_time = (end_time - start_time)/1000000
-    print(f"Program ran in {delta_time} milliseconds")
-    _debug(tilemap, delta_time)
+    print(f"\033cProgram ran in {delta_time} milliseconds\nShape: {shape}\nTheme: {theme}\n")
+    _debug(tilemap, delta_time, shape, theme)
     return
 
 if __name__ == "__main__":
