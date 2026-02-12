@@ -13,19 +13,23 @@ from matplotlib.axes import Axes
 from Constants import *
 from Generator_Helpers import *
 
+class InvalidRoomExits(Exception):
+    pass
+
 def get_shape(room_val: int) -> tuple[str, set[str]]:
+    if room_val < 0b10000 or room_val > 0b11111: raise InvalidRoomExits(f"The get_shape function does not support room_val: {room_val}.")
     exits = get_directions(room_val)
     match len(exits):
         case 1:
             shape = choices(["Dead_End", "Boss_Room", "Small_Room"],[35, 15, 50], k=1)[0]
         case 2:
-            shape = "Corner"#choices(["Connection", "Small_Room", "Large_Room", "Corner"], [15, 25, 30, 30], k=1)[0]
+            shape = choices(["Connection", "Small_Room", "Large_Room", "Corner"], [15, 25, 30, 30], k=1)[0]
         case 3:
             shape = choices(["Connection", "Small_Room", "Large_Room", "Half"], [20, 20, 30, 30], k=1)[0]
         case 4:
             shape = choices(["Connection", "Small_Room", "Large_Room"], [20, 30, 50], k=1)[0]
         case _:
-            shape = "Boss_Room"
+            raise InvalidRoomExits(f"The get_shape function does not support rooms with {len(exits)} exits.")
     return shape, exits
 
 def build_room(tilemap: array[uint8], shape: str, exits: set[str]) -> array[uint8]:
@@ -41,7 +45,8 @@ def build_room(tilemap: array[uint8], shape: str, exits: set[str]) -> array[uint
     
     match shape:
         case "Dead_End":
-            tilemap[half-6:half+7, half-6:half+7] = WALL
+            length = rand(1,5)
+            tilemap[half-length:half+length+1, half-length:half+length+1] = WALL
         case "Boss_Room":
             tilemap[1:-1, 1:-1] = FLOOR
         case "Small_Room":
@@ -61,16 +66,22 @@ def build_room(tilemap: array[uint8], shape: str, exits: set[str]) -> array[uint
             if pair in mapping: r, c = mapping[pair]; tilemap[r, c] = FLOOR
             else: tilemap[half-3:half+4, half-3:half+4] = FLOOR
         case "Half":
-            ...
+            if "North" not in exits:
+                tilemap[half:-1, 1:-1] = FLOOR
+            if "East" not in exits:
+                tilemap[1:-1, 1:half] = FLOOR
+            if "South" not in exits:
+                tilemap[1:half, 1:-1] = FLOOR
+            if "West" not in exits:
+                tilemap[1:-1, half:-1] = FLOOR
         case _:
-            ...
+            raise Exception
     return tilemap
 
 def get_theme(shape: str) -> str:
     return "NYI"
 
-def room_map_generator(room_val: int = -1) -> tuple[array[uint8], str, str]:
-    if room_val == -1: room_val = int(input("Input Room Value: "))    #DEBUG
+def room_map_generator(room_val: int) -> tuple[array[uint8], str, str]:
     tilemap = init_tilemap(ROOM_SIZE)
     shape, exits = get_shape(room_val)
     tilemap = build_room(tilemap, shape, exits)
@@ -120,9 +131,12 @@ def _debug(tilemap: array[uint8], time: float, shape: str, theme: str) -> None:
 def _main() -> None:
     from time import perf_counter_ns as clock
     print("\033c", end="")
+
+    room_val = int(input("Input Room Value: "))    #DEBUG
+    
     start_time = clock()
 
-    tilemap, shape, theme = room_map_generator()
+    tilemap, shape, theme = room_map_generator(room_val)
 
     end_time = clock()
     delta_time = (end_time - start_time)/1000000
