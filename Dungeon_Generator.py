@@ -176,7 +176,7 @@ def tilemap_trim(tilemap: array[uint8]) -> array[uint8]:
 
     Returns
     -------
-    tilemap : NDArray[int]
+    tilemap : NDArray[uint8]
         2D array that contains only the bounding box of the room positions.
     """
     active_rows = np.any(tilemap != 0, axis=1)
@@ -197,13 +197,13 @@ def room_clear(tilemap) -> array[uint8]:
         2D array with unconnected rooms removed.
         Only affects groups of 2.
     """
-    dir_dict = {17:(-1,0), 18:(0,1), 20:(1,0), 24:(0,-1)}
-    one_exit_tiles = [17,18,20,24]
+    DIR_MAP = {17:(-1,0), 18:(0,1), 20:(1,0), 24:(0,-1)}
+    ONE_EXIT_TILES = [17,18,20,24]
     for index, i in np.ndenumerate(tilemap):
-        if i in one_exit_tiles:
-            adj_tile = dir_dict[i]
+        if i in ONE_EXIT_TILES:
+            adj_tile = DIR_MAP[i]
             adj_tile_val = tuple(a + b for a, b in zip(index, adj_tile))
-            if tilemap[adj_tile_val] in one_exit_tiles:
+            if tilemap[adj_tile_val] in ONE_EXIT_TILES:
                 tilemap[index] = 0
                 tilemap[adj_tile_val] = 0
     return tilemap
@@ -226,11 +226,11 @@ def dungeon_map_generator() -> array[uint8]:
 def _make_exit_map(tilemap: array[uint8]) -> array[uint8]:
     """
     Local Subhandler for Dungeon Map visualizer
+    Vectorized version using numpy.
     """
-    debug_map = np.zeros_like(tilemap, uint8)
-    for index, val in np.ndenumerate(tilemap):
-        debug_map[index] = np.bitwise_count(val)
+    debug_map = np.unpackbits(tilemap[:, :, np.newaxis], axis=-1).sum(axis=-1).astype(np.uint8)
     return debug_map
+
 
 def _on_click(event, ax: Axes, tilemap: array[uint8], time: float, room_count: int) -> None:
     """
