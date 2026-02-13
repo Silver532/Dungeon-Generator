@@ -1,17 +1,18 @@
 Planning Document for Dungeon Generator
 
 
-Dungeon Generator File
+Dungeon Generator File 
+#Complete
     Inputs: 
             None
 
     Process:
             Generate Dungeon Tilemap of Room locations and exits encoded using bitmaps
-#Complete       Init tilemap of given size
-#Complete       Fill initial room locations
-#Complete       Erosion pass on Tilemap to generate more natural shape
-#Complete       Calculation Pass to connect rooms
-#Complete       Calculation Pass to trim tilemap to max size used
+                Init tilemap of given size
+                Fill initial room locations
+                Erosion pass on Tilemap to generate more natural shape
+                Calculation Pass to connect rooms
+                Calculation Pass to trim tilemap to max size used
                 Calculation Pass to clear unconnected rooms
 
     Output: 
@@ -30,36 +31,36 @@ Dungeon Generator File
 Room Generator File
     Inputs:
             Room Value (int)
-            Room Shape (string or ENUM)
 
     Process:
             Generate Room Tilemap that is populated with objects
-                Init Tilemap of given size
-                Use room value to generate shape and theme
-                Build room outline onto tilemap using shape
+#Complete       Init Tilemap of given size
+#Complete       Use room value to generate shape and theme
+#Complete       Build room outline onto tilemap using shape
                 Populate room tilemap using theme
 
     Output:
             numpy array of uint-8 values of size x * x, where each cell has:
-                0-Wall
-                1-Floor
-                2-Loot Pile
-                3-Chest
-                4-Healing Station
-                5-Trap
+                FLOOR = 1
+                HOLE = 2
+                WATER = 3
+                TRAP = 4
+                HEALING_STATION = 5
+                CHEST = 6
+                LOOT_PILE = 7
 
 Room Stitcher File
     Inputs:
-            Room Count (Optional) (Rough) (int)
+            None
 
     Process:
             Generate Dungeon Map
                 Output array of size DM_x * DM_y
-            Init tilemap of size (DM_x*25) * (DM_y*25)
+            Init tilemap of size (DM_x*Room Size) * (DM_y*Room Size)
             For Each Existing Room in Dungeon Map
                 Generate Room Map
-                    Output array of size 25 * 25
+                    Output array of size (Room Size x Room Size)
                 Build room map onto stitched tilemap at designated location
 
     Output:
-            numpy array of size (DM_x*25) * (DM_y*25)
+            numpy array of size (DM_x*Room Size) * (DM_y*Room Size)
