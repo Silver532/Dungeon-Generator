@@ -100,6 +100,47 @@ def get_theme(shape: str) -> str:
     theme = choices(theme_list, weight_list, k=1)[0]
     return theme
 
+def populate_tilemap(tilemap: array[uint8], theme: str) -> array[uint8]:
+    #List Format is [Holes,Water,Traps,Healing,Chests,Loot Piles,Monsters]
+    population_dict = {
+        "DE_Trapped":   [],
+        "DE_Treasure":  [],
+        "DE_Healthy":   [],
+        "DE_Guarded":   [],
+        "SR_Trapped":   [],
+        "SR_Treasure":  [],
+        "SR_Guarded":   [],
+        "SR_Chaos":     [],
+        "SR_Basic":     [],
+        "CN_Trapped":   [],
+        "CN_Guarded":   [],
+        "CN_Basic":     [],
+        "LR_Trapped":   [],
+        "LR_Treasure":  [],
+        "LR_Healthy":   [],
+        "LR_Guarded":   [],
+        "LR_Chaos":     [],
+        "LR_Basic":     [],
+        "CR_Trapped":   [],
+        "CR_Treasure":  [],
+        "CR_Guarded":   [],
+        "CR_Chaos":     [],
+        "CR_Basic":     [],
+        "HR_Trapped":   [],
+        "HR_Treasure":  [],
+        "HR_Guarded":   [],
+        "HR_Chaos":     [],
+        "HR_Basic":     [],
+        "BR_Hoard":     [],
+        "BR_Wizard":    [],
+        "BR_Weak":      [],
+        "BR_Strong":    [],
+        "BR_Guarded":   [],
+        "BR_Double":    [],
+        "Empty":        []
+    }
+    return tilemap
+
 def room_map_generator(room_val: int) -> tuple[array[uint8], str, str]:
     tilemap = init_tilemap(ROOM_SIZE)
     shape, exits = get_shape(room_val)
@@ -151,11 +192,11 @@ def _main() -> None:
     from time import perf_counter_ns as clock
     print("\033c", end="")
 
-    room_val = int(input("Input Room Value: "))    #DEBUG
+    debug_room_val = int(input("Input Room Value: "))
     
     start_time = clock()
 
-    tilemap, shape, theme = room_map_generator(room_val)
+    tilemap, shape, theme = room_map_generator(debug_room_val)
 
     end_time = clock()
     delta_time = (end_time - start_time)/1000000
