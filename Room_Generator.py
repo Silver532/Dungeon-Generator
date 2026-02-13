@@ -82,19 +82,19 @@ def build_room(tilemap: array[uint8], shape: str, exits: set[str]) -> array[uint
 def get_theme(shape: str) -> str:
     match shape:
         case "Dead_End":
-            theme_list, weight_list = [], []
+            theme_list, weight_list = ["DE_Trapped","DE_Treasure","DE_Healthy","DE_Guarded","Empty"], [20, 15, 10, 15, 40]
         case "Boss_Room":
-            theme_list, weight_list = [], []
+            theme_list, weight_list = ["BR_Hoard","BR_Wizard","BR_Weak","BR_Strong","BR_Guarded","BR_Double"], [20,20,20,10,20,10]
         case "Small_Room":
-            theme_list, weight_list = [], []
+            theme_list, weight_list = ["SR_Trapped","SR_Treasure","SR_Guarded","SR_Chaos","SR_Basic","Empty"], [20,10,15,10,30,15]
         case "Connection":
-            theme_list, weight_list = [], []
+            theme_list, weight_list = ["CN_Trapped","CN_Guarded","CN_Basic","Empty"], [20,20,30,30]
         case "Large_Room":
-            theme_list, weight_list = [], []
+            theme_list, weight_list = ["LR_Trapped","LR_Treasure","LR_Healthy","LR_Guarded","LR_Chaos","LR_Basic","Empty"], [20,5,5,15,10,30,15]
         case "Corner":
-            theme_list, weight_list = [], []
+            theme_list, weight_list = ["CR_Trapped","CR_Treasure","CR_Guarded","CR_Chaos","CR_Basic","Empty"], [20,10,15,10,30,15]
         case "Half":
-            theme_list, weight_list = [], []
+            theme_list, weight_list = ["HR_Trapped","HR_Treasure","HR_Guarded","HR_Chaos","HR_Basic","Empty"], [20,10,15,10,30,15]
         case _:
             raise InvalidRoom(f"The get_theme function does not support rooms with {shape} shape")
     theme = choices(theme_list, weight_list, k=1)[0]
