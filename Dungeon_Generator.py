@@ -107,7 +107,7 @@ def get_possible_connections(tilemap: array[uint8]) -> array[uint8]:
 
     Returns
     -------
-    tilemap : NDArray[int]
+    tilemap : NDArray[uint8]
         2D array of same dimensions, containing number
         of active tiles adjacent to each tile.
     """
@@ -159,16 +159,11 @@ def room_connector(tilemap: array[uint8]) -> array[uint8]:
             possible_dirs = connection_map[y - 1, x - 1]
             dir_set = get_directions(possible_dirs)
             connect_count = min(room_random(), len(dir_set))
-            chosen_dirs = sample(list(dir_set), connect_count)
+            chosen_dirs = sample(tuple(dir_set), connect_count)
             for d in chosen_dirs:
                 tilemap[y,x] |= dir_to_bit[d]
-                match d:
-                    case "North": ny, nx = y-1, x
-                    case "South": ny, nx = y+1, x
-                    case "East": ny, nx = y, x+1
-                    case "West": ny, nx = y, x-1
-                    case _: ny, nx = y,x
-
+                dy_dx = {"North": (-1,0), "South": (1,0), "East": (0,1), "West": (0,-1)}
+                ny, nx = y + dy_dx[d][0], x + dy_dx[d][1]
                 tilemap[ny, nx] |= dir_to_bit[opposite[d]]
     return tilemap
 
