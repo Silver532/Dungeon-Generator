@@ -80,7 +80,25 @@ def build_room(tilemap: array[uint8], shape: str, exits: set[str]) -> array[uint
     return tilemap
 
 def get_theme(shape: str) -> str:
-    return "NYI"
+    match shape:
+        case "Dead_End":
+            theme_list, weight_list = [], []
+        case "Boss_Room":
+            theme_list, weight_list = [], []
+        case "Small_Room":
+            theme_list, weight_list = [], []
+        case "Connection":
+            theme_list, weight_list = [], []
+        case "Large_Room":
+            theme_list, weight_list = [], []
+        case "Corner":
+            theme_list, weight_list = [], []
+        case "Half":
+            theme_list, weight_list = [], []
+        case _:
+            raise InvalidRoom(f"The get_theme function does not support rooms with {shape} shape")
+    theme = choices(theme_list, weight_list, k=1)[0]
+    return theme
 
 def room_map_generator(room_val: int) -> tuple[array[uint8], str, str]:
     tilemap = init_tilemap(ROOM_SIZE)
