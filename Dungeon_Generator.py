@@ -231,7 +231,6 @@ def _make_exit_map(tilemap: array[uint8]) -> array[uint8]:
     debug_map = np.unpackbits(tilemap[:, :, np.newaxis], axis=-1).sum(axis=-1).astype(np.uint8)
     return debug_map
 
-
 def _on_click(event, ax: Axes, tilemap: array[uint8], time: float, room_count: int) -> None:
     """
     Local handler for debug on click event.
