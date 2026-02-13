@@ -98,23 +98,6 @@ def room_eroder(tilemap: array[uint8]) -> array[uint8]:
 
     return tilemap
 
-def tilemap_trim(tilemap: array[uint8]) -> array[uint8]:
-    """
-    Parameters
-    ----------
-    tilemap : NDArray[uint8]
-        2D array with rooms in final positions.
-
-    Returns
-    -------
-    tilemap : NDArray[int]
-        2D array that contains only the bounding box of the room positions.
-    """
-    active_rows = np.any(tilemap != 0, axis=1)
-    active_cols = np.any(tilemap != 0, axis=0)
-    trimmed_tilemap = tilemap[np.ix_(active_rows, active_cols)]
-    return trimmed_tilemap
-
 def get_possible_connections(tilemap: array[uint8]) -> array[uint8]:
     """
     Parameters
@@ -188,6 +171,23 @@ def room_connector(tilemap: array[uint8]) -> array[uint8]:
 
                 tilemap[ny, nx] |= dir_to_bit[opposite[d]]
     return tilemap
+
+def tilemap_trim(tilemap: array[uint8]) -> array[uint8]:
+    """
+    Parameters
+    ----------
+    tilemap : NDArray[uint8]
+        2D array with rooms in final positions.
+
+    Returns
+    -------
+    tilemap : NDArray[int]
+        2D array that contains only the bounding box of the room positions.
+    """
+    active_rows = np.any(tilemap != 0, axis=1)
+    active_cols = np.any(tilemap != 0, axis=0)
+    trimmed_tilemap = tilemap[np.ix_(active_rows, active_cols)]
+    return trimmed_tilemap
 
 def room_clear(tilemap) -> array[uint8]:
     """
