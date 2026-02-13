@@ -76,7 +76,7 @@ def build_room(tilemap: array[uint8], shape: str, exits: set[str]) -> array[uint
             if "West" not in exits:
                 tilemap[1:-1, half:-1] = FLOOR
         case _:
-            raise Exception
+            raise InvalidRoom(f"Room builder does not support shape {shape}")
     return tilemap
 
 def get_theme(shape: str) -> str:
@@ -146,6 +146,7 @@ def room_map_generator(room_val: int) -> tuple[array[uint8], str, str]:
     shape, exits = get_shape(room_val)
     tilemap = build_room(tilemap, shape, exits)
     theme = get_theme(shape)
+    tilemap = populate_tilemap(tilemap, theme)
     return tilemap, shape, theme
 
 def _on_click(event, ax: Axes, tilemap: array[uint8], time: float, shape: str, theme: str) -> None:
