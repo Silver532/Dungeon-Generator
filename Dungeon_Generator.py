@@ -164,9 +164,9 @@ def room_connector(tilemap: array[uint8]) -> array[uint8]:
         for x in range(1, W - 1):
             if tilemap[y, x] == 0: continue
             possible_dirs = connection_map[y - 1, x - 1]
-            dir_list = get_directions(possible_dirs)
-            connect_count = min(room_random(), len(dir_list))
-            chosen_dirs = sample(dir_list, connect_count)
+            dir_set = get_directions(possible_dirs)
+            connect_count = min(room_random(), len(dir_set))
+            chosen_dirs = sample(list(dir_set), connect_count)
             for d in chosen_dirs:
                 tilemap[y,x] |= dir_to_bit[d]
                 match d:
