@@ -13,6 +13,7 @@ from random import sample
 from matplotlib import rcParams
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from matplotlib.axes import Axes
+from typing import Literal
 
 from Constants import *
 from Generator_Helpers import *
@@ -104,27 +105,6 @@ def tilemap_trim(tilemap: array[uint8]) -> array[uint8]:
     trimmed_tilemap = tilemap[np.ix_(active_rows, active_cols)]
     return trimmed_tilemap
 
-def get_directions(value: int) -> list[str]:
-    """
-    Parameters
-    ----------
-    value: int
-        Bitmask value to grab directions from\n
-        1 = North\n
-        2 = East\n
-        4 = South\n
-        8 = West
-
-    Returns
-    -------
-    dirs: list[str]
-        List of direction strings
-    """
-    bits = value & 0b01111
-    directions = ["North","East","South","West"]
-    dirs = [directions[i] for i in range(4) if bits & (1 << i)]
-    return dirs
-
 def get_possible_connections(tilemap: array[uint8]) -> array[uint8]:
     """
     Parameters
@@ -152,7 +132,7 @@ def get_possible_connections(tilemap: array[uint8]) -> array[uint8]:
     connections *= tilemap[1:-1, 1:-1] != 0
     return connections
 
-def room_random():
+def room_random() -> Literal[1,2,3]:
     """
     Returns
     -------
@@ -184,9 +164,9 @@ def room_connector(tilemap: array[uint8]) -> array[uint8]:
         for x in range(1, W - 1):
             if tilemap[y, x] == 0: continue
             possible_dirs = connection_map[y - 1, x - 1]
-            dir_list = get_directions(possible_dirs)
-            connect_count = min(room_random(), len(dir_list))
-            chosen_dirs = sample(dir_list, connect_count)
+            dir_set = get_directions(possible_dirs)
+            connect_count = min(room_random(), len(dir_set))
+            chosen_dirs = sample(list(dir_set), connect_count)
             for d in chosen_dirs:
                 tilemap[y,x] |= dir_to_bit[d]
                 match d:

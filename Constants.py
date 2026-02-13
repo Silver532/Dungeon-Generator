@@ -2,17 +2,28 @@
 **Constants for Dungeon Generator**
 """
 
+DEBUG_ROOM_VAL = 17
+
 DUNGEON_SIZE = 20
-ROOM_SIZE = 25
+ROOM_SIZE = 17
 
 BOX_COUNT = 3
 ERODE_COUNT = 5
-
-WALL = 0
-TEMP = 1
-ROOM = 16
 
 NORTH = 1
 EAST = 2
 SOUTH = 4
 WEST = 8
+
+WALL = 0
+
+TEMP = 1
+ROOM = 16
+
+FLOOR = 1
+HOLE = 2
+WATER = 3
+TRAP = 4
+HEALING_STATION = 5
+CHEST = 6
+LOOT_PILE = 7
