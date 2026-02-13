@@ -13,23 +13,24 @@ from matplotlib.axes import Axes
 from Constants import *
 from Generator_Helpers import *
 
-class InvalidRoomExits(Exception):
+class InvalidRoom(Exception):
     pass
 
 def get_shape(room_val: int) -> tuple[str, set[str]]:
-    if room_val < 0b10000 or room_val > 0b11111: raise InvalidRoomExits(f"The get_shape function does not support room_val: {room_val}.")
+    if room_val < 0b10000 or room_val > 0b11111: raise InvalidRoom(f"The get_shape function does not support room_val: {room_val}.")
     exits = get_directions(room_val)
     match len(exits):
         case 1:
-            shape = choices(["Dead_End", "Boss_Room", "Small_Room"],[35, 15, 50], k=1)[0]
+            shape_list, weight_list = ["Dead_End", "Boss_Room", "Small_Room"],[35, 15, 50]
         case 2:
-            shape = choices(["Connection", "Small_Room", "Large_Room", "Corner"], [15, 25, 30, 30], k=1)[0]
+            shape_list, weight_list = ["Connection", "Small_Room", "Large_Room", "Corner"], [15, 25, 30, 30]
         case 3:
-            shape = choices(["Connection", "Small_Room", "Large_Room", "Half"], [20, 20, 30, 30], k=1)[0]
+            shape_list, weight_list = ["Connection", "Small_Room", "Large_Room", "Half"], [20, 20, 30, 30]
         case 4:
-            shape = choices(["Connection", "Small_Room", "Large_Room"], [20, 30, 50], k=1)[0]
+            shape_list, weight_list = ["Connection", "Small_Room", "Large_Room"], [20, 30, 50]
         case _:
-            raise InvalidRoomExits(f"The get_shape function does not support rooms with {len(exits)} exits.")
+            raise InvalidRoom(f"The get_shape function does not support rooms with {len(exits)} exits.")
+    shape = choices(shape_list, weight_list, k=1)[0]
     return shape, exits
 
 def build_room(tilemap: array[uint8], shape: str, exits: set[str]) -> array[uint8]:
