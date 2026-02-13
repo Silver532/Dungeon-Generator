@@ -103,40 +103,32 @@ def get_theme(shape: str) -> str:
 def populate_tilemap(tilemap: array[uint8], theme: str) -> array[uint8]:
     #List Format is [Holes,Water,Traps,Healing,Chests,Loot Piles,Monsters]
     population_dict = {
-        "DE_Trapped":   [0,0,0,0,0,0,0],
-        "DE_Treasure":  [0,0,0,0,0,0,0],
-        "DE_Healthy":   [0,0,0,0,0,0,0],
-        "DE_Guarded":   [0,0,0,0,0,0,0],
-        "SR_Trapped":   [0,0,0,0,0,0,0],
-        "SR_Treasure":  [0,0,0,0,0,0,0],
-        "SR_Guarded":   [0,0,0,0,0,0,0],
-        "SR_Chaos":     [0,0,0,0,0,0,0],
+        "DE_Trapped":   [1,2,3,0,0,0,0], "DE_Treasure":  [0,0,1,0,1,2,1],
+        "DE_Healthy":   [0,0,0,1,0,0,0], "DE_Guarded":   [0,0,0,0,0,0,1],
+
+        "SR_Trapped":   [1,0,4,0,0,1,1], "SR_Treasure":  [0,0,1,0,2,3,0],
+        "SR_Guarded":   [0,0,0,0,0,0,0], "SR_Chaos":     [0,0,0,0,0,0,0],
         "SR_Basic":     [0,0,0,0,0,0,0],
-        "CN_Trapped":   [0,0,0,0,0,0,0],
-        "CN_Guarded":   [0,0,0,0,0,0,0],
+
+        "CN_Trapped":   [0,0,0,0,0,0,0], "CN_Guarded":   [0,0,0,0,0,0,0],
         "CN_Basic":     [0,0,0,0,0,0,0],
-        "LR_Trapped":   [0,0,0,0,0,0,0],
-        "LR_Treasure":  [0,0,0,0,0,0,0],
-        "LR_Healthy":   [0,0,0,0,0,0,0],
-        "LR_Guarded":   [0,0,0,0,0,0,0],
-        "LR_Chaos":     [0,0,0,0,0,0,0],
-        "LR_Basic":     [0,0,0,0,0,0,0],
-        "CR_Trapped":   [0,0,0,0,0,0,0],
-        "CR_Treasure":  [0,0,0,0,0,0,0],
-        "CR_Guarded":   [0,0,0,0,0,0,0],
-        "CR_Chaos":     [0,0,0,0,0,0,0],
+
+        "LR_Trapped":   [0,0,0,0,0,0,0], "LR_Treasure":  [0,0,0,0,0,0,0],
+        "LR_Healthy":   [0,0,0,0,0,0,0], "LR_Guarded":   [0,0,0,0,0,0,0],
+        "LR_Chaos":     [0,0,0,0,0,0,0], "LR_Basic":     [0,0,0,0,0,0,0],
+
+        "CR_Trapped":   [0,0,0,0,0,0,0], "CR_Treasure":  [0,0,0,0,0,0,0],
+        "CR_Guarded":   [0,0,0,0,0,0,0], "CR_Chaos":     [0,0,0,0,0,0,0],
         "CR_Basic":     [0,0,0,0,0,0,0],
-        "HR_Trapped":   [0,0,0,0,0,0,0],
-        "HR_Treasure":  [0,0,0,0,0,0,0],
-        "HR_Guarded":   [0,0,0,0,0,0,0],
-        "HR_Chaos":     [0,0,0,0,0,0,0],
+
+        "HR_Trapped":   [0,0,0,0,0,0,0], "HR_Treasure":  [0,0,0,0,0,0,0],
+        "HR_Guarded":   [0,0,0,0,0,0,0], "HR_Chaos":     [0,0,0,0,0,0,0],
         "HR_Basic":     [0,0,0,0,0,0,0],
-        "BR_Hoard":     [0,0,0,0,0,0,0],
-        "BR_Wizard":    [0,0,0,0,0,0,0],
-        "BR_Weak":      [0,0,0,0,0,0,0],
-        "BR_Strong":    [0,0,0,0,0,0,0],
-        "BR_Guarded":   [0,0,0,0,0,0,0],
-        "BR_Double":    [0,0,0,0,0,0,0],
+
+        "BR_Hoard":     [0,0,0,0,0,0,0], "BR_Wizard":    [0,0,0,0,0,0,0],
+        "BR_Weak":      [0,0,0,0,0,0,0], "BR_Strong":    [0,0,0,0,0,0,0],
+        "BR_Guarded":   [0,0,0,0,0,0,0], "BR_Double":    [0,0,0,0,0,0,0],
+        
         "Empty":        [0,0,0,0,0,0,0]
     }
     return tilemap
