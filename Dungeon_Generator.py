@@ -73,19 +73,29 @@ def room_eroder(tilemap: array[uint8]) -> array[uint8]:
 
     Returns
     -------
-    tilemap : NDArray[int]
+    tilemap : NDArray[uint8]
         2D array with room edges eroded for smoother generation.
     """
-    zeroes = np.zeros_like(tilemap, uint8)
+    zeroes = np.zeros_like(tilemap, dtype=uint8)
+
     for _ in range(ERODE_COUNT):
         neighbor_map = adj_map(tilemap, zeroes)
-        for index, i in np.ndenumerate(neighbor_map==2):
-            if i & rand(0,1): tilemap[index] = WALL
-        for index, i in np.ndenumerate(neighbor_map==3):
-            if i & (rand(0,9)==0): tilemap[index] = WALL
+
+        coords2 = np.argwhere(neighbor_map == 2)
+        for y, x in coords2:
+            if rand(0,1):
+                tilemap[y, x] = WALL
+
+        coords3 = np.argwhere(neighbor_map == 3)
+        for y, x in coords3:
+            if rand(0,9) == 0:
+                tilemap[y, x] = WALL
+
     neighbor_map = adj_map(tilemap, zeroes)
-    for index, i in np.ndenumerate(neighbor_map==0):
-        if i: tilemap[index] = WALL
+    coords0 = np.argwhere(neighbor_map == 0)
+    for y, x in coords0:
+        tilemap[y, x] = WALL
+
     return tilemap
 
 def tilemap_trim(tilemap: array[uint8]) -> array[uint8]:
