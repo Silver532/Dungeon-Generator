@@ -73,37 +73,30 @@ def room_eroder(tilemap: array[uint8]) -> array[uint8]:
 
     Returns
     -------
-    tilemap : NDArray[int]
+    tilemap : NDArray[uint8]
         2D array with room edges eroded for smoother generation.
     """
-    zeroes = np.zeros_like(tilemap, uint8)
+    zeroes = np.zeros_like(tilemap, dtype=uint8)
+
     for _ in range(ERODE_COUNT):
         neighbor_map = adj_map(tilemap, zeroes)
-        for index, i in np.ndenumerate(neighbor_map==2):
-            if i & rand(0,1): tilemap[index] = WALL
-        for index, i in np.ndenumerate(neighbor_map==3):
-            if i & (rand(0,9)==0): tilemap[index] = WALL
+
+        coords2 = np.argwhere(neighbor_map == 2)
+        for y, x in coords2:
+            if rand(0,1):
+                tilemap[y, x] = WALL
+
+        coords3 = np.argwhere(neighbor_map == 3)
+        for y, x in coords3:
+            if rand(0,9) == 0:
+                tilemap[y, x] = WALL
+
     neighbor_map = adj_map(tilemap, zeroes)
-    for index, i in np.ndenumerate(neighbor_map==0):
-        if i: tilemap[index] = WALL
+    coords0 = np.argwhere(neighbor_map == 0)
+    for y, x in coords0:
+        tilemap[y, x] = WALL
+
     return tilemap
-
-def tilemap_trim(tilemap: array[uint8]) -> array[uint8]:
-    """
-    Parameters
-    ----------
-    tilemap : NDArray[uint8]
-        2D array with rooms in final positions.
-
-    Returns
-    -------
-    tilemap : NDArray[int]
-        2D array that contains only the bounding box of the room positions.
-    """
-    active_rows = np.any(tilemap != 0, axis=1)
-    active_cols = np.any(tilemap != 0, axis=0)
-    trimmed_tilemap = tilemap[np.ix_(active_rows, active_cols)]
-    return trimmed_tilemap
 
 def get_possible_connections(tilemap: array[uint8]) -> array[uint8]:
     """
@@ -114,7 +107,7 @@ def get_possible_connections(tilemap: array[uint8]) -> array[uint8]:
 
     Returns
     -------
-    tilemap : NDArray[int]
+    tilemap : NDArray[uint8]
         2D array of same dimensions, containing number
         of active tiles adjacent to each tile.
     """
@@ -166,18 +159,30 @@ def room_connector(tilemap: array[uint8]) -> array[uint8]:
             possible_dirs = connection_map[y - 1, x - 1]
             dir_set = get_directions(possible_dirs)
             connect_count = min(room_random(), len(dir_set))
-            chosen_dirs = sample(list(dir_set), connect_count)
+            chosen_dirs = sample(tuple(dir_set), connect_count)
             for d in chosen_dirs:
                 tilemap[y,x] |= dir_to_bit[d]
-                match d:
-                    case "North": ny, nx = y-1, x
-                    case "South": ny, nx = y+1, x
-                    case "East": ny, nx = y, x+1
-                    case "West": ny, nx = y, x-1
-                    case _: ny, nx = y,x
-
+                dy_dx = {"North": (-1,0), "South": (1,0), "East": (0,1), "West": (0,-1)}
+                ny, nx = y + dy_dx[d][0], x + dy_dx[d][1]
                 tilemap[ny, nx] |= dir_to_bit[opposite[d]]
     return tilemap
+
+def tilemap_trim(tilemap: array[uint8]) -> array[uint8]:
+    """
+    Parameters
+    ----------
+    tilemap : NDArray[uint8]
+        2D array with rooms in final positions.
+
+    Returns
+    -------
+    tilemap : NDArray[uint8]
+        2D array that contains only the bounding box of the room positions.
+    """
+    active_rows = np.any(tilemap != 0, axis=1)
+    active_cols = np.any(tilemap != 0, axis=0)
+    trimmed_tilemap = tilemap[np.ix_(active_rows, active_cols)]
+    return trimmed_tilemap
 
 def room_clear(tilemap) -> array[uint8]:
     """
@@ -192,13 +197,13 @@ def room_clear(tilemap) -> array[uint8]:
         2D array with unconnected rooms removed.
         Only affects groups of 2.
     """
-    dir_dict = {17:(-1,0), 18:(0,1), 20:(1,0), 24:(0,-1)}
-    one_exit_tiles = [17,18,20,24]
+    DIR_MAP = {17:(-1,0), 18:(0,1), 20:(1,0), 24:(0,-1)}
+    ONE_EXIT_TILES = [17,18,20,24]
     for index, i in np.ndenumerate(tilemap):
-        if i in one_exit_tiles:
-            adj_tile = dir_dict[i]
+        if i in ONE_EXIT_TILES:
+            adj_tile = DIR_MAP[i]
             adj_tile_val = tuple(a + b for a, b in zip(index, adj_tile))
-            if tilemap[adj_tile_val] in one_exit_tiles:
+            if tilemap[adj_tile_val] in ONE_EXIT_TILES:
                 tilemap[index] = 0
                 tilemap[adj_tile_val] = 0
     return tilemap
@@ -221,10 +226,9 @@ def dungeon_map_generator() -> array[uint8]:
 def _make_exit_map(tilemap: array[uint8]) -> array[uint8]:
     """
     Local Subhandler for Dungeon Map visualizer
+    Vectorized version using numpy.
     """
-    debug_map = np.zeros_like(tilemap, uint8)
-    for index, val in np.ndenumerate(tilemap):
-        debug_map[index] = np.bitwise_count(val)
+    debug_map = np.unpackbits(tilemap[:, :, np.newaxis], axis=-1).sum(axis=-1).astype(np.uint8)
     return debug_map
 
 def _on_click(event, ax: Axes, tilemap: array[uint8], time: float, room_count: int) -> None:

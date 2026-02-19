@@ -33,8 +33,8 @@ def get_directions(value: int) -> set[str]:
 
     Returns
     -------
-    dirs: list[str]
-        List of direction strings
+    dirs: set[str]
+        Set of direction strings
     """
     bits = value & 0b01111
     directions = ["North","East","South","West"]
