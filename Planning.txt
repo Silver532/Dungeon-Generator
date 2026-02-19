@@ -41,6 +41,7 @@ Room Generator File
 
     Output:
             numpy array of uint-8 values of size x * x, where each cell has:
+                WALL = 0
                 FLOOR = 1
                 HOLE = 2
                 WATER = 3
@@ -48,6 +49,8 @@ Room Generator File
                 HEALING_STATION = 5
                 CHEST = 6
                 LOOT_PILE = 7
+                MONSTER_SPAWNER = 8
+                BOSS_SPAWNER = 9
 
 Room Stitcher File
     Inputs:
