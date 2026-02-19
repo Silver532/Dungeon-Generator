@@ -133,9 +133,6 @@ def populate_tilemap(tilemap: array[uint8], theme: str) -> array[uint8]:
         
         "Empty":        [0,0,0,0,0,0,0,0]
     }
-    pop_vals = population_dict[theme]
-    for index, val in enumerate(pop_vals):
-        ...
     return tilemap
 
 def room_map_generator(room_val: int) -> tuple[array[uint8], str, str]:
