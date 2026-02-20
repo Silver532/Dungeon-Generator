@@ -223,6 +223,7 @@ def dungeon_map_generator() -> array[uint8]:
     tilemap = room_clear(tilemap)
     return tilemap
 
+#region DEBUG
 def _make_exit_map(tilemap: array[uint8]) -> array[uint8]:
     """
     Local Subhandler for Dungeon Map visualizer
@@ -301,6 +302,7 @@ def _main() -> None:
     print(f"Dungeon contains {room_count} rooms")
     _debug(tilemap, delta_time, room_count)
     return
+#endregion
 
 if __name__ == "__main__":
     _main()

@@ -2,10 +2,11 @@
 **Constants for Generators**
 """
 
-#Unified Constants
+#region Unified Constants
 WALL = 0
+#endregion
 
-#Dungeon Map Generator Constants
+#region Dungeon Map Generator Constants
 DUNGEON_SIZE = 20
 BOX_COUNT = 3
 ERODE_COUNT = 5
@@ -15,8 +16,9 @@ SOUTH = 4
 WEST = 8
 TEMP = 1
 ROOM = 16
+#endregion
 
-#Room Map Generator Constants
+#region Room Map Generator Constants
 ROOM_SIZE = 17
 FLOOR = 1
 HOLE = 2
@@ -27,3 +29,4 @@ CHEST = 6
 LOOT_PILE = 7
 MONSTER_SPAWNER = 8
 BOSS_SPAWNER = 9
+#endregion
