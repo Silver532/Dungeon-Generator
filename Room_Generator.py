@@ -1,3 +1,7 @@
+"""
+**Room Map Generator**
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -101,38 +105,39 @@ def get_theme(shape: str) -> str:
     return theme
 
 def populate_tilemap(tilemap: array[uint8], theme: str) -> array[uint8]:
-    #List Format is [Holes,Water,Traps,Healing,Chests,Loot Piles,Monsters,Boss]
+    #List Format is [Holes,Water,Traps,Healing,Chests,Loot Piles,Monsters,Boss,Shrine]
     R = lambda num = 0: rand(0,1)+num
     T = lambda num = 0: rand(0,2)+num
     population_dict = {
-        "DE_Trapped":   [1,R(),3,0,0,0,0,0],  "DE_Treasure":  [0,0,1,0,1,2,1,0],
-        "DE_Healthy":   [0,0,0,1,0,0,0,0],    "DE_Guarded":   [0,0,0,0,0,0,1,0],
+        "DE_Trapped":   [1,R(),3,0,0,0,0,0,0],  "DE_Treasure":  [0,0,1,0,1,2,1,0,0],
+        "DE_Healthy":   [0,0,0,1,0,0,0,0,0],    "DE_Guarded":   [0,0,0,0,0,0,1,0,0],
 
-        "SR_Trapped":   [1,0,T(3),0,0,1,1,0], "SR_Treasure":  [0,0,R(1),0,2,3,0,0],
-        "SR_Guarded":   [0,R(),1,0,0,1,2,0],  "SR_Chaos":     [2,R(),3,0,1,2,3,0],
-        "SR_Basic":     [0,0,R(),0,0,R(),0,0],
+        "SR_Trapped":   [1,0,T(3),0,0,1,1,0,0], "SR_Treasure":  [0,0,R(1),0,2,3,0,0,0],
+        "SR_Guarded":   [0,R(),1,0,0,1,2,0,0],  "SR_Chaos":     [2,R(),3,0,1,2,3,0,1],
+        "SR_Basic":     [0,0,R(),0,0,R(),0,0,0],
 
-        "CN_Trapped":   [1,0,T(1),0,0,1,0,0], "CN_Guarded":   [0,0,0,0,0,0,1,0],
-        "CN_Basic":     [0,0,0,0,0,0,0,0],
+        "CN_Trapped":   [1,0,T(1),0,0,1,0,0,0], "CN_Guarded":   [0,0,0,0,0,0,1,0,0],
+        "CN_Basic":     [0,0,0,0,0,0,0,0,0],
 
-        "LR_Trapped":   [2,1,T(3),0,0,2,1,0], "LR_Treasure":  [0,0,1,0,2,3,1,0],
-        "LR_Healthy":   [0,0,0,1,0,0,0,0],    "LR_Guarded":   [0,R(),1,0,1,1,3,0],
-        "LR_Chaos":     [2,1,3,0,2,3,T(2),0], "LR_Basic":     [0,0,R(1),0,0,R(),0,0],
+        "LR_Trapped":   [2,1,T(3),0,0,2,1,0,0], "LR_Treasure":  [0,0,1,0,2,3,1,0,0],
+        "LR_Healthy":   [0,0,0,1,0,0,0,0,0],    "LR_Guarded":   [0,R(),1,0,1,1,3,0,0],
+        "LR_Chaos":     [2,1,3,0,2,3,T(2),0,1], "LR_Basic":     [0,0,R(1),0,0,R(),0,0,0],
 
-        "CR_Trapped":   [1,0,T(2),0,0,1,0,0], "CR_Treasure":  [0,0,1,0,1,3,1,0],
-        "CR_Guarded":   [0,R(),1,0,0,1,2,0],  "CR_Chaos":     [R(),1,3,0,T(),3,R(2),0],
-        "CR_Basic":     [0,0,R(),0,0,R(),0,0],
+        "CR_Trapped":   [1,0,T(2),0,0,1,0,0,0], "CR_Treasure":  [0,0,1,0,1,3,1,0,0],
+        "CR_Guarded":   [0,R(),1,0,0,1,2,0,0],  "CR_Chaos":     [R(),1,3,0,T(),3,R(2),0,1],
+        "CR_Basic":     [0,0,R(),0,0,R(),0,0,0],
 
-        "HR_Trapped":   [1,0,T(2),0,0,1,0,0], "HR_Treasure":  [0,0,1,0,1,3,1,0],
-        "HR_Guarded":   [0,R(),1,0,0,1,2,0],  "HR_Chaos":     [R(),1,3,0,T(),3,R(2),0],
-        "HR_Basic":     [0,0,R(),0,0,R(),0,0],
+        "HR_Trapped":   [1,0,T(2),0,0,1,0,0,0], "HR_Treasure":  [0,0,1,0,1,3,1,0,0],
+        "HR_Guarded":   [0,R(),1,0,0,1,2,0,0],  "HR_Chaos":     [R(),1,3,0,T(),3,R(2),0,1],
+        "HR_Basic":     [0,0,R(),0,0,R(),0,0,0],
 
-        "BR_Hoard":     [0,0,0,0,3,9,0,1],    "BR_Wizard":    [0,0,0,0,4,3,0,1],
-        "BR_Weak":      [0,0,R(),0,1,2,1,1],  "BR_Strong":    [0,0,0,R(),T(1),5,0,1],
-        "BR_Guarded":   [0,0,1,0,2,3,2,1],    "BR_Double":    [0,0,0,0,3,5,0,2],
+        "BR_Hoard":     [0,0,0,0,3,9,0,1,1],    "BR_Wizard":    [0,0,0,0,4,3,0,1,1],
+        "BR_Weak":      [0,0,R(),0,1,2,1,1,0],  "BR_Strong":    [0,0,0,R(),T(1),5,0,1,1],
+        "BR_Guarded":   [0,0,1,0,2,3,2,1,1],    "BR_Double":    [0,0,0,0,3,5,0,2,1],
         
-        "Empty":        [0,0,0,0,0,0,0,0]
+        "Empty":        [0,0,0,0,0,0,0,0,0]
     }
+    pop_vals = population_dict[theme]
     return tilemap
 
 def room_map_generator(room_val: int) -> tuple[array[uint8], str, str]:
@@ -143,6 +148,7 @@ def room_map_generator(room_val: int) -> tuple[array[uint8], str, str]:
     tilemap = populate_tilemap(tilemap, theme)
     return tilemap, shape, theme
 
+#region DEBUG
 def _on_click(event, ax: Axes, tilemap: array[uint8], time: float, shape: str, theme: str) -> None:
     if event.inaxes == ax:
         col = int(event.xdata+0.5)
@@ -198,6 +204,7 @@ def _main() -> None:
     print(f"\033cProgram ran in {delta_time} milliseconds\nShape: {shape}\nTheme: {theme}\n")
     _debug(tilemap, delta_time, shape, theme)
     return
+#endregion
 
 if __name__ == "__main__":
     _main()
