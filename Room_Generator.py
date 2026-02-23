@@ -116,6 +116,15 @@ def get_theme(shape: str) -> str:
     theme = choices(theme_list, weight_list, k=1)[0]
     return theme
 
+def scan_tilemap(tilemap: array[uint8], require: set[int] | None = None, block: set[int] | None = None, bias: set[int] | None = None) -> list[tuple[int,int]]:
+    if require is not None:
+        ...
+    if block is not None:
+        ...
+    if bias is not None:
+        ...
+    return []
+
 def populate_tilemap(tilemap: array[uint8], theme: str) -> array[uint8]:
     #List Format is [Holes,Water,Traps,Healing,Chests,Loot Piles,Monsters,Boss,Shrine]
     R = lambda num = 0: rand(0,1)+num
@@ -150,6 +159,27 @@ def populate_tilemap(tilemap: array[uint8], theme: str) -> array[uint8]:
         "Empty":        [0,0,0,0,0,0,0,0,0]
     }
     pop_vals = population_dict[theme]
+    for index, count in enumerate(pop_vals):
+        if count != 0:
+            match index:
+                case Tile.HOLES:
+                    ...
+                case Tile.WATER:
+                    ...
+                case Tile.TRAPS:
+                    ...
+                case Tile.HEALING:
+                    ...
+                case Tile.CHESTS:
+                    ...
+                case Tile.LOOT_PILES:
+                    ...
+                case Tile.MONSTERS:
+                    ...
+                case Tile.BOSS:
+                    ...
+                case Tile.SHRINE:
+                    ...
     return tilemap
 
 def room_map_generator(room_val: int) -> tuple[array[uint8], str, str]:
