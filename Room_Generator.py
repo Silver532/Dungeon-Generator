@@ -13,12 +13,24 @@ from random import choices
 from matplotlib import rcParams
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from matplotlib.axes import Axes
+from enum import Enum
 
 from Constants import *
 from Generator_Helpers import *
 
 class InvalidRoom(Exception):
     pass
+
+class Tile(Enum):
+    HOLES      = 0
+    WATER      = 1
+    TRAPS      = 2
+    HEALING    = 3
+    CHESTS     = 4
+    LOOT_PILES = 5
+    MONSTERS   = 6
+    BOSS       = 7
+    SHRINE     = 8
 
 def get_shape(room_val: int) -> tuple[str, set[str]]:
     if room_val < 0b10000 or room_val > 0b11111: raise InvalidRoom(f"The get_shape function does not support room_val: {room_val}.")
