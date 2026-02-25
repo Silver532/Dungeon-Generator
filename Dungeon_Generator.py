@@ -108,8 +108,8 @@ def room_random() -> Literal[1,2,3]:
         returns 1, 2 or 3 with a weighted random
     """
     r = random()
-    if r < 0.60:    return 1
-    elif r < 0.85:  return 2
+    if r < 0.55:    return 1
+    elif r < 0.80:  return 2
     else:           return 3
 
 def room_connector(tilemap: array[uint8]) -> array[uint8]:
