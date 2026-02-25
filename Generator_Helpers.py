@@ -1,3 +1,7 @@
+"""
+**Helper Functions for Generators**
+"""
+
 import numpy as np
 from numpy import uint8
 from numpy.typing import NDArray as array
