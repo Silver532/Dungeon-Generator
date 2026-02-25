@@ -116,14 +116,18 @@ def get_theme(shape: str) -> str:
     theme = choices(theme_list, weight_list, k=1)[0]
     return theme
 
-def scan_tilemap(tilemap: array[uint8], require: set[int] | None = None, block: set[int] | None = None, bias: set[int] | None = None) -> list[tuple[int,int]]:
-    if require is not None:
-        ...
-    if block is not None:
-        ...
+def scan_tilemap(tilemap: array[uint8], require: set[int] | None = None, block: set[int] | None = None,
+                 bias: set[int] | None = None, place_on: set[int] = {1}) -> list[tuple[int,int]]:
+    available_grid = np.isin(tilemap,list(place_on))
+    if require is not None: available_grid &= adj_map(tilemap, target = require) != 0
+    if block is not None:   available_grid &= adj_map(tilemap, target = block)   == 0
+    available_list = np.argwhere(available_grid)
     if bias is not None:
-        ...
-    return []
+        bias_grid = available_grid & (adj_map(tilemap, target = bias) != 0)
+        bias_list = np.argwhere(bias_grid)
+        if bias_list.size > 0:
+            available_list = np.concatenate((available_list,bias_list),axis = 0)
+    return [tuple(x) for x in available_list]
 
 def populate_tilemap(tilemap: array[uint8], theme: str) -> array[uint8]:
     #List Format is [Holes,Water,Traps,Healing,Chests,Loot Piles,Monsters,Boss,Shrine]
