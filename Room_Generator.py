@@ -13,7 +13,7 @@ from random import choices
 from matplotlib import rcParams
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from matplotlib.axes import Axes
-from enum import Enum
+from enum import IntEnum
 
 from Constants import Room_Generator_Constants as const
 from Generator_Helpers import *
@@ -21,7 +21,7 @@ from Generator_Helpers import *
 class InvalidRoom(Exception):
     pass
 
-class Tile(Enum):
+class Tile(IntEnum):
     HOLES      = 0
     WATER      = 1
     TRAPS      = 2
