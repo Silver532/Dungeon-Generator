@@ -119,8 +119,12 @@ def get_theme(shape: str) -> str:
 def scan_tilemap(tilemap: array[uint8], require: set[int] | None = None, block: set[int] | None = None,
                  bias: set[int] | None = None, place_on: set[int] = {1}) -> list[tuple[int,int]]:
     available_grid = np.isin(tilemap,list(place_on))
-    if require is not None: available_grid &= adj_map(tilemap, target = require) != 0
-    if block is not None:   available_grid &= adj_map(tilemap, target = block)   == 0
+
+    if require is not None:
+        available_grid &= (adj_map(tilemap, target = require, iso = False) != 0)
+    if block is not None:
+        available_grid &= (adj_map(tilemap, target = block, iso = False) == 0)
+    
     available_list = np.argwhere(available_grid)
     if bias is not None:
         bias_grid = available_grid & (adj_map(tilemap, target = bias) != 0)
