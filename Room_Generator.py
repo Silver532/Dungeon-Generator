@@ -167,8 +167,10 @@ def populate_tilemap(tilemap: array[uint8], theme: str) -> array[uint8]:
         if count != 0:
             match index:
                 case Tile.HOLES:
+                    available_list = scan_tilemap(tilemap, block = {const.WALL})
                     for _ in range(count):
-                        ...
+                        coords = choice(available_list)
+                        tilemap[coords] = const.HOLE
                 case Tile.WATER:
                     for _ in range(count):
                         ...
