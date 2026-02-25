@@ -2,7 +2,9 @@
 **Constants for Generators**
 """
 
-class Dungeon_Generator_Constants:
+from enum import IntEnum
+
+class Dungeon_Generator_Constants(IntEnum):
     DUNGEON_SIZE = 20
     BOX_COUNT = 3
     ERODE_COUNT = 5
@@ -14,7 +16,7 @@ class Dungeon_Generator_Constants:
     NO_ROOM = 0
     ROOM = 16
 
-class Room_Generator_Constants:
+class Room_Generator_Constants(IntEnum):
     ROOM_SIZE = 17
     WALL = 0
     FLOOR = 1
