@@ -211,7 +211,7 @@ def _on_click(event, ax: Axes, tilemap: array[uint8], time: float, shape: str, t
         if 0 <= row < tilemap.shape[0] and 0 <= col < tilemap.shape[1]:
             print(f"\033cProgram ran in {time} milliseconds\nShape: {shape}\nTheme: {theme}\n"+
                 f"Tile Clicked: {row}, {col}\n"+
-                f"Tile Value: {tilemap[row,col]}")
+                f"Tile Value: {const(tilemap[row,col]).name}")
     else:
         print(f"\033cProgram ran in {time} milliseconds\nShape: {shape}\nTheme: {theme}")
     return
