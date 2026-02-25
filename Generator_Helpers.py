@@ -71,8 +71,8 @@ def adj_map(tilemap: array[uint8], neighbor_map:array[uint8] | None = None, iso:
     if neighbor_map is None: neighbor_map = np.zeros_like(tilemap)
     else: neighbor_map.fill(0)
 
-    neighbor_map[1:h-1, :] = tilemap[0:h-2, :] + tilemap[2:h, :]
-    neighbor_map[:, 1:w-1] += tilemap[:, 0:w-2] + tilemap[:, 2:w]
+    neighbor_map[1:h-1, :] = mask[0:h-2, :] + mask[2:h, :]
+    neighbor_map[:, 1:w-1] += mask[:, 0:w-2] + mask[:, 2:w]
     if iso: neighbor_map *= (tilemap == 1)
     assert neighbor_map is not None
     return neighbor_map
