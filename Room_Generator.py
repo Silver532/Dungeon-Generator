@@ -15,7 +15,7 @@ from matplotlib.colors import ListedColormap, BoundaryNorm
 from matplotlib.axes import Axes
 from enum import Enum
 
-from Constants import *
+from Constants import Room_Generator_Constants as const
 from Generator_Helpers import *
 
 class InvalidRoom(Exception):
@@ -50,28 +50,28 @@ def get_shape(room_val: int) -> tuple[str, set[str]]:
     return shape, exits
 
 def build_room(tilemap: array[uint8], shape: str, exits: set[str]) -> array[uint8]:
-    half = ROOM_SIZE//2
+    half = const.ROOM_SIZE//2
     if "North" in exits:
-        tilemap[0:half+1, half-1:half+2] = FLOOR
+        tilemap[0:half+1, half-1:half+2] = const.FLOOR
     if "East" in exits:
-        tilemap[half-1:half+2, half:ROOM_SIZE] = FLOOR
+        tilemap[half-1:half+2, half:const.ROOM_SIZE] = const.FLOOR
     if "South" in exits:
-        tilemap[half:ROOM_SIZE, half-1:half+2] = FLOOR
+        tilemap[half:const.ROOM_SIZE, half-1:half+2] = const.FLOOR
     if "West" in exits:
-        tilemap[half-1:half+2, 0:half+1] = FLOOR
+        tilemap[half-1:half+2, 0:half+1] = const.FLOOR
     
     match shape:
         case "Dead_End":
             length = rand(1,5)
-            tilemap[half-length:half+length+1, half-length:half+length+1] = WALL
+            tilemap[half-length:half+length+1, half-length:half+length+1] = const.WALL
         case "Boss_Room":
-            tilemap[1:-1, 1:-1] = FLOOR
+            tilemap[1:-1, 1:-1] = const.FLOOR
         case "Small_Room":
-            tilemap[half-3:half+4, half-3:half+4] = FLOOR
+            tilemap[half-3:half+4, half-3:half+4] = const.FLOOR
         case "Connection":
-            tilemap[half-1:half+2, half-1:half+2] = FLOOR
+            tilemap[half-1:half+2, half-1:half+2] = const.FLOOR
         case "Large_Room":
-            tilemap[half-6:half+7, half-6:half+7] = FLOOR
+            tilemap[half-6:half+7, half-6:half+7] = const.FLOOR
         case "Corner":
             mapping = {
                 frozenset(("North", "West")):  (slice(1, half+2),      slice(1, half+2)),
@@ -80,17 +80,17 @@ def build_room(tilemap: array[uint8], shape: str, exits: set[str]) -> array[uint
                 frozenset(("South", "East")):  (slice(half-1, -1),     slice(half-1, -1)),
             }
             pair = frozenset(exits)
-            if pair in mapping: r, c = mapping[pair]; tilemap[r, c] = FLOOR
-            else: tilemap[half-3:half+4, half-3:half+4] = FLOOR
+            if pair in mapping: r, c = mapping[pair]; tilemap[r, c] = const.FLOOR
+            else: tilemap[half-3:half+4, half-3:half+4] = const.FLOOR
         case "Half":
             if "North" not in exits:
-                tilemap[half:-1, 1:-1] = FLOOR
+                tilemap[half:-1, 1:-1] = const.FLOOR
             if "East" not in exits:
-                tilemap[1:-1, 1:half] = FLOOR
+                tilemap[1:-1, 1:half] = const.FLOOR
             if "South" not in exits:
-                tilemap[1:half, 1:-1] = FLOOR
+                tilemap[1:half, 1:-1] = const.FLOOR
             if "West" not in exits:
-                tilemap[1:-1, half:-1] = FLOOR
+                tilemap[1:-1, half:-1] = const.FLOOR
         case _:
             raise InvalidRoom(f"Room builder does not support shape {shape}")
     return tilemap
@@ -183,7 +183,7 @@ def populate_tilemap(tilemap: array[uint8], theme: str) -> array[uint8]:
     return tilemap
 
 def room_map_generator(room_val: int) -> tuple[array[uint8], str, str]:
-    tilemap = init_tilemap(ROOM_SIZE)
+    tilemap = init_tilemap(const.ROOM_SIZE)
     shape, exits = get_shape(room_val)
     tilemap = build_room(tilemap, shape, exits)
     theme = get_theme(shape)

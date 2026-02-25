@@ -15,7 +15,7 @@ from matplotlib.colors import ListedColormap, BoundaryNorm
 from matplotlib.axes import Axes
 from typing import Literal
 
-from Constants import *
+from Constants import Dungeon_Generator_Constants as const
 from Generator_Helpers import *
 
 def room_fill(tilemap: array[uint8]) -> array[uint8]:
@@ -30,39 +30,14 @@ def room_fill(tilemap: array[uint8]) -> array[uint8]:
     tilemap : NDArray[uint8]
         2D array with placed rooms of random size.
     """
-    mid = DUNGEON_SIZE//2
-    for _ in range(BOX_COUNT):
-        y_s, y_e = rand(1, mid - 1), rand(mid + 2, DUNGEON_SIZE - 2)
+    mid = const.DUNGEON_SIZE//2
+    for _ in range(const.BOX_COUNT):
+        y_s, y_e = rand(1, mid - 1), rand(mid + 2, const.DUNGEON_SIZE - 2)
         room_dims = 16 - (y_e-y_s)
         x_s = rand(1, mid - 1)
-        x_e = min(x_s + room_dims + 3, DUNGEON_SIZE - 4)+2
-        tilemap[y_s:y_e, x_s:x_e] = TEMP
+        x_e = min(x_s + room_dims + 3, const.DUNGEON_SIZE - 4)+2
+        tilemap[y_s:y_e, x_s:x_e] = const.TEMP
     return tilemap
-
-def adj_map(tilemap: array[uint8], neighbor_map:array[uint8], iso:bool=True) -> array[uint8]:
-    """
-    Parameters
-    ----------
-    tilemap : NDArray[uint8]
-        2D array with rooms placed.
-    neighbor_map : NDArray[uint8]
-        2D array for placing neighbor count in
-    iso : bool
-        Trim values to only active tiles in the tilemap
-
-    Returns
-    -------
-    tilemap : NDArray[int]
-        2D array counting how many neighbors each
-        cell has in orthogonal directions.
-    """
-    h, w = tilemap.shape
-    neighbor_map.fill(0)
-
-    neighbor_map[1:h-1, :] = tilemap[0:h-2, :] + tilemap[2:h, :]
-    neighbor_map[:, 1:w-1] += tilemap[:, 0:w-2] + tilemap[:, 2:w]
-    if iso: neighbor_map *= tilemap
-    return neighbor_map
 
 def room_eroder(tilemap: array[uint8]) -> array[uint8]:
     """
@@ -78,23 +53,23 @@ def room_eroder(tilemap: array[uint8]) -> array[uint8]:
     """
     zeroes = np.zeros_like(tilemap, dtype=uint8)
 
-    for _ in range(ERODE_COUNT):
+    for _ in range(const.ERODE_COUNT):
         neighbor_map = adj_map(tilemap, zeroes)
 
         coords2 = np.argwhere(neighbor_map == 2)
         for y, x in coords2:
             if rand(0,1):
-                tilemap[y, x] = WALL
+                tilemap[y, x] = const.WALL
 
         coords3 = np.argwhere(neighbor_map == 3)
         for y, x in coords3:
             if rand(0,9) == 0:
-                tilemap[y, x] = WALL
+                tilemap[y, x] = const.WALL
 
     neighbor_map = adj_map(tilemap, zeroes)
     coords0 = np.argwhere(neighbor_map == 0)
     for y, x in coords0:
-        tilemap[y, x] = WALL
+        tilemap[y, x] = const.WALL
 
     return tilemap
 
@@ -214,7 +189,7 @@ def dungeon_map_generator() -> array[uint8]:
     ---------------------
     Importable Handler for Dungeon Map Generation
     """
-    tilemap = init_tilemap(DUNGEON_SIZE)
+    tilemap = init_tilemap(const.DUNGEON_SIZE)
     tilemap = room_fill(tilemap)
     tilemap = room_eroder(tilemap)
     tilemap *= 16
