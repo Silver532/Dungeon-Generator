@@ -59,17 +59,17 @@ def room_eroder(tilemap: array[uint8]) -> array[uint8]:
         coords2 = np.argwhere(neighbor_map == 2)
         for y, x in coords2:
             if rand(0,1):
-                tilemap[y, x] = const.WALL
+                tilemap[y, x] = const.NO_ROOM
 
         coords3 = np.argwhere(neighbor_map == 3)
         for y, x in coords3:
             if rand(0,9) == 0:
-                tilemap[y, x] = const.WALL
+                tilemap[y, x] = const.NO_ROOM
 
     neighbor_map = adj_map(tilemap, zeroes)
     coords0 = np.argwhere(neighbor_map == 0)
     for y, x in coords0:
-        tilemap[y, x] = const.WALL
+        tilemap[y, x] = const.NO_ROOM
 
     return tilemap
 

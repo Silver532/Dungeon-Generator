@@ -11,7 +11,7 @@ class Dungeon_Generator_Constants:
     SOUTH = 4
     WEST = 8
     TEMP = 1
-    WALL = 0
+    NO_ROOM = 0
     ROOM = 16
 
 class Room_Generator_Constants:
