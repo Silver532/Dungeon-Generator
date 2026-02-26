@@ -13,9 +13,10 @@ from random import sample
 from matplotlib import rcParams
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from matplotlib.axes import Axes
+from matplotlib.backend_bases import Event, MouseEvent
 from typing import Literal
 
-from Constants import *
+from Constants import Dungeon_Generator_Constants as const
 from Generator_Helpers import *
 
 def room_fill(tilemap: array[uint8]) -> array[uint8]:
@@ -30,39 +31,14 @@ def room_fill(tilemap: array[uint8]) -> array[uint8]:
     tilemap : NDArray[uint8]
         2D array with placed rooms of random size.
     """
-    mid = DUNGEON_SIZE//2
-    for _ in range(BOX_COUNT):
-        y_s, y_e = rand(1, mid - 1), rand(mid + 2, DUNGEON_SIZE - 2)
+    mid = const.DUNGEON_SIZE//2
+    for _ in range(const.BOX_COUNT):
+        y_s, y_e = rand(1, mid - 1), rand(mid + 2, const.DUNGEON_SIZE - 2)
         room_dims = 16 - (y_e-y_s)
         x_s = rand(1, mid - 1)
-        x_e = min(x_s + room_dims + 3, DUNGEON_SIZE - 4)+2
-        tilemap[y_s:y_e, x_s:x_e] = TEMP
+        x_e = min(x_s + room_dims + 3, const.DUNGEON_SIZE - 4)+2
+        tilemap[y_s:y_e, x_s:x_e] = const.TEMP
     return tilemap
-
-def adj_map(tilemap: array[uint8], neighbor_map:array[uint8], iso:bool=True) -> array[uint8]:
-    """
-    Parameters
-    ----------
-    tilemap : NDArray[uint8]
-        2D array with rooms placed.
-    neighbor_map : NDArray[uint8]
-        2D array for placing neighbor count in
-    iso : bool
-        Trim values to only active tiles in the tilemap
-
-    Returns
-    -------
-    tilemap : NDArray[int]
-        2D array counting how many neighbors each
-        cell has in orthogonal directions.
-    """
-    h, w = tilemap.shape
-    neighbor_map.fill(0)
-
-    neighbor_map[1:h-1, :] = tilemap[0:h-2, :] + tilemap[2:h, :]
-    neighbor_map[:, 1:w-1] += tilemap[:, 0:w-2] + tilemap[:, 2:w]
-    if iso: neighbor_map *= tilemap
-    return neighbor_map
 
 def room_eroder(tilemap: array[uint8]) -> array[uint8]:
     """
@@ -78,23 +54,23 @@ def room_eroder(tilemap: array[uint8]) -> array[uint8]:
     """
     zeroes = np.zeros_like(tilemap, dtype=uint8)
 
-    for _ in range(ERODE_COUNT):
+    for _ in range(const.ERODE_COUNT):
         neighbor_map = adj_map(tilemap, zeroes)
 
         coords2 = np.argwhere(neighbor_map == 2)
         for y, x in coords2:
             if rand(0,1):
-                tilemap[y, x] = WALL
+                tilemap[y, x] = const.NO_ROOM
 
         coords3 = np.argwhere(neighbor_map == 3)
         for y, x in coords3:
             if rand(0,9) == 0:
-                tilemap[y, x] = WALL
+                tilemap[y, x] = const.NO_ROOM
 
     neighbor_map = adj_map(tilemap, zeroes)
     coords0 = np.argwhere(neighbor_map == 0)
     for y, x in coords0:
-        tilemap[y, x] = WALL
+        tilemap[y, x] = const.NO_ROOM
 
     return tilemap
 
@@ -133,8 +109,8 @@ def room_random() -> Literal[1,2,3]:
         returns 1, 2 or 3 with a weighted random
     """
     r = random()
-    if r < 0.60:    return 1
-    elif r < 0.85:  return 2
+    if r < 0.55:    return 1
+    elif r < 0.80:  return 2
     else:           return 3
 
 def room_connector(tilemap: array[uint8]) -> array[uint8]:
@@ -184,7 +160,7 @@ def tilemap_trim(tilemap: array[uint8]) -> array[uint8]:
     trimmed_tilemap = tilemap[np.ix_(active_rows, active_cols)]
     return trimmed_tilemap
 
-def room_clear(tilemap) -> array[uint8]:
+def room_clear(tilemap: array[uint8]) -> array[uint8]:
     """
     Parameters
     ----------
@@ -201,7 +177,7 @@ def room_clear(tilemap) -> array[uint8]:
     ONE_EXIT_TILES = [17,18,20,24]
     for index, i in np.ndenumerate(tilemap):
         if i in ONE_EXIT_TILES:
-            adj_tile = DIR_MAP[i]
+            adj_tile = DIR_MAP[int(i)]
             adj_tile_val = tuple(a + b for a, b in zip(index, adj_tile))
             if tilemap[adj_tile_val] in ONE_EXIT_TILES:
                 tilemap[index] = 0
@@ -214,7 +190,7 @@ def dungeon_map_generator() -> array[uint8]:
     ---------------------
     Importable Handler for Dungeon Map Generation
     """
-    tilemap = init_tilemap(DUNGEON_SIZE)
+    tilemap = init_tilemap(const.DUNGEON_SIZE)
     tilemap = room_fill(tilemap)
     tilemap = room_eroder(tilemap)
     tilemap *= 16
@@ -223,6 +199,7 @@ def dungeon_map_generator() -> array[uint8]:
     tilemap = room_clear(tilemap)
     return tilemap
 
+#region DEBUG
 def _make_exit_map(tilemap: array[uint8]) -> array[uint8]:
     """
     Local Subhandler for Dungeon Map visualizer
@@ -231,11 +208,12 @@ def _make_exit_map(tilemap: array[uint8]) -> array[uint8]:
     debug_map = np.unpackbits(tilemap[:, :, np.newaxis], axis=-1).sum(axis=-1).astype(np.uint8)
     return debug_map
 
-def _on_click(event, ax: Axes, tilemap: array[uint8], time: float, room_count: int) -> None:
+def _on_click(event: Event, ax: Axes, tilemap: array[uint8], time: float, room_count: int) -> None:
     """
     Local handler for debug on click event.
     """
-    if event.inaxes == ax:
+    if not isinstance(event, MouseEvent): return
+    if event.inaxes is ax and event.xdata is not None and event.ydata is not None:
         col = int(event.xdata+0.5)
         row = int(event.ydata+0.5)
         if 0 <= row < tilemap.shape[0] and 0 <= col < tilemap.shape[1]:
@@ -263,7 +241,11 @@ def _debug(tilemap: array[uint8], time: float, room_count: int) -> None:
     norm = BoundaryNorm(range(len(colours)+1), cmap.N)
     
     rcParams["toolbar"]="None"
-    fig, ax = plt.subplots(figsize = (5,5), dpi = 120)
+    # False positive from Matplotlib type stubs.
+    # Many pyplot/Axes methods define **kwargs as Unknown, which triggers
+    # reportUnknownMemberType under strict mode.
+    # Argument and return types are otherwise fully resolved and type-safe.
+    fig, ax = plt.subplots(figsize = (5,5), dpi = 120)                                          #type: ignore[reportUnknownMemberType]
 
     manager = getattr(fig.canvas, "manager", None)
     if manager is not None and hasattr(manager, "set_window_title"):
@@ -271,15 +253,16 @@ def _debug(tilemap: array[uint8], time: float, room_count: int) -> None:
     
     rows, cols = debug_map.shape
 
-    ax.imshow(debug_map,cmap=cmap,norm=norm,interpolation="nearest")
-    ax.grid(which="minor", color="white", linewidth=0.5)
-    ax.tick_params(which="both", bottom=False, left=False, labelbottom=False, labelleft=False)
-    ax.set_xticks(np.arange(-0.5, cols, 1), minor=True)
-    ax.set_yticks(np.arange(-0.5, rows, 1), minor=True)
+    ax.imshow(debug_map,cmap=cmap,norm=norm,interpolation="nearest")                            #type: ignore[reportUnknownMemberType]
+    ax.grid(which="minor", color="white", linewidth=0.5)                                        #type: ignore[reportUnknownMemberType]
+    ax.tick_params(which="both", bottom=False, left=False, labelbottom=False, labelleft=False)  #type: ignore[reportUnknownMemberType]
+    ax.set_xticks(np.arange(-0.5, cols, 1), minor=True)                                         #type: ignore[reportUnknownMemberType]
+    ax.set_yticks(np.arange(-0.5, rows, 1), minor=True)                                         #type: ignore[reportUnknownMemberType]
 
-    fig.canvas.mpl_connect("button_press_event",lambda event: _on_click(event, ax, tilemap, time, room_count))
+    fig.canvas.mpl_connect("button_press_event",lambda event:
+                           _on_click(event,ax,tilemap,time,room_count))
 
-    plt.show()
+    plt.show()                                                                                  #type: ignore[reportUnknownMemberType]
     return
 
 def _main() -> None:
@@ -301,6 +284,7 @@ def _main() -> None:
     print(f"Dungeon contains {room_count} rooms")
     _debug(tilemap, delta_time, room_count)
     return
+#endregion
 
 if __name__ == "__main__":
     _main()
