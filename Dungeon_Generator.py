@@ -13,6 +13,7 @@ from random import sample
 from matplotlib import rcParams
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from matplotlib.axes import Axes
+from matplotlib.backend_bases import Event, MouseEvent
 from typing import Literal
 
 from Constants import Dungeon_Generator_Constants as const
@@ -159,7 +160,7 @@ def tilemap_trim(tilemap: array[uint8]) -> array[uint8]:
     trimmed_tilemap = tilemap[np.ix_(active_rows, active_cols)]
     return trimmed_tilemap
 
-def room_clear(tilemap) -> array[uint8]:
+def room_clear(tilemap: array[uint8]) -> array[uint8]:
     """
     Parameters
     ----------
@@ -176,7 +177,7 @@ def room_clear(tilemap) -> array[uint8]:
     ONE_EXIT_TILES = [17,18,20,24]
     for index, i in np.ndenumerate(tilemap):
         if i in ONE_EXIT_TILES:
-            adj_tile = DIR_MAP[i]
+            adj_tile = DIR_MAP[int(i)]
             adj_tile_val = tuple(a + b for a, b in zip(index, adj_tile))
             if tilemap[adj_tile_val] in ONE_EXIT_TILES:
                 tilemap[index] = 0
@@ -207,11 +208,12 @@ def _make_exit_map(tilemap: array[uint8]) -> array[uint8]:
     debug_map = np.unpackbits(tilemap[:, :, np.newaxis], axis=-1).sum(axis=-1).astype(np.uint8)
     return debug_map
 
-def _on_click(event, ax: Axes, tilemap: array[uint8], time: float, room_count: int) -> None:
+def _on_click(event: Event, ax: Axes, tilemap: array[uint8], time: float, room_count: int) -> None:
     """
     Local handler for debug on click event.
     """
-    if event.inaxes == ax:
+    if not isinstance(event, MouseEvent): return
+    if event.inaxes is ax and event.xdata is not None and event.ydata is not None:
         col = int(event.xdata+0.5)
         row = int(event.ydata+0.5)
         if 0 <= row < tilemap.shape[0] and 0 <= col < tilemap.shape[1]:
@@ -239,7 +241,11 @@ def _debug(tilemap: array[uint8], time: float, room_count: int) -> None:
     norm = BoundaryNorm(range(len(colours)+1), cmap.N)
     
     rcParams["toolbar"]="None"
-    fig, ax = plt.subplots(figsize = (5,5), dpi = 120)
+    # False positive from Matplotlib type stubs.
+    # Many pyplot/Axes methods define **kwargs as Unknown, which triggers
+    # reportUnknownMemberType under strict mode.
+    # Argument and return types are otherwise fully resolved and type-safe.
+    fig, ax = plt.subplots(figsize = (5,5), dpi = 120)                                          #type: ignore[reportUnknownMemberType]
 
     manager = getattr(fig.canvas, "manager", None)
     if manager is not None and hasattr(manager, "set_window_title"):
@@ -247,15 +253,16 @@ def _debug(tilemap: array[uint8], time: float, room_count: int) -> None:
     
     rows, cols = debug_map.shape
 
-    ax.imshow(debug_map,cmap=cmap,norm=norm,interpolation="nearest")
-    ax.grid(which="minor", color="white", linewidth=0.5)
-    ax.tick_params(which="both", bottom=False, left=False, labelbottom=False, labelleft=False)
-    ax.set_xticks(np.arange(-0.5, cols, 1), minor=True)
-    ax.set_yticks(np.arange(-0.5, rows, 1), minor=True)
+    ax.imshow(debug_map,cmap=cmap,norm=norm,interpolation="nearest")                            #type: ignore[reportUnknownMemberType]
+    ax.grid(which="minor", color="white", linewidth=0.5)                                        #type: ignore[reportUnknownMemberType]
+    ax.tick_params(which="both", bottom=False, left=False, labelbottom=False, labelleft=False)  #type: ignore[reportUnknownMemberType]
+    ax.set_xticks(np.arange(-0.5, cols, 1), minor=True)                                         #type: ignore[reportUnknownMemberType]
+    ax.set_yticks(np.arange(-0.5, rows, 1), minor=True)                                         #type: ignore[reportUnknownMemberType]
 
-    fig.canvas.mpl_connect("button_press_event",lambda event: _on_click(event, ax, tilemap, time, room_count))
+    fig.canvas.mpl_connect("button_press_event",lambda event:
+                           _on_click(event,ax,tilemap,time,room_count))
 
-    plt.show()
+    plt.show()                                                                                  #type: ignore[reportUnknownMemberType]
     return
 
 def _main() -> None:
