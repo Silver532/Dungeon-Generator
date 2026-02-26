@@ -7,9 +7,6 @@ import matplotlib.pyplot as plt
 
 from numpy import uint8
 from numpy.typing import NDArray as array
-from random import randint as rand
-from random import choice
-from random import choices
 from matplotlib import rcParams
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from matplotlib.axes import Axes
