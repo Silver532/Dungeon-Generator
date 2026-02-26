@@ -119,7 +119,8 @@ def get_theme(shape: str, rng: np.random.Generator) -> str:
     return theme
 
 def scan_tilemap(tilemap: array[uint8], require: set[int] | None = None, block: set[int] | None = None,
-                 bias: set[int] | None = None, place_on: set[int] = {1}) -> list[tuple[int,int]]:
+                 bias: set[int] | None = None, place_on: set[int] | None = None) -> array[np.int32]:
+    if place_on is None: place_on = {1}
     available_grid = np.isin(tilemap,list(place_on))
 
     if require is not None:
@@ -129,26 +130,27 @@ def scan_tilemap(tilemap: array[uint8], require: set[int] | None = None, block: 
     
     available_list = np.argwhere(available_grid)
     if bias is not None:
-        bias_grid = available_grid & (adj_map(tilemap, target = bias) != 0)
-        bias_list = np.argwhere(bias_grid)
-        if bias_list.size > 0:
+        bias_grid = available_grid & (adj_map(tilemap, target = bias, iso = False) != 0)
+        biases = np.argwhere(bias_grid)
+        if biases.size > 0:
+            bias_list = np.repeat(biases, 4, axis=0)
             available_list = np.concatenate((available_list,bias_list),axis = 0)
-    return [tuple(x) for x in available_list]
+    return available_list
 
 def populate_tilemap(tilemap: array[uint8], theme: str, rng: np.random.Generator) -> array[uint8]:
     feature_order = (
-        Tile.HOLES,
         Tile.WATER,
-        Tile.TRAPS,
+        Tile.HOLES,
         Tile.HEALING,
+        Tile.SHRINE,
         Tile.CHESTS,
         Tile.LOOT_PILES,
-        Tile.MONSTERS,
+        Tile.TRAPS,
         Tile.BOSS,
-        Tile.SHRINE
+        Tile.MONSTERS
     )
-    def R(num: int = 0) -> int: return rand(0,1)+num
-    def T(num: int = 0) -> int: return rand(0,2)+num
+    def R(num: int = 0) -> int: return rng.integers(0,1)+num
+    def T(num: int = 0) -> int: return rng.integers(0,2)+num
     population_dict: dict[str, dict[Tile, int]] = {
         "DE_Trapped":  {Tile.HOLES: 1, Tile.WATER: R(), Tile.TRAPS: 3},
         "DE_Treasure": {Tile.TRAPS: 1, Tile.CHESTS: 1, Tile.LOOT_PILES: 2, Tile.MONSTERS: 1},
