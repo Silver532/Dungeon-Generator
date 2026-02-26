@@ -13,6 +13,7 @@ from random import choices
 from matplotlib import rcParams
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from matplotlib.axes import Axes
+from matplotlib.backend_bases import Event, MouseEvent
 from enum import IntEnum
 
 from Constants import Room_Generator_Constants as const
@@ -73,7 +74,7 @@ def build_room(tilemap: array[uint8], shape: str, exits: set[str]) -> array[uint
         case "Large_Room":
             tilemap[half-6:half+7, half-6:half+7] = const.FLOOR
         case "Corner":
-            mapping = {
+            mapping: dict[frozenset[str], tuple[slice, slice]] = {
                 frozenset(("North", "West")):  (slice(1, half+2),      slice(1, half+2)),
                 frozenset(("North", "East")):  (slice(1, half+2),      slice(half-1, -1)),
                 frozenset(("South", "West")):  (slice(half-1, -1),     slice(1, half+2)),
@@ -134,48 +135,75 @@ def scan_tilemap(tilemap: array[uint8], require: set[int] | None = None, block: 
     return [tuple(x) for x in available_list]
 
 def populate_tilemap(tilemap: array[uint8], theme: str) -> array[uint8]:
-    #List Format is [Holes,Water,Traps,Healing,Chests,Loot Piles,Monsters,Boss,Shrine]
-    R = lambda num = 0: rand(0,1)+num
-    T = lambda num = 0: rand(0,2)+num
-    population_dict = {
-        "DE_Trapped":   [1,R(),3,0,0,0,0,0,0],  "DE_Treasure":  [0,0,1,0,1,2,1,0,0],
-        "DE_Healthy":   [0,0,0,1,0,0,0,0,0],    "DE_Guarded":   [0,0,0,0,0,0,1,0,0],
+    feature_order = (
+        Tile.HOLES,
+        Tile.WATER,
+        Tile.TRAPS,
+        Tile.HEALING,
+        Tile.CHESTS,
+        Tile.LOOT_PILES,
+        Tile.MONSTERS,
+        Tile.BOSS,
+        Tile.SHRINE
+    )
+    def R(num: int = 0) -> int: return rand(0,1)+num
+    def T(num: int = 0) -> int: return rand(0,2)+num
+    population_dict: dict[str, dict[Tile, int]] = {
+        "DE_Trapped":  {Tile.HOLES: 1, Tile.WATER: R(), Tile.TRAPS: 3},
+        "DE_Treasure": {Tile.TRAPS: 1, Tile.CHESTS: 1, Tile.LOOT_PILES: 2, Tile.MONSTERS: 1},
+        "DE_Healthy":  {Tile.HEALING: 1},
+        "DE_Guarded":  {Tile.MONSTERS: 1},
 
-        "SR_Trapped":   [1,0,T(3),0,0,1,1,0,0], "SR_Treasure":  [0,0,R(1),0,2,3,0,0,0],
-        "SR_Guarded":   [0,R(),1,0,0,1,2,0,0],  "SR_Chaos":     [2,R(),3,0,1,2,3,0,1],
-        "SR_Basic":     [0,0,R(),0,0,R(),0,0,0],
+        "SR_Trapped":  {Tile.HOLES: 1, Tile.TRAPS: T(3), Tile.LOOT_PILES: 1, Tile.MONSTERS: 1},
+        "SR_Treasure": {Tile.TRAPS: R(1), Tile.CHESTS: 2, Tile.LOOT_PILES: 3},
+        "SR_Guarded":  {Tile.WATER: R(), Tile.TRAPS: 1, Tile.LOOT_PILES: 1, Tile.MONSTERS: 2},
+        "SR_Chaos":    {Tile.HOLES: 2, Tile.WATER: R(), Tile.TRAPS: 3, Tile.CHESTS: 1, Tile.LOOT_PILES: 2, Tile.MONSTERS: 3, Tile.SHRINE: 1},
+        "SR_Basic":    {Tile.TRAPS: R(), Tile.LOOT_PILES: R()},
 
-        "CN_Trapped":   [1,0,T(1),0,0,1,0,0,0], "CN_Guarded":   [0,0,0,0,0,0,1,0,0],
-        "CN_Basic":     [0,0,0,0,0,0,0,0,0],
+        "CN_Trapped":  {Tile.HOLES: 1, Tile.TRAPS: T(1), Tile.LOOT_PILES: 1},
+        "CN_Guarded":  {Tile.MONSTERS: 1},
+        "CN_Basic":    {Tile.LOOT_PILES: R()},
 
-        "LR_Trapped":   [2,1,T(3),0,0,2,1,0,0], "LR_Treasure":  [0,0,1,0,2,3,1,0,0],
-        "LR_Healthy":   [0,0,0,1,0,0,0,0,0],    "LR_Guarded":   [0,R(),1,0,1,1,3,0,0],
-        "LR_Chaos":     [2,1,3,0,2,3,T(2),0,1], "LR_Basic":     [0,0,R(1),0,0,R(),0,0,0],
+        "LR_Trapped":  {Tile.HOLES: 2, Tile.WATER: 1, Tile.TRAPS: T(3), Tile.LOOT_PILES: 2, Tile.MONSTERS: 1},
+        "LR_Treasure": {Tile.TRAPS: 1, Tile.CHESTS: 2, Tile.LOOT_PILES: 3, Tile.MONSTERS: 1},
+        "LR_Healthy":  {Tile.HEALING: 1},
+        "LR_Guarded":  {Tile.WATER: R(), Tile.TRAPS: 1, Tile.CHESTS: 1, Tile.LOOT_PILES: 1, Tile.MONSTERS: 3},
+        "LR_Chaos":    {Tile.HOLES: 2, Tile.WATER: 1, Tile.TRAPS: 3, Tile.CHESTS: 2, Tile.LOOT_PILES: 3, Tile.MONSTERS: T(2), Tile.SHRINE: 1},
+        "LR_Basic":    {Tile.TRAPS: R(1), Tile.LOOT_PILES: R()},
 
-        "CR_Trapped":   [1,0,T(2),0,0,1,0,0,0], "CR_Treasure":  [0,0,1,0,1,3,1,0,0],
-        "CR_Guarded":   [0,R(),1,0,0,1,2,0,0],  "CR_Chaos":     [R(),1,3,0,T(),3,R(2),0,1],
-        "CR_Basic":     [0,0,R(),0,0,R(),0,0,0],
+        "CR_Trapped":  {Tile.HOLES: 1, Tile.TRAPS: T(2), Tile.LOOT_PILES: 1},
+        "CR_Treasure": {Tile.TRAPS: 1, Tile.CHESTS: 1, Tile.LOOT_PILES: 3, Tile.MONSTERS: 1},
+        "CR_Guarded":  {Tile.WATER: R(), Tile.TRAPS: 1, Tile.LOOT_PILES: 1, Tile.MONSTERS: 2},
+        "CR_Chaos":    {Tile.HOLES: R(), Tile.WATER: 1, Tile.TRAPS: 3, Tile.CHESTS: T(), Tile.LOOT_PILES: 3, Tile.MONSTERS: R(2), Tile.SHRINE: 1},
+        "CR_Basic":    {Tile.TRAPS: R(), Tile.LOOT_PILES: R()},
 
-        "HR_Trapped":   [1,0,T(2),0,0,1,0,0,0], "HR_Treasure":  [0,0,1,0,1,3,1,0,0],
-        "HR_Guarded":   [0,R(),1,0,0,1,2,0,0],  "HR_Chaos":     [R(),1,3,0,T(),3,R(2),0,1],
-        "HR_Basic":     [0,0,R(),0,0,R(),0,0,0],
+        "HR_Trapped":  {Tile.HOLES: 1, Tile.TRAPS: T(2), Tile.LOOT_PILES: 1},
+        "HR_Treasure": {Tile.TRAPS: 1, Tile.CHESTS: 1, Tile.LOOT_PILES: 3, Tile.MONSTERS: 1},
+        "HR_Guarded":  {Tile.WATER: R(), Tile.TRAPS: 1, Tile.LOOT_PILES: 1, Tile.MONSTERS: 2},
+        "HR_Chaos":    {Tile.HOLES: R(), Tile.WATER: 1, Tile.TRAPS: 3, Tile.MONSTERS: R(2), Tile.SHRINE: 1, Tile.CHESTS: T(), Tile.LOOT_PILES: 3},
+        "HR_Basic":    {Tile.TRAPS: R(), Tile.LOOT_PILES: R()},
 
-        "BR_Hoard":     [0,0,0,0,3,9,0,1,1],    "BR_Wizard":    [0,0,0,0,4,3,0,1,1],
-        "BR_Weak":      [0,0,R(),0,1,2,1,1,0],  "BR_Strong":    [0,0,0,R(),T(1),5,0,1,1],
-        "BR_Guarded":   [0,0,1,0,2,3,2,1,1],    "BR_Double":    [0,0,0,0,3,5,0,2,1],
-        
-        "Empty":        [0,0,0,0,0,0,0,0,0]
+        "BR_Hoard":    {Tile.CHESTS: 3, Tile.LOOT_PILES: 9, Tile.BOSS: 1, Tile.SHRINE: 1},
+        "BR_Wizard":   {Tile.CHESTS: 4, Tile.LOOT_PILES: 3, Tile.BOSS: 1, Tile.SHRINE: 1},
+        "BR_Weak":     {Tile.TRAPS: R(), Tile.CHESTS: 1, Tile.LOOT_PILES: 2, Tile.MONSTERS: 1, Tile.BOSS: 1},
+        "BR_Strong":   {Tile.HEALING: R(), Tile.CHESTS: T(1), Tile.LOOT_PILES: 5, Tile.BOSS: 1, Tile.SHRINE: 1},
+        "BR_Guarded":  {Tile.TRAPS: 1, Tile.CHESTS: 2, Tile.LOOT_PILES: 3, Tile.MONSTERS: 2, Tile.BOSS: 1, Tile.SHRINE: 1},
+        "BR_Double":   {Tile.CHESTS: 3, Tile.LOOT_PILES: 5, Tile.BOSS: 2, Tile.SHRINE: 1},
+
+        "Empty": {}
     }
     pop_vals = population_dict[theme]
-    for index, count in enumerate(pop_vals):
-        if count != 0:
-            match index:
+    for feature in feature_order:
+        count = pop_vals.get(feature)
+        if count:
+            match feature:
                 case Tile.HOLES:
                     available_list = scan_tilemap(tilemap, block = {const.WALL})
                     for _ in range(count):
                         coords = choice(available_list)
                         tilemap[coords] = const.HOLE
                 case Tile.WATER:
+                    available_list = scan_tilemap(tilemap, block = {const.CHEST, const.LOOT_PILE, const.HOLE})
                     for _ in range(count):
                         ...
                 case Tile.TRAPS:
@@ -210,8 +238,9 @@ def room_map_generator(room_val: int) -> tuple[array[uint8], str, str]:
     return tilemap, shape, theme
 
 #region DEBUG
-def _on_click(event, ax: Axes, tilemap: array[uint8], time: float, shape: str, theme: str) -> None:
-    if event.inaxes == ax:
+def _on_click(event: Event, ax: Axes, tilemap: array[uint8], time: float, shape: str, theme: str) -> None:
+    if not isinstance(event, MouseEvent): return
+    if event.inaxes is ax and event.xdata is not None and event.ydata is not None:
         col = int(event.xdata+0.5)
         row = int(event.ydata+0.5)
         if 0 <= row < tilemap.shape[0] and 0 <= col < tilemap.shape[1]:
@@ -231,7 +260,11 @@ def _debug(tilemap: array[uint8], time: float, shape: str, theme: str) -> None:
     norm = BoundaryNorm(range(len(colours)+1), cmap.N)
 
     rcParams["toolbar"]="None"
-    fig, ax = plt.subplots(figsize = (5,5), dpi = 120)
+    # False positive from Matplotlib type stubs.
+    # Many pyplot/Axes methods define **kwargs as Unknown, which triggers
+    # reportUnknownMemberType under strict mode.
+    # Argument and return types are otherwise fully resolved and type-safe.
+    fig, ax = plt.subplots(figsize = (5,5), dpi = 120)                                          #type: ignore[reportUnknownMemberType]
 
     manager = getattr(fig.canvas, "manager", None)
     if manager is not None and hasattr(manager, "set_window_title"):
@@ -239,15 +272,16 @@ def _debug(tilemap: array[uint8], time: float, shape: str, theme: str) -> None:
     
     rows, cols = debug_map.shape
 
-    ax.imshow(debug_map,cmap=cmap,norm=norm,interpolation="nearest")
-    ax.grid(which="minor", color="black", linewidth=0.5)
-    ax.tick_params(which="both", bottom=False, left=False, labelbottom=False, labelleft=False)
-    ax.set_xticks(np.arange(-0.5, cols, 1), minor=True)
-    ax.set_yticks(np.arange(-0.5, rows, 1), minor=True)
+    ax.imshow(debug_map,cmap=cmap,norm=norm,interpolation="nearest")                            #type: ignore[reportUnknownMemberType]
+    ax.grid(which="minor", color="black", linewidth=0.5)                                        #type: ignore[reportUnknownMemberType]
+    ax.tick_params(which="both", bottom=False, left=False, labelbottom=False, labelleft=False)  #type: ignore[reportUnknownMemberType]
+    ax.set_xticks(np.arange(-0.5, cols, 1), minor=True)                                         #type: ignore[reportUnknownMemberType]
+    ax.set_yticks(np.arange(-0.5, rows, 1), minor=True)                                         #type: ignore[reportUnknownMemberType]
 
-    fig.canvas.mpl_connect("button_press_event",lambda event: _on_click(event, ax, tilemap, time, shape, theme))
+    fig.canvas.mpl_connect("button_press_event",lambda event:
+                           _on_click(event,ax,tilemap,time,shape,theme))
 
-    plt.show()
+    plt.show()                                                                                  #type: ignore[reportUnknownMemberType]
     return
 
 def _main() -> None:
