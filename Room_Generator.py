@@ -33,7 +33,7 @@ class Tile(IntEnum):
     BOSS       = 7
     SHRINE     = 8
 
-def get_shape(room_val: int) -> tuple[str, set[str]]:
+def get_shape(room_val: int, rng: np.random.Generator) -> tuple[str, set[str]]:
     if room_val < 0b10000 or room_val > 0b11111: raise InvalidRoom(f"The get_shape function does not support room_val: {room_val}.")
     exits = get_directions(room_val)
     match len(exits):
@@ -47,10 +47,12 @@ def get_shape(room_val: int) -> tuple[str, set[str]]:
             shape_list, weight_list = ["Connection", "Small_Room", "Large_Room"], [20, 30, 50]
         case _:
             raise InvalidRoom(f"The get_shape function does not support rooms with {len(exits)} exits.")
-    shape = choices(shape_list, weight_list, k=1)[0]
+    total = sum(weight_list)
+    probs = [w / total for w in weight_list]
+    shape = rng.choice(shape_list, p=probs)
     return shape, exits
 
-def build_room(tilemap: array[uint8], shape: str, exits: set[str]) -> array[uint8]:
+def build_room(tilemap: array[uint8], shape: str, exits: set[str], rng: np.random.Generator) -> array[uint8]:
     half = const.ROOM_SIZE//2
     if "North" in exits:
         tilemap[0:half+1, half-1:half+2] = const.FLOOR
@@ -63,7 +65,7 @@ def build_room(tilemap: array[uint8], shape: str, exits: set[str]) -> array[uint
     
     match shape:
         case "Dead_End":
-            length = rand(1,5)
+            length = rng.integers(1,5)
             tilemap[half-length:half+length+1, half-length:half+length+1] = const.WALL
         case "Boss_Room":
             tilemap[1:-1, 1:-1] = const.FLOOR
@@ -96,7 +98,7 @@ def build_room(tilemap: array[uint8], shape: str, exits: set[str]) -> array[uint
             raise InvalidRoom(f"Room builder does not support shape {shape}")
     return tilemap
 
-def get_theme(shape: str) -> str:
+def get_theme(shape: str, rng: np.random.Generator) -> str:
     match shape:
         case "Dead_End":
             theme_list, weight_list = ["DE_Trapped","DE_Treasure","DE_Healthy","DE_Guarded","Empty"], [20, 15, 10, 15, 40]
@@ -114,7 +116,9 @@ def get_theme(shape: str) -> str:
             theme_list, weight_list = ["HR_Trapped","HR_Treasure","HR_Guarded","HR_Chaos","HR_Basic","Empty"], [20,10,15,10,30,15]
         case _:
             raise InvalidRoom(f"The get_theme function does not support rooms with {shape} shape")
-    theme = choices(theme_list, weight_list, k=1)[0]
+    total = sum(weight_list)
+    probs = [w / total for w in weight_list]
+    theme = rng.choice(theme_list, p=probs)
     return theme
 
 def scan_tilemap(tilemap: array[uint8], require: set[int] | None = None, block: set[int] | None = None,
@@ -134,7 +138,7 @@ def scan_tilemap(tilemap: array[uint8], require: set[int] | None = None, block: 
             available_list = np.concatenate((available_list,bias_list),axis = 0)
     return [tuple(x) for x in available_list]
 
-def populate_tilemap(tilemap: array[uint8], theme: str) -> array[uint8]:
+def populate_tilemap(tilemap: array[uint8], theme: str, rng: np.random.Generator) -> array[uint8]:
     feature_order = (
         Tile.HOLES,
         Tile.WATER,
@@ -198,43 +202,79 @@ def populate_tilemap(tilemap: array[uint8], theme: str) -> array[uint8]:
         if count:
             match feature:
                 case Tile.HOLES:
-                    available_list = scan_tilemap(tilemap, block = {const.WALL})
-                    for _ in range(count):
-                        coords = choice(available_list)
-                        tilemap[coords] = const.HOLE
+                    available_list = scan_tilemap(tilemap, block = {const.WALL, const.WATER, const.LOOT_PILE})
+                    indices = rng.choice(len(available_list), size=count, replace=False)
+                    coords = available_list[indices]
+                    rows = coords[:, 0]
+                    cols = coords[:, 1]
+                    tilemap[rows,cols] = const.HOLE
                 case Tile.WATER:
                     available_list = scan_tilemap(tilemap, block = {const.CHEST, const.LOOT_PILE, const.HOLE})
-                    for _ in range(count):
-                        ...
+                    indices = rng.choice(len(available_list), size=count, replace=False)
+                    coords = available_list[indices]
+                    rows = coords[:, 0]
+                    cols = coords[:, 1]
+                    tilemap[rows,cols] = const.WATER
                 case Tile.TRAPS:
-                    for _ in range(count):
-                        ...
+                    available_list = scan_tilemap(tilemap, block = {const.TRAP, const.HEALING_STATION, const.SHRINE})
+                    indices = rng.choice(len(available_list), size=count, replace=False)
+                    coords = available_list[indices]
+                    rows = coords[:, 0]
+                    cols = coords[:, 1]
+                    tilemap[rows,cols] = const.TRAP
                 case Tile.HEALING:
-                    for _ in range(count):
-                        ...
+                    available_list = scan_tilemap(tilemap, require = {const.FLOOR}, place_on = {const.WALL})
+                    indices = rng.choice(len(available_list), size=count, replace=False)
+                    coords = available_list[indices]
+                    rows = coords[:, 0]
+                    cols = coords[:, 1]
+                    tilemap[rows,cols] = const.HEALING_STATION
                 case Tile.CHESTS:
-                    for _ in range(count):
-                        ...
+                    available_list = scan_tilemap(tilemap, bias = {const.LOOT_PILE, const.WALL})
+                    indices = rng.choice(len(available_list), size=count, replace=False)
+                    coords = available_list[indices]
+                    rows = coords[:, 0]
+                    cols = coords[:, 1]
+                    tilemap[rows,cols] = const.CHEST
                 case Tile.LOOT_PILES:
+                    available_list = scan_tilemap(tilemap, bias = {const.CHEST, const.LOOT_PILE}, block = {const.WATER, const.HOLE})
                     for _ in range(count):
-                        ...
+                        if len(available_list) > 0:
+                            i = rng.integers(0, len(available_list))
+                            row, col = available_list[i]
+                            tilemap[row,col] = const.LOOT_PILE
+                            available_list = np.delete(available_list, i, axis=0).astype(np.int32)
                 case Tile.MONSTERS:
-                    for _ in range(count):
-                        ...
+                    available_list = scan_tilemap(tilemap, block = {const.BOSS_SPAWNER, const.HEALING_STATION, const.SHRINE})
+                    indices = rng.choice(len(available_list), size=count, replace=False)
+                    coords = available_list[indices]
+                    rows = coords[:, 0]
+                    cols = coords[:, 1]
+                    tilemap[rows,cols] = const.MONSTER_SPAWNER
                 case Tile.BOSS:
-                    for _ in range(count):
-                        ...
+                    available_list = scan_tilemap(tilemap, block = {const.MONSTER_SPAWNER, const.HEALING_STATION, const.SHRINE})
+                    indices = rng.choice(len(available_list), size=count, replace=False)
+                    coords = available_list[indices]
+                    rows = coords[:, 0]
+                    cols = coords[:, 1]
+                    tilemap[rows,cols] = const.BOSS_SPAWNER
                 case Tile.SHRINE:
-                    for _ in range(count):
-                        ...
+                    available_list = scan_tilemap(tilemap, require = {const.FLOOR}, place_on = {const.WALL})
+                    indices = rng.choice(len(available_list), size=count, replace=False)
+                    coords = available_list[indices]
+                    rows = coords[:, 0]
+                    cols = coords[:, 1]
+                    tilemap[rows,cols] = const.SHRINE
     return tilemap
 
-def room_map_generator(room_val: int) -> tuple[array[uint8], str, str]:
+def room_map_generator(room_val: int, seed: int | None = None) -> tuple[array[uint8], str, str]:
+    if seed is None: rng = np.random.default_rng()
+    else: rng = np.random.default_rng(seed)
     tilemap = init_tilemap(const.ROOM_SIZE)
-    shape, exits = get_shape(room_val)
-    tilemap = build_room(tilemap, shape, exits)
-    theme = get_theme(shape)
-    tilemap = populate_tilemap(tilemap, theme)
+    shape, exits = get_shape(room_val, rng)
+    tilemap = build_room(tilemap, shape, exits, rng)
+    theme = get_theme(shape, rng)
+    tilemap = populate_tilemap(tilemap, theme, rng)
     return tilemap, shape, theme
 
 #region DEBUG
@@ -289,10 +329,11 @@ def _main() -> None:
     print("\033c", end="")
 
     debug_room_val = int(input("Input Room Value: "))
+    debug_seed = int(input("Input Seed: ")) or None
     
     start_time = clock()
 
-    tilemap, shape, theme = room_map_generator(debug_room_val)
+    tilemap, shape, theme = room_map_generator(debug_room_val, debug_seed)
 
     end_time = clock()
     delta_time = (end_time - start_time)/1000000
