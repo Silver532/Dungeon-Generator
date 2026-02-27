@@ -7,15 +7,13 @@ import matplotlib.pyplot as plt
 
 from numpy import uint8
 from numpy.typing import NDArray as array
-from random import randint as rand
-from random import random
-from random import sample
 from matplotlib import rcParams
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from matplotlib.axes import Axes
 from matplotlib.backend_bases import Event, MouseEvent
 from typing import Literal
 from enum import IntEnum
+from random import Random
 
 from Generator_Helpers import *
 
@@ -24,6 +22,7 @@ class const(IntEnum):
     Constants for Dungeon_Generator file
     """
     DUNGEON_SIZE = 20
+    MID = DUNGEON_SIZE//2
     BOX_COUNT = 3
     ERODE_COUNT = 5
     NORTH = 1
@@ -34,7 +33,7 @@ class const(IntEnum):
     NO_ROOM = 0
     ROOM = 16
 
-def room_fill(tilemap: array[uint8]) -> array[uint8]:
+def room_fill(tilemap: array[uint8], np_rng: np.random.Generator) -> array[uint8]:
     """
     Places random rooms inside an array
     
@@ -48,16 +47,15 @@ def room_fill(tilemap: array[uint8]) -> array[uint8]:
     tilemap : NDArray[uint8]
         2D array with placed rooms of random size.
     """
-    mid = const.DUNGEON_SIZE//2
     for _ in range(const.BOX_COUNT):
-        y_s, y_e = rand(1, mid - 1), rand(mid + 2, const.DUNGEON_SIZE - 2)
+        y_s, y_e = np_rng.integers(1, const.MID), np_rng.integers(const.MID + 2, const.DUNGEON_SIZE - 1)
         room_dims = 16 - (y_e-y_s)
-        x_s = rand(1, mid - 1)
-        x_e = min(x_s + room_dims + 3, const.DUNGEON_SIZE - 4)+2
+        x_s = np_rng.integers(1, const.MID)
+        x_e = min(x_s + room_dims + 5, const.DUNGEON_SIZE - 2)
         tilemap[y_s:y_e, x_s:x_e] = const.TEMP
     return tilemap
 
-def room_eroder(tilemap: array[uint8]) -> array[uint8]:
+def room_eroder(tilemap: array[uint8], np_rng: np.random.Generator) -> array[uint8]:
     """
     Erodes rooms inside array
 
@@ -76,21 +74,14 @@ def room_eroder(tilemap: array[uint8]) -> array[uint8]:
     for _ in range(const.ERODE_COUNT):
         neighbor_map = adj_map(tilemap, zeroes)
 
-        coords2 = np.argwhere(neighbor_map == 2)
-        for y, x in coords2:
-            if rand(0,1):
-                tilemap[y, x] = const.NO_ROOM
+        mask2 = (neighbor_map == 2)
+        tilemap[mask2 & (np_rng.random(mask2.shape) < 0.5)] = const.NO_ROOM
 
-        coords3 = np.argwhere(neighbor_map == 3)
-        for y, x in coords3:
-            if rand(0,9) == 0:
-                tilemap[y, x] = const.NO_ROOM
+        mask3 = (neighbor_map == 3)
+        tilemap[mask3 & (np_rng.random(mask3.shape) < 0.1)] = const.NO_ROOM
 
     neighbor_map = adj_map(tilemap, zeroes)
-    coords0 = np.argwhere(neighbor_map == 0)
-    for y, x in coords0:
-        tilemap[y, x] = const.NO_ROOM
-
+    tilemap[neighbor_map == 0] = const.NO_ROOM
     return tilemap
 
 def get_possible_connections(tilemap: array[uint8]) -> array[uint8]:
@@ -122,7 +113,7 @@ def get_possible_connections(tilemap: array[uint8]) -> array[uint8]:
     connections *= tilemap[1:-1, 1:-1] != 0
     return connections
 
-def room_random() -> Literal[1,2,3]:
+def room_random(rand_rng: np.random.Generator) -> Literal[1,2,3]:
     """
     Picks a weighted random for room connections
 
@@ -131,12 +122,12 @@ def room_random() -> Literal[1,2,3]:
     Literal[1, 2, 3]
         returns 1, 2 or 3 with a weighted random
     """
-    r = random()
+    r = rand_rng.random()
     if r < 0.55:    return 1
     elif r < 0.80:  return 2
     else:           return 3
 
-def room_connector(tilemap: array[uint8]) -> array[uint8]:
+def room_connector(tilemap: array[uint8], np_rng: np.random.Generator, rand_rng: Random) -> array[uint8]:
     """
     Connects adjacent active rooms across given tilemap
 
@@ -159,8 +150,9 @@ def room_connector(tilemap: array[uint8]) -> array[uint8]:
             if tilemap[y, x] == 0: continue
             possible_dirs = connection_map[y - 1, x - 1]
             dir_set = get_directions(possible_dirs)
-            connect_count = min(room_random(), len(dir_set))
-            chosen_dirs = sample(tuple(dir_set), connect_count)
+            connect_count = min(room_random(np_rng), len(dir_set))
+            dirs = sorted(dir_set)
+            chosen_dirs = rand_rng.sample(dirs, connect_count)
             for d in chosen_dirs:
                 tilemap[y,x] |= dir_to_bit[d]
                 dy_dx = {"North": (-1,0), "South": (1,0), "East": (0,1), "West": (0,-1)}
@@ -213,20 +205,29 @@ def room_clear(tilemap: array[uint8]) -> array[uint8]:
                 tilemap[adj_tile_val] = 0
     return tilemap
 
-def dungeon_map_generator() -> array[uint8]:
+def dungeon_map_generator(seed: int | None = None) -> array[uint8]:
     """
-    Handler function to create dungeon map
+    Handler function to create dungeon map\n
+    tilemap is modified and returned each step
+
+    Parameters
+    ----------
+    seed : int | None = None
+        if provided, use this seed to provide rng
 
     Returns
     -------
     tilemap : NDArray[uint8]
         Dungeon map array
     """
+    np_rng = np.random.default_rng(seed)
+    rand_rng = Random(seed)
+
     tilemap = init_tilemap(const.DUNGEON_SIZE)
-    tilemap = room_fill(tilemap)
-    tilemap = room_eroder(tilemap)
+    tilemap = room_fill(tilemap, np_rng)
+    tilemap = room_eroder(tilemap, np_rng)
     tilemap *= 16
-    tilemap = room_connector(tilemap)
+    tilemap = room_connector(tilemap, np_rng, rand_rng)
     tilemap = tilemap_trim(tilemap)
     tilemap = room_clear(tilemap)
     return tilemap
@@ -332,12 +333,15 @@ def _main() -> None:
     """
     from time import perf_counter_ns as clock
     print("\033c", end="")
+
+    user_input = input("Input Seed: ")
+    debug_seed = int(user_input) if user_input else None
+
     start_time = clock()
+    
+    tilemap = dungeon_map_generator(debug_seed)
 
-    tilemap = dungeon_map_generator()
-
-    end_time = clock()
-    delta_time = (end_time - start_time)/1000000
+    delta_time = (clock() - start_time)*1e-6
     room_count = np.count_nonzero(tilemap)
     print(f"Program ran in {delta_time} milliseconds")
     print(f"Dungeon contains {room_count} rooms")
