@@ -476,7 +476,8 @@ def _main() -> None:
     print("\033c", end="")
 
     debug_room_val = int(input("Input Room Value: "))
-    debug_seed = int(input("Input Seed: ")) or None
+    user_input = input("Input Seed: ")
+    debug_seed = int(user_input) if user_input else None
     
     start_time = clock()
 
