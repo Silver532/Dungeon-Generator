@@ -46,9 +46,8 @@ def get_directions(value: int) -> set[str]:
         Set of direction strings
     """
     bits = value & 0b01111
-    directions = ["North","East","South","West"]
-    dirs = {directions[i] for i in range(4) if bits & (1 << i)}
-    return dirs
+    directions = ('North','East','South','West')
+    return {directions[i] for i in range(4) if bits & (1 << i)}
 
 def adj_map(tilemap: array[uint8], neighbor_map:array[uint8] | None = None, iso:bool=True, target:set[int] | None = None) -> array[uint8]:
     """

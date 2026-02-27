@@ -11,11 +11,19 @@ from matplotlib import rcParams
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from matplotlib.axes import Axes
 from matplotlib.backend_bases import Event, MouseEvent
-from typing import Literal
 from enum import IntEnum
 from random import Random
 
 from Generator_Helpers import *
+
+class dirs():
+    DIRS = ('North','East','South','West')
+    DY_DX_LIST = ((-1,0),(0,1),(1,0),(0,-1))
+    DIR_BITS = (1,2,4,8)
+    OPPOSITE_BITS = (4,8,1,2)
+    DIR_IDX = {d: i for i, d in enumerate(DIRS)}
+    ONE_EXIT_TILES = {17, 18, 20, 24}
+    DIR_OFFSETS = {17:(-1,0), 18:(0,1), 20:(1,0), 24:(0,-1)}
 
 class const(IntEnum):
     """
@@ -69,10 +77,10 @@ def room_eroder(tilemap: array[uint8], np_rng: np.random.Generator) -> array[uin
     tilemap : NDArray[uint8]
         2D array with room edges eroded for smoother generation.
     """
-    zeroes = np.zeros_like(tilemap, dtype=uint8)
+    neighbor_map = np.zeros_like(tilemap, dtype=uint8)
 
     for _ in range(const.ERODE_COUNT):
-        neighbor_map = adj_map(tilemap, zeroes)
+        adj_map(tilemap, neighbor_map)
 
         mask2 = (neighbor_map == 2)
         tilemap[mask2 & (np_rng.random(mask2.shape) < 0.5)] = const.NO_ROOM
@@ -80,7 +88,7 @@ def room_eroder(tilemap: array[uint8], np_rng: np.random.Generator) -> array[uin
         mask3 = (neighbor_map == 3)
         tilemap[mask3 & (np_rng.random(mask3.shape) < 0.1)] = const.NO_ROOM
 
-    neighbor_map = adj_map(tilemap, zeroes)
+    adj_map(tilemap, neighbor_map)
     tilemap[neighbor_map == 0] = const.NO_ROOM
     return tilemap
 
@@ -99,33 +107,38 @@ def get_possible_connections(tilemap: array[uint8]) -> array[uint8]:
         2D array of same dimensions, containing number
         of active tiles adjacent to each tile.
     """
-    up    = tilemap[:-2, 1:-1] != 0
-    right = tilemap[1:-1, 2:] != 0
-    down  = tilemap[2:, 1:-1] != 0
-    left  = tilemap[1:-1, :-2] != 0
-
+    t = (tilemap != 0).astype(uint8)
     connections = (
-        up.astype(np.uint8)
-        | (right.astype(np.uint8) << 1)
-        | (down.astype(np.uint8) << 2)
-        | (left.astype(np.uint8) << 3)
-    )
-    connections *= tilemap[1:-1, 1:-1] != 0
+    t[:-2, 1:-1]
+    | (t[1:-1, 2:] << 1)
+    | (t[2:, 1:-1] << 2)
+    | (t[1:-1, :-2] << 3)
+)
+    connections *= t[1:-1, 1:-1]
     return connections
 
-def room_random(rand_rng: np.random.Generator) -> Literal[1,2,3]:
+def room_random(np_rng: np.random.Generator, count: int) -> array[uint8]:
     """
-    Picks a weighted random for room connections
+    Generate weighted random values for room connections
+
+    Parameters
+    ----------
+    np_rng : np.random.Generator
+        numpy random generator
+    count : int
+        number of random values to generate.
 
     Returns
     -------
-    Literal[1, 2, 3]
-        returns 1, 2 or 3 with a weighted random
+    randoms : NDArray[uint8]
+        Array with random values
     """
-    r = rand_rng.random()
-    if r < 0.55:    return 1
-    elif r < 0.80:  return 2
-    else:           return 3
+    r = np_rng.random(count)
+
+    randoms = np.ones(count, dtype = uint8)
+    randoms[r >= 0.55] = 2
+    randoms[r >= 0.80] = 3
+    return randoms
 
 def room_connector(tilemap: array[uint8], np_rng: np.random.Generator, rand_rng: Random) -> array[uint8]:
     """
@@ -143,21 +156,26 @@ def room_connector(tilemap: array[uint8], np_rng: np.random.Generator, rand_rng:
     """
     connection_map = get_possible_connections(tilemap)
     H, W = tilemap.shape
-    dir_to_bit = {"North": 1 << 0, "East":  1 << 1, "South": 1 << 2, "West":  1 << 3}
-    opposite = {"North": "South", "East":  "West", "South": "North", "West":  "East",}
+    active_count = np.count_nonzero(tilemap != 0)
+    connection_counts = room_random(np_rng, active_count)
+    count_iter = iter(connection_counts)
+
     for y in range(1, H - 1):
         for x in range(1, W - 1):
-            if tilemap[y, x] == 0: continue
+            if tilemap[y, x] == 0:
+                continue
             possible_dirs = connection_map[y - 1, x - 1]
             dir_set = get_directions(possible_dirs)
-            connect_count = min(room_random(np_rng), len(dir_set))
-            dirs = sorted(dir_set)
-            chosen_dirs = rand_rng.sample(dirs, connect_count)
+            if not dir_set:
+                continue
+            connect_count = min(next(count_iter), len(dir_set))
+            chosen_dirs = rand_rng.sample(sorted(dir_set), connect_count)
             for d in chosen_dirs:
-                tilemap[y,x] |= dir_to_bit[d]
-                dy_dx = {"North": (-1,0), "South": (1,0), "East": (0,1), "West": (0,-1)}
-                ny, nx = y + dy_dx[d][0], x + dy_dx[d][1]
-                tilemap[ny, nx] |= dir_to_bit[opposite[d]]
+                i = dirs.DIR_IDX[d]
+                tilemap[y,x] |= dirs.DIR_BITS[i]
+                dy, dx = dirs.DY_DX_LIST[i]
+                ny, nx = y + dy, x + dx
+                tilemap[ny, nx] |= dirs.OPPOSITE_BITS[i]
     return tilemap
 
 def tilemap_trim(tilemap: array[uint8]) -> array[uint8]:
@@ -194,18 +212,16 @@ def room_clear(tilemap: array[uint8]) -> array[uint8]:
         2D array with unconnected rooms removed.
         Only affects groups of 2.
     """
-    DIR_MAP = {17:(-1,0), 18:(0,1), 20:(1,0), 24:(0,-1)}
-    ONE_EXIT_TILES = [17,18,20,24]
-    for index, i in np.ndenumerate(tilemap):
-        if i in ONE_EXIT_TILES:
-            adj_tile = DIR_MAP[int(i)]
-            adj_tile_val = tuple(a + b for a, b in zip(index, adj_tile))
-            if tilemap[adj_tile_val] in ONE_EXIT_TILES:
+    for index, val in np.ndenumerate(tilemap):
+        if val in dirs.ONE_EXIT_TILES:
+            dy, dx = dirs.DIR_OFFSETS[int(val)]
+            ny, nx = index[0]+dy, index[1]+dx
+            if tilemap[ny, nx] in dirs.ONE_EXIT_TILES:
                 tilemap[index] = 0
-                tilemap[adj_tile_val] = 0
+                tilemap[ny, nx] = 0
     return tilemap
 
-def dungeon_map_generator(seed: int | None = None) -> array[uint8]:
+def dungeon_map_generator(np_rng: np.random.Generator, rand_rng: Random) -> array[uint8]:
     """
     Handler function to create dungeon map\n
     tilemap is modified and returned each step
@@ -220,9 +236,6 @@ def dungeon_map_generator(seed: int | None = None) -> array[uint8]:
     tilemap : NDArray[uint8]
         Dungeon map array
     """
-    np_rng = np.random.default_rng(seed)
-    rand_rng = Random(seed)
-
     tilemap = init_tilemap(const.DUNGEON_SIZE)
     tilemap = room_fill(tilemap, np_rng)
     tilemap = room_eroder(tilemap, np_rng)
@@ -336,10 +349,12 @@ def _main() -> None:
 
     user_input = input("Input Seed: ")
     debug_seed = int(user_input) if user_input else None
+    np_rng = np.random.default_rng(debug_seed)
+    rand_rng = Random(debug_seed)
 
     start_time = clock()
     
-    tilemap = dungeon_map_generator(debug_seed)
+    tilemap = dungeon_map_generator(np_rng, rand_rng)
 
     delta_time = (clock() - start_time)*1e-6
     room_count = np.count_nonzero(tilemap)
