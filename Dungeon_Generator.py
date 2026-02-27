@@ -21,6 +21,8 @@ from Generator_Helpers import *
 
 def room_fill(tilemap: array[uint8]) -> array[uint8]:
     """
+    Places random rooms inside an array
+    
     Parameters
     ----------
     tilemap : NDArray[uint8]
@@ -42,6 +44,8 @@ def room_fill(tilemap: array[uint8]) -> array[uint8]:
 
 def room_eroder(tilemap: array[uint8]) -> array[uint8]:
     """
+    Erodes rooms inside array
+
     Parameters
     ----------
     tilemap : NDArray[uint8]
@@ -76,6 +80,8 @@ def room_eroder(tilemap: array[uint8]) -> array[uint8]:
 
 def get_possible_connections(tilemap: array[uint8]) -> array[uint8]:
     """
+    Converts tilemap into map of adjacent tile count
+
     Parameters
     ----------
     tilemap : NDArray[uint8]
@@ -103,6 +109,8 @@ def get_possible_connections(tilemap: array[uint8]) -> array[uint8]:
 
 def room_random() -> Literal[1,2,3]:
     """
+    Picks a weighted random for room connections
+
     Returns
     -------
     Literal[1, 2, 3]
@@ -115,6 +123,8 @@ def room_random() -> Literal[1,2,3]:
 
 def room_connector(tilemap: array[uint8]) -> array[uint8]:
     """
+    Connects adjacent active rooms across given tilemap
+
     Parameters
     ----------
     tilemap : NDArray[uint8]
@@ -145,6 +155,8 @@ def room_connector(tilemap: array[uint8]) -> array[uint8]:
 
 def tilemap_trim(tilemap: array[uint8]) -> array[uint8]:
     """
+    Reduces size of tilemap to smallest possible without removing active tiles
+
     Parameters
     ----------
     tilemap : NDArray[uint8]
@@ -162,6 +174,8 @@ def tilemap_trim(tilemap: array[uint8]) -> array[uint8]:
 
 def room_clear(tilemap: array[uint8]) -> array[uint8]:
     """
+    Removes unconnected rooms from tilemap
+
     Parameters
     ----------
     tilemap : NDArray[uint8]
@@ -186,9 +200,12 @@ def room_clear(tilemap: array[uint8]) -> array[uint8]:
 
 def dungeon_map_generator() -> array[uint8]:
     """
-    Dungeon Map Generator
-    ---------------------
-    Importable Handler for Dungeon Map Generation
+    Handler function to create dungeon map
+
+    Returns
+    -------
+    tilemap : NDArray[uint8]
+        Dungeon map array
     """
     tilemap = init_tilemap(const.DUNGEON_SIZE)
     tilemap = room_fill(tilemap)
@@ -202,15 +219,37 @@ def dungeon_map_generator() -> array[uint8]:
 #region DEBUG
 def _make_exit_map(tilemap: array[uint8]) -> array[uint8]:
     """
-    Local Subhandler for Dungeon Map visualizer
-    Vectorized version using numpy.
+    Local function that converts tilemap into a display map
+
+    Parameters
+    ----------
+    tilemap : NDArray[uint8]
+        2D array to be converted
+
+    Returns
+    -------
+    debug_map : NDArray[uint8]
+        2D array converted to exit count map for display
     """
     debug_map = np.unpackbits(tilemap[:, :, np.newaxis], axis=-1).sum(axis=-1).astype(np.uint8)
     return debug_map
 
 def _on_click(event: Event, ax: Axes, tilemap: array[uint8], time: float, room_count: int) -> None:
     """
-    Local handler for debug on click event.
+    Local handler for debug click events
+
+    Parameters
+    ----------
+    event : Event
+        matplotlib click event
+    ax : Axes
+        matplotlib graph axes
+    tilemap : NDArray[uint8]
+        tilemap of the dungeon
+    time : float
+        number of ms it took for dungeon to generate
+    room_count : int
+        number of rooms in the dungeon
     """
     if not isinstance(event, MouseEvent): return
     if event.inaxes is ax and event.xdata is not None and event.ydata is not None:
@@ -229,9 +268,16 @@ def _on_click(event: Event, ax: Axes, tilemap: array[uint8], time: float, room_c
 
 def _debug(tilemap: array[uint8], time: float, room_count: int) -> None:
     """
-    Local Handler for Debug Purposes
-    --------------------------------
-    Visualizer and debug info for dungeon map
+    Local handler for visualization and debugging
+
+    Parameters
+    ----------
+    tilemap : NDArray[uint8]
+        dungeon tilemap
+    time : float
+        number of ms it took for dungeon to generate
+    room_count : int
+        number of rooms in the dungeon  
     """
     debug_map = _make_exit_map(tilemap)
 
@@ -267,9 +313,7 @@ def _debug(tilemap: array[uint8], time: float, room_count: int) -> None:
 
 def _main() -> None:
     """
-    Local Handler for Dungeon Generation
-    ------------------------------------
-    Only for use when running program from file
+    Debug entry point to program
     """
     from time import perf_counter_ns as clock
     print("\033c", end="")
