@@ -5,6 +5,9 @@
 from enum import IntEnum
 
 class Dungeon_Generator_Constants(IntEnum):
+    """
+    Constants for Dungeon_Generator file
+    """
     DUNGEON_SIZE = 20
     BOX_COUNT = 3
     ERODE_COUNT = 5
@@ -17,6 +20,9 @@ class Dungeon_Generator_Constants(IntEnum):
     ROOM = 16
 
 class Room_Generator_Constants(IntEnum):
+    """
+    Constants for Room_Generator file
+    """
     ROOM_SIZE = 17
     WALL = 0
     FLOOR = 1
