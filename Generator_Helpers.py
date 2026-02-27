@@ -23,8 +23,8 @@ def init_tilemap(height: int, width: int | None = None) -> array[uint8]:
     tilemap : NDArray[uint8]
         2D array of given size.
     """
-    if width is not None: tilemap = np.zeros((height,width), uint8)
-    else: tilemap = np.zeros((height,height), uint8)
+    width = width or height
+    tilemap = np.zeros((height,width), dtype = uint8)
     return tilemap
 
 def get_directions(value: int) -> set[str]:
