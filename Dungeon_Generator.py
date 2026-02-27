@@ -15,9 +15,24 @@ from matplotlib.colors import ListedColormap, BoundaryNorm
 from matplotlib.axes import Axes
 from matplotlib.backend_bases import Event, MouseEvent
 from typing import Literal
+from enum import IntEnum
 
-from Constants import Dungeon_Generator_Constants as const
 from Generator_Helpers import *
+
+class const(IntEnum):
+    """
+    Constants for Dungeon_Generator file
+    """
+    DUNGEON_SIZE = 20
+    BOX_COUNT = 3
+    ERODE_COUNT = 5
+    NORTH = 1
+    EAST = 2
+    SOUTH = 4
+    WEST = 8
+    TEMP = 1
+    NO_ROOM = 0
+    ROOM = 16
 
 def room_fill(tilemap: array[uint8]) -> array[uint8]:
     """

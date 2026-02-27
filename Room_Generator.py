@@ -13,22 +13,27 @@ from matplotlib.axes import Axes
 from matplotlib.backend_bases import Event, MouseEvent
 from enum import IntEnum
 
-from Constants import Room_Generator_Constants as const
 from Generator_Helpers import *
 
 class InvalidRoom(Exception):
     pass
 
-class Tile(IntEnum):
-    HOLES      = 0
-    WATER      = 1
-    TRAPS      = 2
-    HEALING    = 3
-    CHESTS     = 4
-    LOOT_PILES = 5
-    MONSTERS   = 6
-    BOSS       = 7
-    SHRINE     = 8
+class const(IntEnum):
+    """
+    Constants for Room_Generator file
+    """
+    ROOM_SIZE = 17
+    WALL = 0
+    FLOOR = 1
+    HOLE = 2
+    WATER = 3
+    TRAP = 4
+    HEALING_STATION = 5
+    CHEST = 6
+    LOOT_PILE = 7
+    MONSTER_SPAWNER = 8
+    BOSS_SPAWNER = 9
+    SHRINE = 10
 
 def get_shape(room_val: int, rng: np.random.Generator) -> tuple[str, set[str]]:
     if room_val < 0b10000 or room_val > 0b11111: raise InvalidRoom(f"The get_shape function does not support room_val: {room_val}.")
@@ -139,59 +144,59 @@ def scan_tilemap(tilemap: array[uint8], require: set[int] | None = None, block: 
 
 def populate_tilemap(tilemap: array[uint8], theme: str, rng: np.random.Generator) -> array[uint8]:
     feature_order = (
-        Tile.WATER,
-        Tile.HOLES,
-        Tile.HEALING,
-        Tile.SHRINE,
-        Tile.CHESTS,
-        Tile.LOOT_PILES,
-        Tile.TRAPS,
-        Tile.BOSS,
-        Tile.MONSTERS
+        const.WATER,
+        const.HOLE,
+        const.HEALING_STATION,
+        const.SHRINE,
+        const.CHEST,
+        const.LOOT_PILE,
+        const.TRAP,
+        const.BOSS_SPAWNER,
+        const.MONSTER_SPAWNER
     )
     def R(num: int = 0) -> int: return rng.integers(0,1)+num
     def T(num: int = 0) -> int: return rng.integers(0,2)+num
-    population_dict: dict[str, dict[Tile, int]] = {
-        "DE_Trapped":  {Tile.HOLES: 1, Tile.WATER: R(), Tile.TRAPS: 3},
-        "DE_Treasure": {Tile.TRAPS: 1, Tile.CHESTS: 1, Tile.LOOT_PILES: 2, Tile.MONSTERS: 1},
-        "DE_Healthy":  {Tile.HEALING: 1},
-        "DE_Guarded":  {Tile.MONSTERS: 1},
+    population_dict: dict[str, dict[const, int]] = {
+        "DE_Trapped":  {const.HOLE: 1, const.WATER: R(), const.TRAP: 3},
+        "DE_Treasure": {const.TRAP: 1, const.CHEST: 1, const.LOOT_PILE: 2, const.MONSTER_SPAWNER: 1},
+        "DE_Healthy":  {const.HEALING_STATION: 1},
+        "DE_Guarded":  {const.MONSTER_SPAWNER: 1},
 
-        "SR_Trapped":  {Tile.HOLES: 1, Tile.TRAPS: T(3), Tile.LOOT_PILES: 1, Tile.MONSTERS: 1},
-        "SR_Treasure": {Tile.TRAPS: R(1), Tile.CHESTS: 2, Tile.LOOT_PILES: 3},
-        "SR_Guarded":  {Tile.WATER: R(), Tile.TRAPS: 1, Tile.LOOT_PILES: 1, Tile.MONSTERS: 2},
-        "SR_Chaos":    {Tile.HOLES: 2, Tile.WATER: R(), Tile.TRAPS: 3, Tile.CHESTS: 1, Tile.LOOT_PILES: 2, Tile.MONSTERS: 3, Tile.SHRINE: 1},
-        "SR_Basic":    {Tile.TRAPS: R(), Tile.LOOT_PILES: R()},
+        "SR_Trapped":  {const.HOLE: 1, const.TRAP: T(3), const.LOOT_PILE: 1, const.MONSTER_SPAWNER: 1},
+        "SR_Treasure": {const.TRAP: R(1), const.CHEST: 2, const.LOOT_PILE: 3},
+        "SR_Guarded":  {const.WATER: R(), const.TRAP: 1, const.LOOT_PILE: 1, const.MONSTER_SPAWNER: 2},
+        "SR_Chaos":    {const.HOLE: 2, const.WATER: R(), const.TRAP: 3, const.CHEST: 1, const.LOOT_PILE: 2, const.MONSTER_SPAWNER: 3, const.SHRINE: 1},
+        "SR_Basic":    {const.TRAP: R(), const.LOOT_PILE: R()},
 
-        "CN_Trapped":  {Tile.HOLES: 1, Tile.TRAPS: T(1), Tile.LOOT_PILES: 1},
-        "CN_Guarded":  {Tile.MONSTERS: 1},
-        "CN_Basic":    {Tile.LOOT_PILES: R()},
+        "CN_Trapped":  {const.HOLE: 1, const.TRAP: T(1), const.LOOT_PILE: 1},
+        "CN_Guarded":  {const.MONSTER_SPAWNER: 1},
+        "CN_Basic":    {const.LOOT_PILE: R()},
 
-        "LR_Trapped":  {Tile.HOLES: 2, Tile.WATER: 1, Tile.TRAPS: T(3), Tile.LOOT_PILES: 2, Tile.MONSTERS: 1},
-        "LR_Treasure": {Tile.TRAPS: 1, Tile.CHESTS: 2, Tile.LOOT_PILES: 3, Tile.MONSTERS: 1},
-        "LR_Healthy":  {Tile.HEALING: 1},
-        "LR_Guarded":  {Tile.WATER: R(), Tile.TRAPS: 1, Tile.CHESTS: 1, Tile.LOOT_PILES: 1, Tile.MONSTERS: 3},
-        "LR_Chaos":    {Tile.HOLES: 2, Tile.WATER: 1, Tile.TRAPS: 3, Tile.CHESTS: 2, Tile.LOOT_PILES: 3, Tile.MONSTERS: T(2), Tile.SHRINE: 1},
-        "LR_Basic":    {Tile.TRAPS: R(1), Tile.LOOT_PILES: R()},
+        "LR_Trapped":  {const.HOLE: 2, const.WATER: 1, const.TRAP: T(3), const.LOOT_PILE: 2, const.MONSTER_SPAWNER: 1},
+        "LR_Treasure": {const.TRAP: 1, const.CHEST: 2, const.LOOT_PILE: 3, const.MONSTER_SPAWNER: 1},
+        "LR_Healthy":  {const.HEALING_STATION: 1},
+        "LR_Guarded":  {const.WATER: R(), const.TRAP: 1, const.CHEST: 1, const.LOOT_PILE: 1, const.MONSTER_SPAWNER: 3},
+        "LR_Chaos":    {const.HOLE: 2, const.WATER: 1, const.TRAP: 3, const.CHEST: 2, const.LOOT_PILE: 3, const.MONSTER_SPAWNER: T(2), const.SHRINE: 1},
+        "LR_Basic":    {const.TRAP: R(1), const.LOOT_PILE: R()},
 
-        "CR_Trapped":  {Tile.HOLES: 1, Tile.TRAPS: T(2), Tile.LOOT_PILES: 1},
-        "CR_Treasure": {Tile.TRAPS: 1, Tile.CHESTS: 1, Tile.LOOT_PILES: 3, Tile.MONSTERS: 1},
-        "CR_Guarded":  {Tile.WATER: R(), Tile.TRAPS: 1, Tile.LOOT_PILES: 1, Tile.MONSTERS: 2},
-        "CR_Chaos":    {Tile.HOLES: R(), Tile.WATER: 1, Tile.TRAPS: 3, Tile.CHESTS: T(), Tile.LOOT_PILES: 3, Tile.MONSTERS: R(2), Tile.SHRINE: 1},
-        "CR_Basic":    {Tile.TRAPS: R(), Tile.LOOT_PILES: R()},
+        "CR_Trapped":  {const.HOLE: 1, const.TRAP: T(2), const.LOOT_PILE: 1},
+        "CR_Treasure": {const.TRAP: 1, const.CHEST: 1, const.LOOT_PILE: 3, const.MONSTER_SPAWNER: 1},
+        "CR_Guarded":  {const.WATER: R(), const.TRAP: 1, const.LOOT_PILE: 1, const.MONSTER_SPAWNER: 2},
+        "CR_Chaos":    {const.HOLE: R(), const.WATER: 1, const.TRAP: 3, const.CHEST: T(), const.LOOT_PILE: 3, const.MONSTER_SPAWNER: R(2), const.SHRINE: 1},
+        "CR_Basic":    {const.TRAP: R(), const.LOOT_PILE: R()},
 
-        "HR_Trapped":  {Tile.HOLES: 1, Tile.TRAPS: T(2), Tile.LOOT_PILES: 1},
-        "HR_Treasure": {Tile.TRAPS: 1, Tile.CHESTS: 1, Tile.LOOT_PILES: 3, Tile.MONSTERS: 1},
-        "HR_Guarded":  {Tile.WATER: R(), Tile.TRAPS: 1, Tile.LOOT_PILES: 1, Tile.MONSTERS: 2},
-        "HR_Chaos":    {Tile.HOLES: R(), Tile.WATER: 1, Tile.TRAPS: 3, Tile.MONSTERS: R(2), Tile.SHRINE: 1, Tile.CHESTS: T(), Tile.LOOT_PILES: 3},
-        "HR_Basic":    {Tile.TRAPS: R(), Tile.LOOT_PILES: R()},
+        "HR_Trapped":  {const.HOLE: 1, const.TRAP: T(2), const.LOOT_PILE: 1},
+        "HR_Treasure": {const.TRAP: 1, const.CHEST: 1, const.LOOT_PILE: 3, const.MONSTER_SPAWNER: 1},
+        "HR_Guarded":  {const.WATER: R(), const.TRAP: 1, const.LOOT_PILE: 1, const.MONSTER_SPAWNER: 2},
+        "HR_Chaos":    {const.HOLE: R(), const.WATER: 1, const.TRAP: 3, const.MONSTER_SPAWNER: R(2), const.SHRINE: 1, const.CHEST: T(), const.LOOT_PILE: 3},
+        "HR_Basic":    {const.TRAP: R(), const.LOOT_PILE: R()},
 
-        "BR_Hoard":    {Tile.CHESTS: 3, Tile.LOOT_PILES: 9, Tile.BOSS: 1, Tile.SHRINE: 1},
-        "BR_Wizard":   {Tile.CHESTS: 4, Tile.LOOT_PILES: 3, Tile.BOSS: 1, Tile.SHRINE: 1},
-        "BR_Weak":     {Tile.TRAPS: R(), Tile.CHESTS: 1, Tile.LOOT_PILES: 2, Tile.MONSTERS: 1, Tile.BOSS: 1},
-        "BR_Strong":   {Tile.HEALING: R(), Tile.CHESTS: T(1), Tile.LOOT_PILES: 5, Tile.BOSS: 1, Tile.SHRINE: 1},
-        "BR_Guarded":  {Tile.TRAPS: 1, Tile.CHESTS: 2, Tile.LOOT_PILES: 3, Tile.MONSTERS: 2, Tile.BOSS: 1, Tile.SHRINE: 1},
-        "BR_Double":   {Tile.CHESTS: 3, Tile.LOOT_PILES: 5, Tile.BOSS: 2, Tile.SHRINE: 1},
+        "BR_Hoard":    {const.CHEST: 3, const.LOOT_PILE: 9, const.BOSS_SPAWNER: 1, const.SHRINE: 1},
+        "BR_Wizard":   {const.CHEST: 4, const.LOOT_PILE: 3, const.BOSS_SPAWNER: 1, const.SHRINE: 1},
+        "BR_Weak":     {const.TRAP: R(), const.CHEST: 1, const.LOOT_PILE: 2, const.MONSTER_SPAWNER: 1, const.BOSS_SPAWNER: 1},
+        "BR_Strong":   {const.HEALING_STATION: R(), const.CHEST: T(1), const.LOOT_PILE: 5, const.BOSS_SPAWNER: 1, const.SHRINE: 1},
+        "BR_Guarded":  {const.TRAP: 1, const.CHEST: 2, const.LOOT_PILE: 3, const.MONSTER_SPAWNER: 2, const.BOSS_SPAWNER: 1, const.SHRINE: 1},
+        "BR_Double":   {const.CHEST: 3, const.LOOT_PILE: 5, const.BOSS_SPAWNER: 2, const.SHRINE: 1},
 
         "Empty": {}
     }
@@ -200,42 +205,42 @@ def populate_tilemap(tilemap: array[uint8], theme: str, rng: np.random.Generator
         count = pop_vals.get(feature)
         if count:
             match feature:
-                case Tile.HOLES:
+                case const.HOLE:
                     available_list = scan_tilemap(tilemap, block = {const.WALL, const.WATER, const.LOOT_PILE})
                     indices = rng.choice(len(available_list), size=count, replace=False)
                     coords = available_list[indices]
                     rows = coords[:, 0]
                     cols = coords[:, 1]
                     tilemap[rows,cols] = const.HOLE
-                case Tile.WATER:
+                case const.WATER:
                     available_list = scan_tilemap(tilemap, block = {const.CHEST, const.LOOT_PILE, const.HOLE})
                     indices = rng.choice(len(available_list), size=count, replace=False)
                     coords = available_list[indices]
                     rows = coords[:, 0]
                     cols = coords[:, 1]
                     tilemap[rows,cols] = const.WATER
-                case Tile.TRAPS:
+                case const.TRAP:
                     available_list = scan_tilemap(tilemap, block = {const.TRAP, const.HEALING_STATION, const.SHRINE})
                     indices = rng.choice(len(available_list), size=count, replace=False)
                     coords = available_list[indices]
                     rows = coords[:, 0]
                     cols = coords[:, 1]
                     tilemap[rows,cols] = const.TRAP
-                case Tile.HEALING:
+                case const.HEALING_STATION:
                     available_list = scan_tilemap(tilemap, require = {const.FLOOR}, place_on = {const.WALL})
                     indices = rng.choice(len(available_list), size=count, replace=False)
                     coords = available_list[indices]
                     rows = coords[:, 0]
                     cols = coords[:, 1]
                     tilemap[rows,cols] = const.HEALING_STATION
-                case Tile.CHESTS:
+                case const.CHEST:
                     available_list = scan_tilemap(tilemap, bias = {const.LOOT_PILE, const.WALL})
                     indices = rng.choice(len(available_list), size=count, replace=False)
                     coords = available_list[indices]
                     rows = coords[:, 0]
                     cols = coords[:, 1]
                     tilemap[rows,cols] = const.CHEST
-                case Tile.LOOT_PILES:
+                case const.LOOT_PILE:
                     available_list = scan_tilemap(tilemap, bias = {const.CHEST, const.LOOT_PILE}, block = {const.WATER, const.HOLE})
                     for _ in range(count):
                         if len(available_list) > 0:
@@ -243,21 +248,21 @@ def populate_tilemap(tilemap: array[uint8], theme: str, rng: np.random.Generator
                             row, col = available_list[i]
                             tilemap[row,col] = const.LOOT_PILE
                             available_list = np.delete(available_list, i, axis=0).astype(np.int32)
-                case Tile.MONSTERS:
+                case const.MONSTER_SPAWNER:
                     available_list = scan_tilemap(tilemap, block = {const.BOSS_SPAWNER, const.HEALING_STATION, const.SHRINE})
                     indices = rng.choice(len(available_list), size=count, replace=False)
                     coords = available_list[indices]
                     rows = coords[:, 0]
                     cols = coords[:, 1]
                     tilemap[rows,cols] = const.MONSTER_SPAWNER
-                case Tile.BOSS:
+                case const.BOSS_SPAWNER:
                     available_list = scan_tilemap(tilemap, block = {const.MONSTER_SPAWNER, const.HEALING_STATION, const.SHRINE})
                     indices = rng.choice(len(available_list), size=count, replace=False)
                     coords = available_list[indices]
                     rows = coords[:, 0]
                     cols = coords[:, 1]
                     tilemap[rows,cols] = const.BOSS_SPAWNER
-                case Tile.SHRINE:
+                case const.SHRINE:
                     available_list = scan_tilemap(tilemap, require = {const.FLOOR}, place_on = {const.WALL})
                     indices = rng.choice(len(available_list), size=count, replace=False)
                     coords = available_list[indices]
