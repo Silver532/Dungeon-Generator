@@ -36,6 +36,24 @@ class const(IntEnum):
     SHRINE = 10
 
 def get_shape(room_val: int, rng: np.random.Generator) -> tuple[str, set[str]]:
+    """
+    Randomly decides room shape dependent on room value
+
+    Parameters
+    ----------
+    room_val : int
+        dungeon room value
+    rng : np.random.Generator
+        seeded random
+
+    Returns
+    -------
+    shape : str
+        shape of room
+    exits : set[str]
+        set of exit strings
+    
+    """
     if room_val < 0b10000 or room_val > 0b11111: raise InvalidRoom(f"The get_shape function does not support room_val: {room_val}.")
     exits = get_directions(room_val)
     match len(exits):
@@ -55,6 +73,25 @@ def get_shape(room_val: int, rng: np.random.Generator) -> tuple[str, set[str]]:
     return shape, exits
 
 def build_room(tilemap: array[uint8], shape: str, exits: set[str], rng: np.random.Generator) -> array[uint8]:
+    """
+    Builds room exits and shape onto tilemap
+
+    Parameters
+    ----------
+    tilemap : NDArray[uint8]
+        tilemap to build onto
+    shape : str
+        shape of room
+    exits : set[str]
+        set of exits
+    rng : np.random.Generator
+        seeded random
+
+    Returns
+    -------
+    tilemap : NDArray[uint8]
+        tilemap with room outline built
+    """
     half = const.ROOM_SIZE//2
     if "North" in exits:
         tilemap[0:half+1, half-1:half+2] = const.FLOOR
@@ -101,6 +138,20 @@ def build_room(tilemap: array[uint8], shape: str, exits: set[str], rng: np.rando
     return tilemap
 
 def get_theme(shape: str, rng: np.random.Generator) -> str:
+    """
+    Randomly decides room theme dependent on room shape
+
+    Parameters
+    ----------
+    shape : str
+        shape of room
+    rng : np.random.Generator
+
+    Returns
+    -------
+    theme : str
+        theme of room
+    """
     match shape:
         case "Dead_End":
             theme_list, weight_list = ["DE_Trapped","DE_Treasure","DE_Healthy","DE_Guarded","Empty"], [20, 15, 10, 15, 40]
@@ -125,6 +176,27 @@ def get_theme(shape: str, rng: np.random.Generator) -> str:
 
 def scan_tilemap(tilemap: array[uint8], require: set[int] | None = None, block: set[int] | None = None,
                  bias: set[int] | None = None, place_on: set[int] | None = None) -> array[np.int32]:
+    """
+    Universal tilemap scanner for Room_Generator
+
+    Parameters
+    ----------
+    tilemap : NDArray[uint8]
+        tilemap to scan
+    require : set[int] | None = None
+        if provided, active checking tiles are limited to values in the set
+    block : set[int] | None = None
+        if provided, values in this set are blocked from being active checking tiles
+    bias : set[int] | None = None
+        if provided, values in this set are counted 4 extra times in the available_list
+    place_on : set[int] | None = None
+        if provided, active placing tiles are limited to values in the set
+
+    Returns
+    -------
+    available_list : NDArray[np.int32]
+        numpy list of valid indeces to place on
+    """
     if place_on is None: place_on = {1}
     available_grid = np.isin(tilemap,list(place_on))
 
@@ -143,6 +215,23 @@ def scan_tilemap(tilemap: array[uint8], require: set[int] | None = None, block: 
     return available_list
 
 def populate_tilemap(tilemap: array[uint8], theme: str, rng: np.random.Generator) -> array[uint8]:
+    """
+    Populates tilemap with features
+
+    Parameters
+    ----------
+    tilemap : NDArray[uint8]
+        tilemap to populate
+    theme : str
+        theme of room
+    rng : np.random.Generator
+        seeded random
+
+    Returns
+    -------
+    tilemap : NDArray[uint8]
+        populated tilemap
+    """
     feature_order = (
         const.WATER,
         const.HOLE,
@@ -272,6 +361,25 @@ def populate_tilemap(tilemap: array[uint8], theme: str, rng: np.random.Generator
     return tilemap
 
 def room_map_generator(room_val: int, seed: int | None = None) -> tuple[array[uint8], str, str]:
+    """
+    Handler function to create Room map
+
+    Parameters
+    ----------
+    room_val : int
+        value of room tile to generate
+    seed : int | None = None
+        if provided, use this seed to provide rng
+
+    Returns
+    -------
+    tilemap : NDArray[uint8]
+        final room tilemap
+    shape : str
+        shape of room
+    theme : str
+        theme of room
+    """
     if seed is None: rng = np.random.default_rng()
     else: rng = np.random.default_rng(seed)
     tilemap = init_tilemap(const.ROOM_SIZE)
@@ -283,6 +391,24 @@ def room_map_generator(room_val: int, seed: int | None = None) -> tuple[array[ui
 
 #region DEBUG
 def _on_click(event: Event, ax: Axes, tilemap: array[uint8], time: float, shape: str, theme: str) -> None:
+    """
+    Local handler for debug click events
+
+    Parameters
+    ----------
+    event : Event
+        matplotlib click event
+    ax : Axes
+        matplotlib graph axes
+    tilemap : NDArray[uint8]
+        tilemap of the room
+    time : float
+        number of ms it took for room to generate
+    shape : str
+        shape of room
+    theme : str
+        theme of room
+    """
     if not isinstance(event, MouseEvent): return
     if event.inaxes is ax and event.xdata is not None and event.ydata is not None:
         col = int(event.xdata+0.5)
@@ -296,6 +422,20 @@ def _on_click(event: Event, ax: Axes, tilemap: array[uint8], time: float, shape:
     return
 
 def _debug(tilemap: array[uint8], time: float, shape: str, theme: str) -> None:
+    """
+    Local handler for visualization and debugging
+
+    Parameters
+    ----------
+    tilemap : NDArray[uint8]
+        room tilemap
+    time : float
+        number of ms it took for dungeon to generate
+    shape : str
+        shape of room
+    theme : str
+        theme of room
+    """
     debug_map = tilemap
 
     colours = ["black", "white", "gray", "blue", "red", "green", "brown", "yellow", "orange"]
@@ -329,6 +469,9 @@ def _debug(tilemap: array[uint8], time: float, shape: str, theme: str) -> None:
     return
 
 def _main() -> None:
+    """
+    Debug entry point to program
+    """
     from time import perf_counter_ns as clock
     print("\033c", end="")
 
