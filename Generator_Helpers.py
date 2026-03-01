@@ -27,7 +27,7 @@ def init_tilemap(height: int, width: int | None = None) -> array[uint8]:
     tilemap = np.zeros((height,width), dtype = uint8)
     return tilemap
 
-def get_directions(value: int) -> set[str]:
+def get_direction_strings(value: int) -> tuple[str, ...]:
     """
     Converts integer tile value into room direction set
 
@@ -47,7 +47,7 @@ def get_directions(value: int) -> set[str]:
     """
     bits = value & 0b01111
     directions = ('North','East','South','West')
-    return {directions[i] for i in range(4) if bits & (1 << i)}
+    return tuple(direction for i, direction in enumerate(directions) if bits & (1 << i))
 
 def adj_map(tilemap: array[uint8], neighbor_map:array[uint8] | None = None, iso:bool=True, target:set[int] | None = None) -> array[uint8]:
     """

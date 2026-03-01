@@ -35,7 +35,7 @@ class const(IntEnum):
     BOSS_SPAWNER = 9
     SHRINE = 10
 
-def get_shape(room_val: int, rng: np.random.Generator) -> tuple[str, set[str]]:
+def get_shape(room_val: int, rng: np.random.Generator) -> tuple[str, tuple[str, ...]]:
     """
     Randomly decides room shape dependent on room value
 
@@ -55,7 +55,7 @@ def get_shape(room_val: int, rng: np.random.Generator) -> tuple[str, set[str]]:
     
     """
     if room_val < 0b10000 or room_val > 0b11111: raise InvalidRoom(f"The get_shape function does not support room_val: {room_val}.")
-    exits = get_directions(room_val)
+    exits = get_direction_strings(room_val)
     match len(exits):
         case 1:
             shape_list, weight_list = ["Dead_End", "Boss_Room", "Small_Room"],[35, 15, 50]
@@ -72,7 +72,7 @@ def get_shape(room_val: int, rng: np.random.Generator) -> tuple[str, set[str]]:
     shape = rng.choice(shape_list, p=probs)
     return shape, exits
 
-def build_room(tilemap: array[uint8], shape: str, exits: set[str], rng: np.random.Generator) -> array[uint8]:
+def build_room(tilemap: array[uint8], shape: str, exits: tuple[str, ...], rng: np.random.Generator) -> array[uint8]:
     """
     Builds room exits and shape onto tilemap
 
@@ -448,7 +448,7 @@ def _debug(tilemap: array[uint8], time: float, shape: str, theme: str) -> None:
     # Many pyplot/Axes methods define **kwargs as Unknown, which triggers
     # reportUnknownMemberType under strict mode.
     # Argument and return types are otherwise fully resolved and type-safe.
-    fig, ax = plt.subplots(figsize = (5,5), dpi = 120)                                          #type: ignore[reportUnknownMemberType]
+    fig, ax = plt.subplots(figsize = (5,5), dpi = 120)                                          #pyright: ignore[reportUnknownMemberType]
 
     manager = getattr(fig.canvas, "manager", None)
     if manager is not None and hasattr(manager, "set_window_title"):
@@ -456,16 +456,16 @@ def _debug(tilemap: array[uint8], time: float, shape: str, theme: str) -> None:
     
     rows, cols = debug_map.shape
 
-    ax.imshow(debug_map,cmap=cmap,norm=norm,interpolation="nearest")                            #type: ignore[reportUnknownMemberType]
-    ax.grid(which="minor", color="black", linewidth=0.5)                                        #type: ignore[reportUnknownMemberType]
-    ax.tick_params(which="both", bottom=False, left=False, labelbottom=False, labelleft=False)  #type: ignore[reportUnknownMemberType]
-    ax.set_xticks(np.arange(-0.5, cols, 1), minor=True)                                         #type: ignore[reportUnknownMemberType]
-    ax.set_yticks(np.arange(-0.5, rows, 1), minor=True)                                         #type: ignore[reportUnknownMemberType]
+    ax.imshow(debug_map,cmap=cmap,norm=norm,interpolation="nearest")                            #pyright: ignore[reportUnknownMemberType]
+    ax.grid(which="minor", color="black", linewidth=0.5)                                        #pyright: ignore[reportUnknownMemberType]
+    ax.tick_params(which="both", bottom=False, left=False, labelbottom=False, labelleft=False)  #pyright: ignore[reportUnknownMemberType]
+    ax.set_xticks(np.arange(-0.5, cols, 1), minor=True)                                         #pyright: ignore[reportUnknownMemberType]
+    ax.set_yticks(np.arange(-0.5, rows, 1), minor=True)                                         #pyright: ignore[reportUnknownMemberType]
 
     fig.canvas.mpl_connect("button_press_event",lambda event:
                            _on_click(event,ax,tilemap,time,shape,theme))
 
-    plt.show()                                                                                  #type: ignore[reportUnknownMemberType]
+    plt.show()                                                                                  #pyright: ignore[reportUnknownMemberType]
     return
 
 def _main() -> None:

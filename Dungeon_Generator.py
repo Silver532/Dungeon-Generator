@@ -26,6 +26,7 @@ class dirs():
     DIR_IDX = {d: i for i, d in enumerate(DIRS)}
     ONE_EXIT_TILES = {17, 18, 20, 24}
     DIR_OFFSETS = {17:(-1,0), 18:(0,1), 20:(1,0), 24:(0,-1)}
+    MASK_TO_INDICES: tuple[tuple[int, ...], ...] = tuple(tuple(i for i in range(4) if mask & (1 << i)) for mask in range(16))
 
 class const(IntEnum):
     """
@@ -87,10 +88,10 @@ def room_eroder(tilemap: array[uint8], np_rng: np.random.Generator, rand_rng: Ra
         adj_map(tilemap, neighbor_map)
 
         mask2 = (neighbor_map == 2)
-        tilemap[mask2 & (np_rng.random(mask2.shape) < 0.5)] = const.NO_ROOM
+        tilemap[mask2 & (np_rng.random(mask2.shape, dtype = np.float32) < 0.5)] = const.NO_ROOM
 
         mask3 = (neighbor_map == 3)
-        tilemap[mask3 & (np_rng.random(mask3.shape) < 0.1)] = const.NO_ROOM
+        tilemap[mask3 & (np_rng.random(mask3.shape, dtype = np.float32) < 0.1)] = const.NO_ROOM
 
     adj_map(tilemap, neighbor_map)
     tilemap[neighbor_map == 0] = const.NO_ROOM
@@ -163,24 +164,47 @@ def room_connector(tilemap: array[uint8], np_rng: np.random.Generator, rand_rng:
     H, W = tilemap.shape
     active_count = np.count_nonzero(tilemap != 0)
     connection_counts = room_random(np_rng, active_count)
-    count_iter = iter(connection_counts)
+    mask_lookup = dirs.MASK_TO_INDICES
+    DIR_BITS = dirs.DIR_BITS
+    DY_DX = dirs.DY_DX_LIST
+    OPP_BITS = dirs.OPPOSITE_BITS
+    randrange = rand_rng.randrange
+
+    connection_index = 0
 
     for y in range(1, H - 1):
+        row = tilemap[y]
+        if not row.any():
+            continue
         for x in range(1, W - 1):
-            if tilemap[y, x] == 0:
+            if row[x] == 0:
                 continue
-            possible_dirs = connection_map[y - 1, x - 1]
-            dir_set = get_directions(possible_dirs)
-            if not dir_set:
+
+            mask: uint8 = connection_map[y - 1, x - 1] & 0b1111
+            if mask == 0:
                 continue
-            connect_count = min(next(count_iter), len(dir_set))
-            chosen_dirs = rand_rng.sample(sorted(dir_set), connect_count)
-            for d in chosen_dirs:
-                i = dirs.DIR_IDX[d]
-                tilemap[y,x] |= dirs.DIR_BITS[i]
-                dy, dx = dirs.DY_DX_LIST[i]
-                ny, nx = y + dy, x + dx
-                tilemap[ny, nx] |= dirs.OPPOSITE_BITS[i]
+
+            indices = mask_lookup[mask]
+            n = len(indices)
+
+            connect_count = connection_counts[connection_index]
+            connection_index += 1
+
+            if connect_count >= n:
+                chosen = indices
+            elif connect_count == 1:
+                chosen = [indices[randrange(n)]]
+            else:
+                pool = list(indices)
+                rand_rng.shuffle(pool)
+                chosen = pool[:connect_count]
+
+            for i in chosen:
+                row[x] |= DIR_BITS[i]
+                dy, dx = DY_DX[i]
+                ny = y + dy
+                nx = x + dx
+                tilemap[ny, nx] |= OPP_BITS[i]
     return tilemap
 
 @timeit
@@ -245,8 +269,8 @@ def dungeon_map_generator(np_rng: np.random.Generator, rand_rng: Random) -> arra
         Dungeon map array
     """
     tilemap = init_tilemap(const.DUNGEON_SIZE)
-    tilemap = room_fill(tilemap, np_rng)
-    tilemap = room_eroder(tilemap, np_rng)
+    tilemap = room_fill(tilemap, np_rng, rand_rng)
+    tilemap = room_eroder(tilemap, np_rng, rand_rng)
     tilemap *= 16
     tilemap = room_connector(tilemap, np_rng, rand_rng)
     tilemap = tilemap_trim(tilemap)
