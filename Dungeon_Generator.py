@@ -353,7 +353,7 @@ def arg_parser() -> bool:
     if args.time: enable_timing(); return True
     return False
 
-def _time_test(count: int) -> None:                                                             #pyright: ignore[reportUnusedFunction]
+def _time_test(count: int) -> None:
     """
     Timed entry point to program
     """
@@ -364,7 +364,7 @@ def _time_test(count: int) -> None:                                             
         _ = dungeon_map_generator(np_rng, rand_rng)
     return
 
-def _main() -> None:                                                                            #pyright: ignore[reportUnusedFunction]
+def _main() -> None:
     """
     Non-Timed entry point to program
     """
