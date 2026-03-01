@@ -14,7 +14,6 @@ from matplotlib.axes import Axes
 from matplotlib.backend_bases import Event, MouseEvent
 from enum import IntEnum
 from random import Random
-from time import perf_counter_ns as clock
 
 from Generator_Helpers import *
 from Debug_Tools import timeit, enable_timing
@@ -272,7 +271,7 @@ def _make_exit_map(tilemap: array[uint8]) -> array[uint8]:
     debug_map = np.unpackbits(tilemap[:, :, np.newaxis], axis=-1).sum(axis=-1).astype(np.uint8)
     return debug_map
 
-def _on_click(event: Event, ax: Axes, tilemap: array[uint8], time: float, room_count: int) -> None:
+def _on_click(event: Event, ax: Axes, tilemap: array[uint8], room_count: int) -> None:
     """
     Local handler for debug click events
 
@@ -294,17 +293,15 @@ def _on_click(event: Event, ax: Axes, tilemap: array[uint8], time: float, room_c
         col = int(event.xdata+0.5)
         row = int(event.ydata+0.5)
         if 0 <= row < tilemap.shape[0] and 0 <= col < tilemap.shape[1]:
-            dirs = get_directions(tilemap[row,col])
-            print(f"\033cProgram ran in {time} milliseconds\n"+
-                f"Tile Clicked: {row}, {col}\n"+
+            dirs = get_direction_strings(tilemap[row,col])
+            print(f"\033cTile Clicked: {row}, {col}\n"+
                 f"Tile Value: {tilemap[row,col]}\n"+
                 f"Exits: {", ".join(dirs)}")
     else:
-        print(f"\033cProgram ran in {time} milliseconds\n"+
-              f"Dungeon contains {room_count} rooms")
+        print(f"\033cDungeon contains {room_count} rooms")
     return
 
-def _debug(tilemap: array[uint8], time: float, room_count: int) -> None:
+def _debug(tilemap: array[uint8], room_count: int) -> None:
     """
     Local handler for visualization and debugging
 
@@ -329,7 +326,7 @@ def _debug(tilemap: array[uint8], time: float, room_count: int) -> None:
     # Many pyplot/Axes methods define **kwargs as Unknown, which triggers
     # reportUnknownMemberType under strict mode.
     # Argument and return types are otherwise fully resolved and type-safe.
-    fig, ax = plt.subplots(figsize = (5,5), dpi = 120)                                          #type: ignore[reportUnknownMemberType]
+    fig, ax = plt.subplots(figsize = (5,5), dpi = 120)                                          #pyright: ignore[reportUnknownMemberType]
 
     manager = getattr(fig.canvas, "manager", None)
     if manager is not None and hasattr(manager, "set_window_title"):
@@ -337,58 +334,57 @@ def _debug(tilemap: array[uint8], time: float, room_count: int) -> None:
     
     rows, cols = debug_map.shape
 
-    ax.imshow(debug_map,cmap=cmap,norm=norm,interpolation="nearest")                            #type: ignore[reportUnknownMemberType]
-    ax.grid(which="minor", color="white", linewidth=0.5)                                        #type: ignore[reportUnknownMemberType]
-    ax.tick_params(which="both", bottom=False, left=False, labelbottom=False, labelleft=False)  #type: ignore[reportUnknownMemberType]
-    ax.set_xticks(np.arange(-0.5, cols, 1), minor=True)                                         #type: ignore[reportUnknownMemberType]
-    ax.set_yticks(np.arange(-0.5, rows, 1), minor=True)                                         #type: ignore[reportUnknownMemberType]
+    ax.imshow(debug_map,cmap=cmap,norm=norm,interpolation="nearest")                            #pyright: ignore[reportUnknownMemberType]
+    ax.grid(which="minor", color="white", linewidth=0.5)                                        #pyright: ignore[reportUnknownMemberType]
+    ax.tick_params(which="both", bottom=False, left=False, labelbottom=False, labelleft=False)  #pyright: ignore[reportUnknownMemberType]
+    ax.set_xticks(np.arange(-0.5, cols, 1), minor=True)                                         #pyright: ignore[reportUnknownMemberType]
+    ax.set_yticks(np.arange(-0.5, rows, 1), minor=True)                                         #pyright: ignore[reportUnknownMemberType]
 
     fig.canvas.mpl_connect("button_press_event",lambda event:
-                           _on_click(event,ax,tilemap,time,room_count))
+                           _on_click(event,ax,tilemap,room_count))
 
     plt.show()                                                                                  #pyright: ignore[reportUnknownMemberType]
     return
 
-def _time_test(count: int) -> None: #pyright: ignore[reportUnusedFunction]
-    from time import perf_counter_ns as clock
-    print("\033c", end="")
-    np_rng = np.random.default_rng()
-    rand_rng = Random()
-    delta_time = 0.0
-    for _ in range(count):
-        start_time = clock()
-        _ = dungeon_map_generator(np_rng, rand_rng)
-        delta_time += (clock() - start_time)*1e-6
-    print(f"Over {count} runs, the average time to run was {delta_time/count} milliseconds.\nTotal Runs: {count}\nTotal Time: {delta_time}")
-    return
-
-def _main() -> None:
-    """
-    Debug entry point to program
-    """
+def arg_parser() -> bool:
     parser = argparse.ArgumentParser()
     parser.add_argument("--time", action = "store_true", help = "Enable performance timing")
     args = parser.parse_args()
-    if args.time: enable_timing()
+    if args.time: enable_timing(); return True
+    return False
 
+def _time_test(count: int) -> None:                                                             #pyright: ignore[reportUnusedFunction]
+    """
+    Timed entry point to program
+    """
+    print("\033c", end="")
+    np_rng = np.random.default_rng()
+    rand_rng = Random()
+    for _ in range(count):
+        _ = dungeon_map_generator(np_rng, rand_rng)
+    return
+
+def _main() -> None:                                                                            #pyright: ignore[reportUnusedFunction]
+    """
+    Non-Timed entry point to program
+    """
     print("\033c", end="")
 
     user_input = input("Input Seed: ")
     debug_seed = int(user_input) if user_input else None
     np_rng = np.random.default_rng(debug_seed)
     rand_rng = Random(debug_seed)
-
-    start_time = clock()
-    
+  
     tilemap = dungeon_map_generator(np_rng, rand_rng)
 
-    delta_time = (clock() - start_time)*1e-6
     room_count = np.count_nonzero(tilemap)
-    print(f"Program ran in {delta_time} milliseconds")
     print(f"Dungeon contains {room_count} rooms")
-    _debug(tilemap, delta_time, room_count)
+    _debug(tilemap, room_count)
     return
 #endregion
 
 if __name__ == "__main__":
-    _main()
+    if arg_parser():
+        _time_test(1000)
+    else:
+        _main()
