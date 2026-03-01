@@ -1,5 +1,5 @@
 """
-Debug Tools for the entire program
+**Debug Tools for the entire program**
 """
 
 import atexit
