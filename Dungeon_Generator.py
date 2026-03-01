@@ -4,7 +4,6 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-import argparse
 
 from numpy import uint8
 from numpy.typing import NDArray as array
@@ -12,11 +11,12 @@ from matplotlib import rcParams
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from matplotlib.axes import Axes
 from matplotlib.backend_bases import Event, MouseEvent
+from time import perf_counter_ns as clock
 from enum import IntEnum
 from random import Random
 
 from Generator_Helpers import *
-from Debug_Tools import timeit, enable_timing
+from Debug_Tools import timeit, arg_parser
 
 class dirs():
     DIRS = ('North','East','South','West')
@@ -97,6 +97,7 @@ def room_eroder(tilemap: array[uint8], np_rng: np.random.Generator, rand_rng: Ra
     tilemap[neighbor_map == 0] = const.NO_ROOM
     return tilemap
 
+@timeit
 def get_possible_connections(tilemap: array[uint8]) -> array[uint8]:
     """
     Converts tilemap into map of adjacent tile count
@@ -122,6 +123,7 @@ def get_possible_connections(tilemap: array[uint8]) -> array[uint8]:
     connections *= t[1:-1, 1:-1]
     return connections
 
+@timeit
 def room_random(np_rng: np.random.Generator, count: int) -> array[uint8]:
     """
     Generate weighted random values for room connections
@@ -138,7 +140,7 @@ def room_random(np_rng: np.random.Generator, count: int) -> array[uint8]:
     randoms : NDArray[uint8]
         Array with random values
     """
-    r = np_rng.random(count)
+    r = np_rng.random(count, dtype = np.float32)
 
     randoms = np.ones(count, dtype = uint8)
     randoms[r >= 0.55] = 2
@@ -195,9 +197,7 @@ def room_connector(tilemap: array[uint8], np_rng: np.random.Generator, rand_rng:
             elif connect_count == 1:
                 chosen = [indices[randrange(n)]]
             else:
-                pool = list(indices)
-                rand_rng.shuffle(pool)
-                chosen = pool[:connect_count]
+                chosen = rand_rng.sample(indices, connect_count)
 
             for i in chosen:
                 row[x] |= DIR_BITS[i]
@@ -273,8 +273,8 @@ def dungeon_map_generator(np_rng: np.random.Generator, rand_rng: Random) -> arra
     tilemap = room_eroder(tilemap, np_rng, rand_rng)
     tilemap *= 16
     tilemap = room_connector(tilemap, np_rng, rand_rng)
-    tilemap = tilemap_trim(tilemap)
     tilemap = room_clear(tilemap)
+    tilemap = tilemap_trim(tilemap)
     return tilemap
 
 #region DEBUG
@@ -370,22 +370,22 @@ def _debug(tilemap: array[uint8], room_count: int) -> None:
     plt.show()                                                                                  #pyright: ignore[reportUnknownMemberType]
     return
 
-def arg_parser() -> bool:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--time", action = "store_true", help = "Enable performance timing")
-    args = parser.parse_args()
-    if args.time: enable_timing(); return True
-    return False
-
 def _time_test(count: int) -> None:
     """
     Timed entry point to program
     """
     print("\033c", end="")
+    if count < 1:
+        return
     np_rng = np.random.default_rng()
     rand_rng = Random()
+    total_time = 0.0
     for _ in range(count):
+        start = clock()
         _ = dungeon_map_generator(np_rng, rand_rng)
+        time = (clock()-start)*1e-6
+        total_time += time
+    print(f"Run count: {count}\nTotal Time: {total_time:.6f}\nAverage Time: {total_time/count:.6f}")
     return
 
 def _main() -> None:
@@ -399,6 +399,7 @@ def _main() -> None:
     np_rng = np.random.default_rng(debug_seed)
     rand_rng = Random(debug_seed)
   
+    
     tilemap = dungeon_map_generator(np_rng, rand_rng)
 
     room_count = np.count_nonzero(tilemap)
@@ -409,6 +410,6 @@ def _main() -> None:
 
 if __name__ == "__main__":
     if arg_parser():
-        _time_test(1000)
+        _time_test(1)
     else:
         _main()
