@@ -2,9 +2,9 @@
 **Debug Tools for the entire program**
 """
 
-import atexit
-import functools
-import argparse
+from atexit import register
+from functools import wraps
+from argparse import ArgumentParser
 
 from time import perf_counter_ns as clock
 from typing import Callable, TypeVar, ParamSpec
@@ -30,7 +30,7 @@ def arg_parser() -> bool:
     bool
         True if --time flag is provided, otherwise False.
     """
-    parser = argparse.ArgumentParser()
+    parser = ArgumentParser()
     parser.add_argument("--time", action = "store_true", help = "Enable performance timing")
     args = parser.parse_args()
     if args.time: enable_timing(); return True
@@ -70,7 +70,7 @@ def timeit(func: Callable[P,R]) -> Callable[P,R]:
     Callable
         Wrapped function that records execution time when timing is enabled.
     """
-    @functools.wraps(func)
+    @wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
         if not _timing_enabled:
             return func(*args, **kwargs)
@@ -86,4 +86,4 @@ def timeit(func: Callable[P,R]) -> Callable[P,R]:
         return result
     return wrapper
 
-atexit.register(write_timings_to_file)
+register(write_timings_to_file)
