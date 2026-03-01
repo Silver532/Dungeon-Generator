@@ -4,6 +4,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import argparse
 
 from numpy import uint8
 from numpy.typing import NDArray as array
@@ -13,8 +14,10 @@ from matplotlib.axes import Axes
 from matplotlib.backend_bases import Event, MouseEvent
 from enum import IntEnum
 from random import Random
+from time import perf_counter_ns as clock
 
 from Generator_Helpers import *
+from Debug_Tools import timeit, enable_timing
 
 class dirs():
     DIRS = ('North','East','South','West')
@@ -41,7 +44,8 @@ class const(IntEnum):
     NO_ROOM = 0
     ROOM = 16
 
-def room_fill(tilemap: array[uint8], np_rng: np.random.Generator) -> array[uint8]:
+@timeit
+def room_fill(tilemap: array[uint8], np_rng: np.random.Generator, rand_rng: Random) -> array[uint8]:
     """
     Places random rooms inside an array
     
@@ -63,7 +67,8 @@ def room_fill(tilemap: array[uint8], np_rng: np.random.Generator) -> array[uint8
         tilemap[y_s:y_e, x_s:x_e] = const.TEMP
     return tilemap
 
-def room_eroder(tilemap: array[uint8], np_rng: np.random.Generator) -> array[uint8]:
+@timeit
+def room_eroder(tilemap: array[uint8], np_rng: np.random.Generator, rand_rng: Random) -> array[uint8]:
     """
     Erodes rooms inside array
 
@@ -140,6 +145,7 @@ def room_random(np_rng: np.random.Generator, count: int) -> array[uint8]:
     randoms[r >= 0.80] = 3
     return randoms
 
+@timeit
 def room_connector(tilemap: array[uint8], np_rng: np.random.Generator, rand_rng: Random) -> array[uint8]:
     """
     Connects adjacent active rooms across given tilemap
@@ -178,6 +184,7 @@ def room_connector(tilemap: array[uint8], np_rng: np.random.Generator, rand_rng:
                 tilemap[ny, nx] |= dirs.OPPOSITE_BITS[i]
     return tilemap
 
+@timeit
 def tilemap_trim(tilemap: array[uint8]) -> array[uint8]:
     """
     Reduces size of tilemap to smallest possible without removing active tiles
@@ -197,6 +204,7 @@ def tilemap_trim(tilemap: array[uint8]) -> array[uint8]:
     trimmed_tilemap = tilemap[np.ix_(active_rows, active_cols)]
     return trimmed_tilemap
 
+@timeit
 def room_clear(tilemap: array[uint8]) -> array[uint8]:
     """
     Removes unconnected rooms from tilemap
@@ -221,6 +229,7 @@ def room_clear(tilemap: array[uint8]) -> array[uint8]:
                 tilemap[ny, nx] = 0
     return tilemap
 
+@timeit
 def dungeon_map_generator(np_rng: np.random.Generator, rand_rng: Random) -> array[uint8]:
     """
     Handler function to create dungeon map\n
@@ -337,14 +346,31 @@ def _debug(tilemap: array[uint8], time: float, room_count: int) -> None:
     fig.canvas.mpl_connect("button_press_event",lambda event:
                            _on_click(event,ax,tilemap,time,room_count))
 
-    plt.show()                                                                                  #type: ignore[reportUnknownMemberType]
+    plt.show()                                                                                  #pyright: ignore[reportUnknownMemberType]
+    return
+
+def _time_test(count: int) -> None: #pyright: ignore[reportUnusedFunction]
+    from time import perf_counter_ns as clock
+    print("\033c", end="")
+    np_rng = np.random.default_rng()
+    rand_rng = Random()
+    delta_time = 0.0
+    for _ in range(count):
+        start_time = clock()
+        _ = dungeon_map_generator(np_rng, rand_rng)
+        delta_time += (clock() - start_time)*1e-6
+    print(f"Over {count} runs, the average time to run was {delta_time/count} milliseconds.\nTotal Runs: {count}\nTotal Time: {delta_time}")
     return
 
 def _main() -> None:
     """
     Debug entry point to program
     """
-    from time import perf_counter_ns as clock
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--time", action = "store_true", help = "Enable performance timing")
+    args = parser.parse_args()
+    if args.time: enable_timing()
+
     print("\033c", end="")
 
     user_input = input("Input Seed: ")
