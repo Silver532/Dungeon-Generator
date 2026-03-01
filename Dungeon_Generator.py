@@ -15,7 +15,7 @@ from time import perf_counter_ns as clock
 from enum import IntEnum
 from random import Random
 
-from Generator_Helpers import *
+from Generator_Helpers import init_tilemap, adj_map, get_direction_strings
 from Debug_Tools import timeit, arg_parser
 
 class dirs():
