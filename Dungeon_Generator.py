@@ -267,9 +267,9 @@ def room_connector(tilemap: array[uint8], np_rng: np.random.Generator, rand_rng:
             if connect_count >= n:
                 chosen = indices
             elif connect_count == 1:
-                chosen = [indices[randrange(n)]]
+                chosen = (indices[randrange(n)],)
             else:
-                chosen = rand_rng.sample(indices, connect_count)
+                chosen = tuple(rand_rng.sample(indices, connect_count))
 
             for i in chosen:
                 row[x] |= DIR_BITS[i]
