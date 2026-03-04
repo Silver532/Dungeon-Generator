@@ -25,6 +25,7 @@ class const(IntEnum):
     Constants for Room_Generator file
     """
     ROOM_SIZE = 17
+    HALF = ROOM_SIZE//2
     WALL = 0
     FLOOR = 1
     HOLE = 2
@@ -67,16 +68,13 @@ def get_shape(room_val: int, rng: np.random.Generator) -> shape:
 
     Returns
     -------
-    shape : str
+    room_shape : shape
         shape of room
-    exits : set[str]
-        set of exit strings
     
     """
     if room_val < 0b10000 or room_val > 0b11111: raise InvalidRoom(f"The get_shape function does not support room_val: {room_val}.")
     n = (room_val & 0b01111).bit_count()
-    if n not in _SHAPE_TABLES:
-        raise InvalidRoom(f"The get_shape function does not support rooms with {n} exits.")
+    if n not in _SHAPE_TABLES: raise InvalidRoom(f"The get_shape function does not support rooms with {n} exits.")
     shape_list, probs = _SHAPE_TABLES[n]
     room_shape: shape = rng.choice(shape_list, p=probs)
     return room_shape
