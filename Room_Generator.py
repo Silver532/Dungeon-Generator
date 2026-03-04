@@ -11,9 +11,11 @@ from matplotlib import rcParams
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from matplotlib.axes import Axes
 from matplotlib.backend_bases import Event, MouseEvent
+from time import perf_counter_ns as clock
 from enum import IntEnum
 
-from Generator_Helpers import *
+from Generator_Helpers import init_tilemap, adj_map, get_direction_strings
+from Debug_Tools import timeit, arg_parser
 
 class InvalidRoom(Exception):
     pass
@@ -35,6 +37,7 @@ class const(IntEnum):
     BOSS_SPAWNER = 9
     SHRINE = 10
 
+@timeit
 def get_shape(room_val: int, rng: np.random.Generator) -> tuple[str, tuple[str, ...]]:
     """
     Randomly decides room shape dependent on room value
@@ -72,6 +75,7 @@ def get_shape(room_val: int, rng: np.random.Generator) -> tuple[str, tuple[str, 
     shape = rng.choice(shape_list, p=probs)
     return shape, exits
 
+@timeit
 def build_room(tilemap: array[uint8], shape: str, exits: tuple[str, ...], rng: np.random.Generator) -> array[uint8]:
     """
     Builds room exits and shape onto tilemap
@@ -137,6 +141,7 @@ def build_room(tilemap: array[uint8], shape: str, exits: tuple[str, ...], rng: n
             raise InvalidRoom(f"Room builder does not support shape {shape}")
     return tilemap
 
+@timeit
 def get_theme(shape: str, rng: np.random.Generator) -> str:
     """
     Randomly decides room theme dependent on room shape
@@ -174,6 +179,7 @@ def get_theme(shape: str, rng: np.random.Generator) -> str:
     theme = rng.choice(theme_list, p=probs)
     return theme
 
+@timeit
 def scan_tilemap(tilemap: array[uint8], require: set[int] | None = None, block: set[int] | None = None,
                  bias: set[int] | None = None, place_on: set[int] | None = None) -> array[np.int32]:
     """
@@ -214,6 +220,7 @@ def scan_tilemap(tilemap: array[uint8], require: set[int] | None = None, block: 
             available_list = np.concatenate((available_list,bias_list),axis = 0)
     return available_list
 
+@timeit
 def populate_tilemap(tilemap: array[uint8], theme: str, rng: np.random.Generator) -> array[uint8]:
     """
     Populates tilemap with features
@@ -360,7 +367,8 @@ def populate_tilemap(tilemap: array[uint8], theme: str, rng: np.random.Generator
                     tilemap[rows,cols] = const.SHRINE
     return tilemap
 
-def room_map_generator(room_val: int, seed: int | None = None) -> tuple[array[uint8], str, str]:
+@timeit
+def room_map_generator(room_val: int, rng: np.random.Generator) -> tuple[array[uint8], str, str]:
     """
     Handler function to create Room map
 
@@ -368,8 +376,8 @@ def room_map_generator(room_val: int, seed: int | None = None) -> tuple[array[ui
     ----------
     room_val : int
         value of room tile to generate
-    seed : int | None = None
-        if provided, use this seed to provide rng
+    rng : np.random.Generator
+        numpy seeded rng
 
     Returns
     -------
@@ -380,8 +388,6 @@ def room_map_generator(room_val: int, seed: int | None = None) -> tuple[array[ui
     theme : str
         theme of room
     """
-    if seed is None: rng = np.random.default_rng()
-    else: rng = np.random.default_rng(seed)
     tilemap = init_tilemap(const.ROOM_SIZE)
     shape, exits = get_shape(room_val, rng)
     tilemap = build_room(tilemap, shape, exits, rng)
@@ -390,7 +396,7 @@ def room_map_generator(room_val: int, seed: int | None = None) -> tuple[array[ui
     return tilemap, shape, theme
 
 #region DEBUG
-def _on_click(event: Event, ax: Axes, tilemap: array[uint8], time: float, shape: str, theme: str) -> None:
+def _on_click(event: Event, ax: Axes, tilemap: array[uint8], shape: str, theme: str) -> None:
     """
     Local handler for debug click events
 
@@ -414,14 +420,14 @@ def _on_click(event: Event, ax: Axes, tilemap: array[uint8], time: float, shape:
         col = int(event.xdata+0.5)
         row = int(event.ydata+0.5)
         if 0 <= row < tilemap.shape[0] and 0 <= col < tilemap.shape[1]:
-            print(f"\033cProgram ran in {time} milliseconds\nShape: {shape}\nTheme: {theme}\n"+
+            print(f"\033cShape: {shape}\nTheme: {theme}\n"+
                 f"Tile Clicked: {row}, {col}\n"+
                 f"Tile Value: {const(tilemap[row,col]).name}")
     else:
-        print(f"\033cProgram ran in {time} milliseconds\nShape: {shape}\nTheme: {theme}")
+        print(f"\033cShape: {shape}\nTheme: {theme}")
     return
 
-def _debug(tilemap: array[uint8], time: float, shape: str, theme: str) -> None:
+def _debug(tilemap: array[uint8], shape: str, theme: str) -> None:
     """
     Local handler for visualization and debugging
 
@@ -463,32 +469,72 @@ def _debug(tilemap: array[uint8], time: float, shape: str, theme: str) -> None:
     ax.set_yticks(np.arange(-0.5, rows, 1), minor=True)                                         #pyright: ignore[reportUnknownMemberType]
 
     fig.canvas.mpl_connect("button_press_event",lambda event:
-                           _on_click(event,ax,tilemap,time,shape,theme))
+                           _on_click(event,ax,tilemap,shape,theme))
 
     plt.show()                                                                                  #pyright: ignore[reportUnknownMemberType]
+    return
+
+def _time_test(count: int) -> None:
+    """
+    Runs the dungeon generator a specified number of times and reports
+    timing statistics.
+
+    Parameters
+    ----------
+    count : int
+        Number of generation runs to perform. If less than 1, returns
+        immediately without running.
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    - The console is cleared at the start of each run using the '\\033c'
+      escape code.
+    - Fresh random generators are created at the start of each run to
+      ensure every run is fully independent and representative of a real
+      cold-start generation.
+    - Each run is timed individually using clock(), with the raw result
+      converted from nanoseconds to milliseconds via multiplication by 1e-6.
+    - After all runs complete, the following statistics are printed:
+        - Total run count
+        - Total elapsed time across all runs
+        - Average time per run
+    - This is an internal entry point.
+    """
+    print("\033c", end="")
+    if count < 1: return
+    total_time = 0.0
+    for _ in range(count):
+        np_rng = np.random.default_rng()
+        room_val = np_rng.integers(17, 31, endpoint = True)
+        start = clock()
+        _ = room_map_generator(room_val, np_rng)
+        time = (clock()-start)*1e-6
+        total_time += time
+    print(f"Run count: {count}\nTotal Time: {total_time:.6f} ms\nAverage Time: {total_time/count:.6f} ms")
     return
 
 def _main() -> None:
     """
     Debug entry point to program
     """
-    from time import perf_counter_ns as clock
     print("\033c", end="")
 
     debug_room_val = int(input("Input Room Value: "))
     user_input = input("Input Seed: ")
     debug_seed = int(user_input) if user_input else None
-    
-    start_time = clock()
+    np_rng = np.random.default_rng(debug_seed)
 
-    tilemap, shape, theme = room_map_generator(debug_room_val, debug_seed)
+    tilemap, shape, theme = room_map_generator(debug_room_val, np_rng)
 
-    end_time = clock()
-    delta_time = (end_time - start_time)/1000000
-    print(f"\033cProgram ran in {delta_time} milliseconds\nShape: {shape}\nTheme: {theme}\n")
-    _debug(tilemap, delta_time, shape, theme)
+    print(f"\033cShape: {shape}\nTheme: {theme}\n")
+    _debug(tilemap, shape, theme)
     return
 #endregion
 
 if __name__ == "__main__":
-    _main()
+    if arg_parser(): _time_test(int(input("Input Testing Count: ")))
+    else: _main()
