@@ -149,7 +149,7 @@ def build_room(tilemap: array[uint8], room_val: int, room_shape: shape, rng: np.
     return tilemap
 
 @timeit
-def get_theme(shape: str, rng: np.random.Generator) -> str:
+def get_theme(room_shape: shape, rng: np.random.Generator) -> str:
     """
     Randomly decides room theme dependent on room shape
 
@@ -164,23 +164,23 @@ def get_theme(shape: str, rng: np.random.Generator) -> str:
     theme : str
         theme of room
     """
-    match shape:
-        case "Dead_End":
+    match room_shape:
+        case shape.DEAD_END:
             theme_list, weight_list = ["DE_Trapped","DE_Treasure","DE_Healthy","DE_Guarded","Empty"], [20, 15, 10, 15, 40]
-        case "Boss_Room":
+        case shape.BOSS_ROOM:
             theme_list, weight_list = ["BR_Hoard","BR_Wizard","BR_Weak","BR_Strong","BR_Guarded","BR_Double"], [20,20,20,10,20,10]
-        case "Small_Room":
+        case shape.SMALL_ROOM:
             theme_list, weight_list = ["SR_Trapped","SR_Treasure","SR_Guarded","SR_Chaos","SR_Basic","Empty"], [20,10,15,10,30,15]
-        case "Connection":
+        case shape.CONNECTION:
             theme_list, weight_list = ["CN_Trapped","CN_Guarded","CN_Basic","Empty"], [20,20,30,30]
-        case "Large_Room":
+        case shape.LARGE_ROOM:
             theme_list, weight_list = ["LR_Trapped","LR_Treasure","LR_Healthy","LR_Guarded","LR_Chaos","LR_Basic","Empty"], [20,5,5,15,10,30,15]
-        case "Corner":
+        case shape.CORNER:
             theme_list, weight_list = ["CR_Trapped","CR_Treasure","CR_Guarded","CR_Chaos","CR_Basic","Empty"], [20,10,15,10,30,15]
-        case "Half":
+        case shape.HALF:
             theme_list, weight_list = ["HR_Trapped","HR_Treasure","HR_Guarded","HR_Chaos","HR_Basic","Empty"], [20,10,15,10,30,15]
         case _:
-            raise InvalidRoom(f"The get_theme function does not support rooms with {shape} shape")
+            raise InvalidRoom(f"The get_theme function does not support rooms with {room_shape} shape")
     total = sum(weight_list)
     probs = [w / total for w in weight_list]
     theme = rng.choice(theme_list, p=probs)
@@ -375,7 +375,7 @@ def populate_tilemap(tilemap: array[uint8], theme: str, rng: np.random.Generator
     return tilemap
 
 @timeit
-def room_map_generator(room_val: int, rng: np.random.Generator) -> tuple[array[uint8], str, str]:
+def room_map_generator(room_val: int, rng: np.random.Generator) -> tuple[array[uint8], shape, str]:
     """
     Handler function to create Room map
 
@@ -397,13 +397,13 @@ def room_map_generator(room_val: int, rng: np.random.Generator) -> tuple[array[u
     """
     tilemap = init_tilemap(const.ROOM_SIZE)
     shape = get_shape(room_val, rng)
-    tilemap = build_room(tilemap, shape, exits, rng)
+    tilemap = build_room(tilemap, room_val, shape, rng)
     theme = get_theme(shape, rng)
     tilemap = populate_tilemap(tilemap, theme, rng)
     return tilemap, shape, theme
 
 #region DEBUG
-def _on_click(event: Event, ax: Axes, tilemap: array[uint8], shape: str, theme: str) -> None:
+def _on_click(event: Event, ax: Axes, tilemap: array[uint8], room_shape: shape, theme: str) -> None:
     """
     Local handler for debug click events
 
@@ -427,14 +427,14 @@ def _on_click(event: Event, ax: Axes, tilemap: array[uint8], shape: str, theme: 
         col = int(event.xdata+0.5)
         row = int(event.ydata+0.5)
         if 0 <= row < tilemap.shape[0] and 0 <= col < tilemap.shape[1]:
-            print(f"\033cShape: {shape}\nTheme: {theme}\n"+
+            print(f"\033cShape: {room_shape}\nTheme: {theme}\n"+
                 f"Tile Clicked: {row}, {col}\n"+
                 f"Tile Value: {const(tilemap[row,col]).name}")
     else:
-        print(f"\033cShape: {shape}\nTheme: {theme}")
+        print(f"\033cShape: {room_shape}\nTheme: {theme}")
     return
 
-def _debug(tilemap: array[uint8], shape: str, theme: str) -> None:
+def _debug(tilemap: array[uint8], room_shape: shape, theme: str) -> None:
     """
     Local handler for visualization and debugging
 
@@ -476,7 +476,7 @@ def _debug(tilemap: array[uint8], shape: str, theme: str) -> None:
     ax.set_yticks(np.arange(-0.5, rows, 1), minor=True)                                         #pyright: ignore[reportUnknownMemberType]
 
     fig.canvas.mpl_connect("button_press_event",lambda event:
-                           _on_click(event,ax,tilemap,shape,theme))
+                           _on_click(event,ax,tilemap,room_shape,theme))
 
     plt.show()                                                                                  #pyright: ignore[reportUnknownMemberType]
     return
