@@ -14,7 +14,7 @@ from matplotlib.backend_bases import Event, MouseEvent
 from time import perf_counter_ns as clock
 from enum import IntEnum
 
-from Generator_Helpers import init_tilemap, adj_map, get_direction_strings
+from Generator_Helpers import init_tilemap, adj_map
 from Debug_Tools import timeit, arg_parser
 
 class InvalidRoom(Exception):
@@ -37,8 +37,24 @@ class const(IntEnum):
     BOSS_SPAWNER = 9
     SHRINE = 10
 
+class shape(IntEnum):
+    DEAD_END = 1
+    BOSS_ROOM = 2
+    SMALL_ROOM = 3
+    LARGE_ROOM = 4
+    CONNECTION = 5
+    CORNER = 6
+    HALF = 7
+
+_SHAPE_TABLES: dict[int, tuple[list[shape], list[float]]] = {
+    1: ([shape.DEAD_END, shape.BOSS_ROOM, shape.SMALL_ROOM],                 [0.35, 0.15, 0.50]),
+    2: ([shape.CONNECTION, shape.SMALL_ROOM, shape.LARGE_ROOM, shape.CORNER],[0.15, 0.25, 0.30, 0.30]),
+    3: ([shape.CONNECTION, shape.SMALL_ROOM, shape.LARGE_ROOM, shape.HALF],  [0.20, 0.20, 0.30, 0.30]),
+    4: ([shape.CONNECTION, shape.SMALL_ROOM, shape.LARGE_ROOM],              [0.20, 0.30, 0.50]),
+}
+
 @timeit
-def get_shape(room_val: int, rng: np.random.Generator) -> tuple[str, tuple[str, ...]]:
+def get_shape(room_val: int, rng: np.random.Generator) -> shape:
     """
     Randomly decides room shape dependent on room value
 
@@ -58,22 +74,12 @@ def get_shape(room_val: int, rng: np.random.Generator) -> tuple[str, tuple[str, 
     
     """
     if room_val < 0b10000 or room_val > 0b11111: raise InvalidRoom(f"The get_shape function does not support room_val: {room_val}.")
-    exits = get_direction_strings(room_val)
-    match len(exits):
-        case 1:
-            shape_list, weight_list = ["Dead_End", "Boss_Room", "Small_Room"],[35, 15, 50]
-        case 2:
-            shape_list, weight_list = ["Connection", "Small_Room", "Large_Room", "Corner"], [15, 25, 30, 30]
-        case 3:
-            shape_list, weight_list = ["Connection", "Small_Room", "Large_Room", "Half"], [20, 20, 30, 30]
-        case 4:
-            shape_list, weight_list = ["Connection", "Small_Room", "Large_Room"], [20, 30, 50]
-        case _:
-            raise InvalidRoom(f"The get_shape function does not support rooms with {len(exits)} exits.")
-    total = sum(weight_list)
-    probs = [w / total for w in weight_list]
-    shape = rng.choice(shape_list, p=probs)
-    return shape, exits
+    n = (room_val & 0b01111).bit_count()
+    if n not in _SHAPE_TABLES:
+        raise InvalidRoom(f"The get_shape function does not support rooms with {n} exits.")
+    shape_list, probs = _SHAPE_TABLES[n]
+    room_shape: shape = rng.choice(shape_list, p=probs)
+    return room_shape
 
 @timeit
 def build_room(tilemap: array[uint8], shape: str, exits: tuple[str, ...], rng: np.random.Generator) -> array[uint8]:
@@ -389,7 +395,7 @@ def room_map_generator(room_val: int, rng: np.random.Generator) -> tuple[array[u
         theme of room
     """
     tilemap = init_tilemap(const.ROOM_SIZE)
-    shape, exits = get_shape(room_val, rng)
+    shape = get_shape(room_val, rng)
     tilemap = build_room(tilemap, shape, exits, rng)
     theme = get_theme(shape, rng)
     tilemap = populate_tilemap(tilemap, theme, rng)
