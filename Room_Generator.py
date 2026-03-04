@@ -80,7 +80,7 @@ def get_shape(room_val: int, rng: np.random.Generator) -> shape:
     return room_shape
 
 @timeit
-def build_room(tilemap: array[uint8], shape: str, exits: tuple[str, ...], rng: np.random.Generator) -> array[uint8]:
+def build_room(tilemap: array[uint8], room_val: int, room_shape: shape, rng: np.random.Generator) -> array[uint8]:
     """
     Builds room exits and shape onto tilemap
 
@@ -88,10 +88,10 @@ def build_room(tilemap: array[uint8], shape: str, exits: tuple[str, ...], rng: n
     ----------
     tilemap : NDArray[uint8]
         tilemap to build onto
-    shape : str
+    room_val : int
+        dungeon room value
+    room_shape : shape
         shape of room
-    exits : set[str]
-        set of exits
     rng : np.random.Generator
         seeded random
 
@@ -100,49 +100,52 @@ def build_room(tilemap: array[uint8], shape: str, exits: tuple[str, ...], rng: n
     tilemap : NDArray[uint8]
         tilemap with room outline built
     """
-    half = const.ROOM_SIZE//2
-    if "North" in exits:
+    half = const.HALF
+    if 0b00001 & room_val:
         tilemap[0:half+1, half-1:half+2] = const.FLOOR
-    if "East" in exits:
+    if 0b00010 & room_val:
         tilemap[half-1:half+2, half:const.ROOM_SIZE] = const.FLOOR
-    if "South" in exits:
+    if 0b00100 & room_val:
         tilemap[half:const.ROOM_SIZE, half-1:half+2] = const.FLOOR
-    if "West" in exits:
+    if 0b01000 & room_val:
         tilemap[half-1:half+2, 0:half+1] = const.FLOOR
     
-    match shape:
-        case "Dead_End":
-            length = rng.integers(1,5)
+    match room_shape:
+        case shape.DEAD_END:
+            length = rng.integers(2,5, endpoint = True)
             tilemap[half-length:half+length+1, half-length:half+length+1] = const.WALL
-        case "Boss_Room":
+        case shape.BOSS_ROOM:
             tilemap[1:-1, 1:-1] = const.FLOOR
-        case "Small_Room":
+        case shape.SMALL_ROOM:
             tilemap[half-3:half+4, half-3:half+4] = const.FLOOR
-        case "Connection":
+        case shape.CONNECTION:
             tilemap[half-1:half+2, half-1:half+2] = const.FLOOR
-        case "Large_Room":
+        case shape.LARGE_ROOM:
             tilemap[half-6:half+7, half-6:half+7] = const.FLOOR
-        case "Corner":
-            mapping: dict[frozenset[str], tuple[slice, slice]] = {
-                frozenset(("North", "West")):  (slice(1, half+2),      slice(1, half+2)),
-                frozenset(("North", "East")):  (slice(1, half+2),      slice(half-1, -1)),
-                frozenset(("South", "West")):  (slice(half-1, -1),     slice(1, half+2)),
-                frozenset(("South", "East")):  (slice(half-1, -1),     slice(half-1, -1)),
-            }
-            pair = frozenset(exits)
-            if pair in mapping: r, c = mapping[pair]; tilemap[r, c] = const.FLOOR
-            else: tilemap[half-3:half+4, half-3:half+4] = const.FLOOR
-        case "Half":
-            if "North" not in exits:
-                tilemap[half:-1, 1:-1] = const.FLOOR
-            if "East" not in exits:
-                tilemap[1:-1, 1:half] = const.FLOOR
-            if "South" not in exits:
-                tilemap[1:half, 1:-1] = const.FLOOR
-            if "West" not in exits:
-                tilemap[1:-1, half:-1] = const.FLOOR
-        case _:
-            raise InvalidRoom(f"Room builder does not support shape {shape}")
+        case shape.CORNER:
+            match room_val & 0b01111:
+                case 0b01001:
+                    tilemap[1:half+2, 1:half+2] = const.FLOOR
+                case 0b00011:
+                    tilemap[1:half+2, half-1:-1] = const.FLOOR
+                case 0b01100:
+                    tilemap[half-1:-1, 1:half+2] = const.FLOOR
+                case 0b00110:
+                    tilemap[half-1:-1, half-1:-1] = const.FLOOR
+                case _:
+                    tilemap[half-3:half+4, half-3:half+4] = const.FLOOR
+        case shape.HALF:
+            match room_val & 0b01111:
+                case 0b01110:
+                    tilemap[half:-1, 1:-1] = const.FLOOR
+                case 0b01101:
+                    tilemap[1:-1, 1:half] = const.FLOOR
+                case 0b01011:
+                    tilemap[1:half, 1:-1] = const.FLOOR
+                case 0b00111:
+                    tilemap[1:-1, half:-1] = const.FLOOR
+                case _:
+                    pass
     return tilemap
 
 @timeit
