@@ -110,7 +110,7 @@ def adj_map(tilemap: array[uint8], neighbor_map:array[uint8] | None = None, iso:
     if target is not None: mask = np.isin(tilemap, tuple(target))
     else: mask = tilemap != 0
     mask = mask.astype(uint8)
-    if neighbor_map is None: neighbor_map = np.zeros_like(tilemap)
+    if neighbor_map is None: neighbor_map = np.zeros_like(tilemap, dtype = uint8)
     else: neighbor_map.fill(0)
 
     neighbor_map[1:h-1, :] = mask[0:h-2, :] + mask[2:h, :]
