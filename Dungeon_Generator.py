@@ -21,7 +21,7 @@ from random import Random
 from Generator_Helpers import init_tilemap, adj_map, get_direction_strings
 from Debug_Tools import timeit, arg_parser
 
-class const(IntEnum):
+class Const(IntEnum):
     """
     Constants for Dungeon_Generator file
     """
@@ -66,17 +66,17 @@ def room_fill(tilemap: array[uint8], np_rng: np.random.Generator) -> array[uint8
           clamped to the interior boundary to avoid edge overflow.
         - The resulting rectangular region is filled with a temporary tile value.
     """
-    for _ in range(const.BOX_COUNT):
-        y_start = np_rng.integers(1, const.MID)
-        y_end = np_rng.integers(const.MID + 2, const.DUNGEON_SIZE - 1)
+    for _ in range(Const.BOX_COUNT):
+        y_start = np_rng.integers(1, Const.MID)
+        y_end = np_rng.integers(Const.MID + 2, Const.DUNGEON_SIZE - 1)
 
         room_height = y_end-y_start
         room_width = 16 - room_height
 
-        x_start = np_rng.integers(1, const.MID)
-        x_end = min(x_start + room_width + 5, const.DUNGEON_SIZE - 2)
+        x_start = np_rng.integers(1, Const.MID)
+        x_end = min(x_start + room_width + 5, Const.DUNGEON_SIZE - 2)
 
-        tilemap[y_start:y_end, x_start:x_end] = const.TEMP
+        tilemap[y_start:y_end, x_start:x_end] = Const.TEMP
     return tilemap
 
 @timeit
@@ -110,17 +110,17 @@ def room_eroder(tilemap: array[uint8], np_rng: np.random.Generator) -> array[uin
     """
     neighbor_map = np.empty_like(tilemap, dtype=uint8)
 
-    for _ in range(const.ERODE_COUNT):
+    for _ in range(Const.ERODE_COUNT):
         adj_map(tilemap, neighbor_map)
 
         mask_2 = (neighbor_map == 2)
-        tilemap[mask_2 & (np_rng.random(mask_2.shape, dtype = np.float32) < 0.5)] = const.NO_ROOM
+        tilemap[mask_2 & (np_rng.random(mask_2.shape, dtype = np.float32) < 0.5)] = Const.NO_ROOM
 
         mask_3 = (neighbor_map == 3)
-        tilemap[mask_3 & (np_rng.random(mask_3.shape, dtype = np.float32) < 0.1)] = const.NO_ROOM
+        tilemap[mask_3 & (np_rng.random(mask_3.shape, dtype = np.float32) < 0.1)] = Const.NO_ROOM
 
     adj_map(tilemap, neighbor_map)
-    tilemap[neighbor_map == 0] = const.NO_ROOM
+    tilemap[neighbor_map == 0] = Const.NO_ROOM
     return tilemap
 
 @timeit
@@ -390,7 +390,7 @@ def dungeon_map_generator(np_rng: np.random.Generator, rand_rng: Random) -> arra
         7. tilemap_trim()   : Crops the array to the tightest bounding box
                               that still contains all active tiles.
     """
-    tilemap = init_tilemap(const.DUNGEON_SIZE)
+    tilemap = init_tilemap(Const.DUNGEON_SIZE)
     tilemap = room_fill(tilemap, np_rng)
     tilemap = room_eroder(tilemap, np_rng)
     tilemap <<= 4
