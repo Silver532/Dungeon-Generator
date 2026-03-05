@@ -13,6 +13,7 @@ from matplotlib.axes import Axes
 from matplotlib.backend_bases import Event, MouseEvent
 from time import perf_counter_ns as clock
 from enum import IntEnum
+from random import Random
 
 from Generator_Helpers import init_tilemap, adj_map
 from Debug_Tools import timeit, arg_parser
@@ -20,7 +21,7 @@ from Debug_Tools import timeit, arg_parser
 class InvalidRoom(Exception):
     pass
 
-class const(IntEnum):
+class Const(IntEnum):
     """
     Constants for Room_Generator file
     """
@@ -38,7 +39,7 @@ class const(IntEnum):
     BOSS_SPAWNER = 9
     SHRINE = 10
 
-class shape(IntEnum):
+class Shape(IntEnum):
     DEAD_END = 1
     BOSS_ROOM = 2
     SMALL_ROOM = 3
@@ -47,15 +48,62 @@ class shape(IntEnum):
     CORNER = 6
     HALF = 7
 
-_SHAPE_TABLES: dict[int, tuple[list[shape], list[float]]] = {
-    1: ([shape.DEAD_END, shape.BOSS_ROOM, shape.SMALL_ROOM],                 [0.35, 0.15, 0.50]),
-    2: ([shape.CONNECTION, shape.SMALL_ROOM, shape.LARGE_ROOM, shape.CORNER],[0.15, 0.25, 0.30, 0.30]),
-    3: ([shape.CONNECTION, shape.SMALL_ROOM, shape.LARGE_ROOM, shape.HALF],  [0.20, 0.20, 0.30, 0.30]),
-    4: ([shape.CONNECTION, shape.SMALL_ROOM, shape.LARGE_ROOM],              [0.20, 0.30, 0.50]),
+class Theme(IntEnum):
+    EMPTY = 0
+    DE_TRAPPED = 1
+    DE_TREASURE = 2
+    DE_HEALTHY = 3
+    DE_GUARDED = 4
+    BR_HOARD = 5
+    BR_WIZARD = 6
+    BR_WEAK = 7
+    BR_STRONG = 8
+    BR_GUARDED = 9
+    BR_DOUBLE = 10
+    SR_TRAPPED = 11
+    SR_TREASURE = 12
+    SR_GUARDED = 13
+    SR_CHAOS = 14
+    SR_BASIC = 15
+    CN_TRAPPED = 16
+    CN_GUARDED = 17
+    CN_BASIC = 18
+    LR_TRAPPED = 19
+    LR_TREASURE = 20
+    LR_HEALTHY = 21
+    LR_GUARDED = 22
+    LR_CHAOS = 23
+    LR_BASIC = 24
+    CR_TRAPPED = 25
+    CR_TREASURE = 26
+    CR_GUARDED = 27
+    CR_CHAOS = 28
+    CR_BASIC = 29
+    HR_TRAPPED = 30
+    HR_TREASURE = 31
+    HR_GUARDED = 32
+    HR_CHAOS = 33
+    HR_BASIC = 34
+
+_SHAPE_TABLES: dict[int, tuple[list[Shape], list[float]]] = {
+    1: ([Shape.DEAD_END, Shape.BOSS_ROOM, Shape.SMALL_ROOM],                 [0.35, 0.15, 0.50]),
+    2: ([Shape.CONNECTION, Shape.SMALL_ROOM, Shape.LARGE_ROOM, Shape.CORNER],[0.15, 0.25, 0.30, 0.30]),
+    3: ([Shape.CONNECTION, Shape.SMALL_ROOM, Shape.LARGE_ROOM, Shape.HALF],  [0.20, 0.20, 0.30, 0.30]),
+    4: ([Shape.CONNECTION, Shape.SMALL_ROOM, Shape.LARGE_ROOM],              [0.20, 0.30, 0.50]),
+}
+
+_THEME_TABLES: dict[Shape, tuple[list[Theme], list[float]]] = {
+    Shape.DEAD_END:   ([Theme.DE_TRAPPED, Theme.DE_TREASURE, Theme.DE_HEALTHY, Theme.DE_GUARDED, Theme.EMPTY], [0.20, 0.15, 0.10, 0.15, 0.40]),
+    Shape.BOSS_ROOM:  ([Theme.BR_HOARD, Theme.BR_WIZARD, Theme.BR_WEAK, Theme.BR_STRONG, Theme.BR_GUARDED, Theme.BR_DOUBLE], [0.20, 0.20, 0.20, 0.10, 0.20, 0.10]),
+    Shape.SMALL_ROOM: ([Theme.SR_TRAPPED, Theme.SR_TREASURE, Theme.SR_GUARDED, Theme.SR_CHAOS, Theme.SR_BASIC, Theme.EMPTY], [0.20, 0.10, 0.15, 0.10, 0.30, 0.15]),
+    Shape.CONNECTION: ([Theme.CN_TRAPPED, Theme.CN_GUARDED, Theme.CN_BASIC, Theme.EMPTY], [0.20, 0.20, 0.30, 0.30]),
+    Shape.LARGE_ROOM: ([Theme.LR_TRAPPED, Theme.LR_TREASURE, Theme.LR_HEALTHY, Theme.LR_GUARDED, Theme.LR_CHAOS, Theme.LR_BASIC, Theme.EMPTY], [0.20, 0.05, 0.05, 0.15, 0.10, 0.30, 0.15]),
+    Shape.CORNER:     ([Theme.CR_TRAPPED, Theme.CR_TREASURE, Theme.CR_GUARDED, Theme.CR_CHAOS, Theme.CR_BASIC, Theme.EMPTY], [0.20, 0.10, 0.15, 0.10, 0.30, 0.15]),
+    Shape.HALF:       ([Theme.HR_TRAPPED, Theme.HR_TREASURE, Theme.HR_GUARDED, Theme.HR_CHAOS, Theme.HR_BASIC, Theme.EMPTY], [0.20, 0.10, 0.15, 0.10, 0.30, 0.15]),
 }
 
 @timeit
-def get_shape(room_val: int, rng: np.random.Generator) -> shape:
+def get_shape(room_val: int, rand_rng: Random) -> Shape:
     """
     Randomly decides room shape dependent on room value
 
@@ -63,7 +111,7 @@ def get_shape(room_val: int, rng: np.random.Generator) -> shape:
     ----------
     room_val : int
         dungeon room value
-    rng : np.random.Generator
+    np_rng : np.random.Generator
         seeded random
 
     Returns
@@ -76,11 +124,11 @@ def get_shape(room_val: int, rng: np.random.Generator) -> shape:
     n = (room_val & 0b01111).bit_count()
     if n not in _SHAPE_TABLES: raise InvalidRoom(f"The get_shape function does not support rooms with {n} exits.")
     shape_list, probs = _SHAPE_TABLES[n]
-    room_shape: shape = rng.choice(shape_list, p=probs)
+    room_shape: Shape = rand_rng.choices(shape_list, probs)[0]
     return room_shape
 
 @timeit
-def build_room(tilemap: array[uint8], room_val: int, room_shape: shape, rng: np.random.Generator) -> array[uint8]:
+def build_room(tilemap: array[uint8], room_val: int, room_shape: Shape, np_rng: np.random.Generator) -> array[uint8]:
     """
     Builds room exits and shape onto tilemap
 
@@ -92,7 +140,7 @@ def build_room(tilemap: array[uint8], room_val: int, room_shape: shape, rng: np.
         dungeon room value
     room_shape : shape
         shape of room
-    rng : np.random.Generator
+    np_rng : np.random.Generator
         seeded random
 
     Returns
@@ -100,56 +148,56 @@ def build_room(tilemap: array[uint8], room_val: int, room_shape: shape, rng: np.
     tilemap : NDArray[uint8]
         tilemap with room outline built
     """
-    half = const.HALF
+    half = Const.HALF
     if 0b00001 & room_val:
-        tilemap[0:half+1, half-1:half+2] = const.FLOOR
+        tilemap[0:half+1, half-1:half+2] = Const.FLOOR
     if 0b00010 & room_val:
-        tilemap[half-1:half+2, half:const.ROOM_SIZE] = const.FLOOR
+        tilemap[half-1:half+2, half:Const.ROOM_SIZE] = Const.FLOOR
     if 0b00100 & room_val:
-        tilemap[half:const.ROOM_SIZE, half-1:half+2] = const.FLOOR
+        tilemap[half:Const.ROOM_SIZE, half-1:half+2] = Const.FLOOR
     if 0b01000 & room_val:
-        tilemap[half-1:half+2, 0:half+1] = const.FLOOR
+        tilemap[half-1:half+2, 0:half+1] = Const.FLOOR
     
     match room_shape:
-        case shape.DEAD_END:
-            length = rng.integers(2,5, endpoint = True)
-            tilemap[half-length:half+length+1, half-length:half+length+1] = const.WALL
-        case shape.BOSS_ROOM:
-            tilemap[1:-1, 1:-1] = const.FLOOR
-        case shape.SMALL_ROOM:
-            tilemap[half-3:half+4, half-3:half+4] = const.FLOOR
-        case shape.CONNECTION:
-            tilemap[half-1:half+2, half-1:half+2] = const.FLOOR
-        case shape.LARGE_ROOM:
-            tilemap[half-6:half+7, half-6:half+7] = const.FLOOR
-        case shape.CORNER:
+        case Shape.DEAD_END:
+            length = np_rng.integers(2,5, endpoint = True)
+            tilemap[half-length:half+length+1, half-length:half+length+1] = Const.WALL
+        case Shape.BOSS_ROOM:
+            tilemap[1:-1, 1:-1] = Const.FLOOR
+        case Shape.SMALL_ROOM:
+            tilemap[half-3:half+4, half-3:half+4] = Const.FLOOR
+        case Shape.CONNECTION:
+            tilemap[half-1:half+2, half-1:half+2] = Const.FLOOR
+        case Shape.LARGE_ROOM:
+            tilemap[half-6:half+7, half-6:half+7] = Const.FLOOR
+        case Shape.CORNER:
             match room_val & 0b01111:
                 case 0b01001:
-                    tilemap[1:half+2, 1:half+2] = const.FLOOR
+                    tilemap[1:half+2, 1:half+2] = Const.FLOOR
                 case 0b00011:
-                    tilemap[1:half+2, half-1:-1] = const.FLOOR
+                    tilemap[1:half+2, half-1:-1] = Const.FLOOR
                 case 0b01100:
-                    tilemap[half-1:-1, 1:half+2] = const.FLOOR
+                    tilemap[half-1:-1, 1:half+2] = Const.FLOOR
                 case 0b00110:
-                    tilemap[half-1:-1, half-1:-1] = const.FLOOR
+                    tilemap[half-1:-1, half-1:-1] = Const.FLOOR
                 case _:
-                    tilemap[half-3:half+4, half-3:half+4] = const.FLOOR
-        case shape.HALF:
+                    tilemap[half-3:half+4, half-3:half+4] = Const.FLOOR
+        case Shape.HALF:
             match room_val & 0b01111:
                 case 0b01110:
-                    tilemap[half:-1, 1:-1] = const.FLOOR
+                    tilemap[half:-1, 1:-1] = Const.FLOOR
                 case 0b01101:
-                    tilemap[1:-1, 1:half] = const.FLOOR
+                    tilemap[1:-1, 1:half] = Const.FLOOR
                 case 0b01011:
-                    tilemap[1:half, 1:-1] = const.FLOOR
+                    tilemap[1:half, 1:-1] = Const.FLOOR
                 case 0b00111:
-                    tilemap[1:-1, half:-1] = const.FLOOR
+                    tilemap[1:-1, half:-1] = Const.FLOOR
                 case _:
                     pass
     return tilemap
 
 @timeit
-def get_theme(room_shape: shape, rng: np.random.Generator) -> str:
+def get_theme(room_shape: Shape, rand_rng: Random) -> Theme:
     """
     Randomly decides room theme dependent on room shape
 
@@ -157,33 +205,17 @@ def get_theme(room_shape: shape, rng: np.random.Generator) -> str:
     ----------
     shape : str
         shape of room
-    rng : np.random.Generator
+    np_rng : np.random.Generator
 
     Returns
     -------
     theme : str
         theme of room
     """
-    match room_shape:
-        case shape.DEAD_END:
-            theme_list, weight_list = ["DE_Trapped","DE_Treasure","DE_Healthy","DE_Guarded","Empty"], [20, 15, 10, 15, 40]
-        case shape.BOSS_ROOM:
-            theme_list, weight_list = ["BR_Hoard","BR_Wizard","BR_Weak","BR_Strong","BR_Guarded","BR_Double"], [20,20,20,10,20,10]
-        case shape.SMALL_ROOM:
-            theme_list, weight_list = ["SR_Trapped","SR_Treasure","SR_Guarded","SR_Chaos","SR_Basic","Empty"], [20,10,15,10,30,15]
-        case shape.CONNECTION:
-            theme_list, weight_list = ["CN_Trapped","CN_Guarded","CN_Basic","Empty"], [20,20,30,30]
-        case shape.LARGE_ROOM:
-            theme_list, weight_list = ["LR_Trapped","LR_Treasure","LR_Healthy","LR_Guarded","LR_Chaos","LR_Basic","Empty"], [20,5,5,15,10,30,15]
-        case shape.CORNER:
-            theme_list, weight_list = ["CR_Trapped","CR_Treasure","CR_Guarded","CR_Chaos","CR_Basic","Empty"], [20,10,15,10,30,15]
-        case shape.HALF:
-            theme_list, weight_list = ["HR_Trapped","HR_Treasure","HR_Guarded","HR_Chaos","HR_Basic","Empty"], [20,10,15,10,30,15]
-        case _:
-            raise InvalidRoom(f"The get_theme function does not support rooms with {room_shape} shape")
-    total = sum(weight_list)
-    probs = [w / total for w in weight_list]
-    theme = rng.choice(theme_list, p=probs)
+    if room_shape not in _THEME_TABLES:
+        raise InvalidRoom(f"The get_theme function does not support rooms with {room_shape} shape")
+    theme_list, probs = _THEME_TABLES[room_shape]
+    theme: Theme = rand_rng.choices(theme_list, probs)[0]
     return theme
 
 @timeit
@@ -210,25 +242,28 @@ def scan_tilemap(tilemap: array[uint8], require: set[int] | None = None, block: 
     available_list : NDArray[np.int32]
         numpy list of valid indeces to place on
     """
-    if place_on is None: place_on = {1}
-    available_grid = np.isin(tilemap,list(place_on))
+    if place_on is None: place_on = {Const.FLOOR}
+
+    available_grid = np.isin(tilemap,tuple(place_on))
+    neighbor_map = np.empty_like(tilemap, dtype = uint8)
 
     if require is not None:
-        available_grid &= (adj_map(tilemap, target = require, iso = False) != 0)
+        available_grid &= (adj_map(tilemap, neighbor_map, target = require, iso = False) != 0)
     if block is not None:
-        available_grid &= (adj_map(tilemap, target = block, iso = False) == 0)
+        available_grid &= (adj_map(tilemap, neighbor_map, target = block, iso = False) == 0)
     
     available_list = np.argwhere(available_grid)
     if bias is not None:
-        bias_grid = available_grid & (adj_map(tilemap, target = bias, iso = False) != 0)
-        biases = np.argwhere(bias_grid)
+        bias_grid = available_grid & (adj_map(tilemap, neighbor_map, target = bias, iso = False) != 0)
+        bias_mask = bias_grid[available_list[:,0], available_list[:, 1]]
+        biases = available_list[bias_mask]
         if biases.size > 0:
             bias_list = np.repeat(biases, 4, axis=0)
             available_list = np.concatenate((available_list,bias_list),axis = 0)
     return available_list
 
 @timeit
-def populate_tilemap(tilemap: array[uint8], theme: str, rng: np.random.Generator) -> array[uint8]:
+def populate_tilemap(tilemap: array[uint8], theme: Theme, np_rng: np.random.Generator) -> array[uint8]:
     """
     Populates tilemap with features
 
@@ -238,7 +273,7 @@ def populate_tilemap(tilemap: array[uint8], theme: str, rng: np.random.Generator
         tilemap to populate
     theme : str
         theme of room
-    rng : np.random.Generator
+    np_rng : np.random.Generator
         seeded random
 
     Returns
@@ -247,135 +282,135 @@ def populate_tilemap(tilemap: array[uint8], theme: str, rng: np.random.Generator
         populated tilemap
     """
     feature_order = (
-        const.WATER,
-        const.HOLE,
-        const.HEALING_STATION,
-        const.SHRINE,
-        const.CHEST,
-        const.LOOT_PILE,
-        const.TRAP,
-        const.BOSS_SPAWNER,
-        const.MONSTER_SPAWNER
+        Const.WATER,
+        Const.HOLE,
+        Const.HEALING_STATION,
+        Const.SHRINE,
+        Const.CHEST,
+        Const.LOOT_PILE,
+        Const.TRAP,
+        Const.BOSS_SPAWNER,
+        Const.MONSTER_SPAWNER
     )
-    def R(num: int = 0) -> int: return rng.integers(0,1)+num
-    def T(num: int = 0) -> int: return rng.integers(0,2)+num
-    population_dict: dict[str, dict[const, int]] = {
-        "DE_Trapped":  {const.HOLE: 1, const.WATER: R(), const.TRAP: 3},
-        "DE_Treasure": {const.TRAP: 1, const.CHEST: 1, const.LOOT_PILE: 2, const.MONSTER_SPAWNER: 1},
-        "DE_Healthy":  {const.HEALING_STATION: 1},
-        "DE_Guarded":  {const.MONSTER_SPAWNER: 1},
+    def R(num: int = 0) -> int: return np_rng.integers(0,1)+num
+    def T(num: int = 0) -> int: return np_rng.integers(0,2)+num
+    population_dict: dict[Theme, dict[Const, int]] = {
+        Theme.DE_TRAPPED:  {Const.HOLE: 1, Const.WATER: R(), Const.TRAP: 3},
+        Theme.DE_TREASURE: {Const.TRAP: 1, Const.CHEST: 1, Const.LOOT_PILE: 2, Const.MONSTER_SPAWNER: 1},
+        Theme.DE_HEALTHY:  {Const.HEALING_STATION: 1},
+        Theme.DE_GUARDED:  {Const.MONSTER_SPAWNER: 1},
 
-        "SR_Trapped":  {const.HOLE: 1, const.TRAP: T(3), const.LOOT_PILE: 1, const.MONSTER_SPAWNER: 1},
-        "SR_Treasure": {const.TRAP: R(1), const.CHEST: 2, const.LOOT_PILE: 3},
-        "SR_Guarded":  {const.WATER: R(), const.TRAP: 1, const.LOOT_PILE: 1, const.MONSTER_SPAWNER: 2},
-        "SR_Chaos":    {const.HOLE: 2, const.WATER: R(), const.TRAP: 3, const.CHEST: 1, const.LOOT_PILE: 2, const.MONSTER_SPAWNER: 3, const.SHRINE: 1},
-        "SR_Basic":    {const.TRAP: R(), const.LOOT_PILE: R()},
-
-        "CN_Trapped":  {const.HOLE: 1, const.TRAP: T(1), const.LOOT_PILE: 1},
-        "CN_Guarded":  {const.MONSTER_SPAWNER: 1},
-        "CN_Basic":    {const.LOOT_PILE: R()},
-
-        "LR_Trapped":  {const.HOLE: 2, const.WATER: 1, const.TRAP: T(3), const.LOOT_PILE: 2, const.MONSTER_SPAWNER: 1},
-        "LR_Treasure": {const.TRAP: 1, const.CHEST: 2, const.LOOT_PILE: 3, const.MONSTER_SPAWNER: 1},
-        "LR_Healthy":  {const.HEALING_STATION: 1},
-        "LR_Guarded":  {const.WATER: R(), const.TRAP: 1, const.CHEST: 1, const.LOOT_PILE: 1, const.MONSTER_SPAWNER: 3},
-        "LR_Chaos":    {const.HOLE: 2, const.WATER: 1, const.TRAP: 3, const.CHEST: 2, const.LOOT_PILE: 3, const.MONSTER_SPAWNER: T(2), const.SHRINE: 1},
-        "LR_Basic":    {const.TRAP: R(1), const.LOOT_PILE: R()},
-
-        "CR_Trapped":  {const.HOLE: 1, const.TRAP: T(2), const.LOOT_PILE: 1},
-        "CR_Treasure": {const.TRAP: 1, const.CHEST: 1, const.LOOT_PILE: 3, const.MONSTER_SPAWNER: 1},
-        "CR_Guarded":  {const.WATER: R(), const.TRAP: 1, const.LOOT_PILE: 1, const.MONSTER_SPAWNER: 2},
-        "CR_Chaos":    {const.HOLE: R(), const.WATER: 1, const.TRAP: 3, const.CHEST: T(), const.LOOT_PILE: 3, const.MONSTER_SPAWNER: R(2), const.SHRINE: 1},
-        "CR_Basic":    {const.TRAP: R(), const.LOOT_PILE: R()},
-
-        "HR_Trapped":  {const.HOLE: 1, const.TRAP: T(2), const.LOOT_PILE: 1},
-        "HR_Treasure": {const.TRAP: 1, const.CHEST: 1, const.LOOT_PILE: 3, const.MONSTER_SPAWNER: 1},
-        "HR_Guarded":  {const.WATER: R(), const.TRAP: 1, const.LOOT_PILE: 1, const.MONSTER_SPAWNER: 2},
-        "HR_Chaos":    {const.HOLE: R(), const.WATER: 1, const.TRAP: 3, const.MONSTER_SPAWNER: R(2), const.SHRINE: 1, const.CHEST: T(), const.LOOT_PILE: 3},
-        "HR_Basic":    {const.TRAP: R(), const.LOOT_PILE: R()},
-
-        "BR_Hoard":    {const.CHEST: 3, const.LOOT_PILE: 9, const.BOSS_SPAWNER: 1, const.SHRINE: 1},
-        "BR_Wizard":   {const.CHEST: 4, const.LOOT_PILE: 3, const.BOSS_SPAWNER: 1, const.SHRINE: 1},
-        "BR_Weak":     {const.TRAP: R(), const.CHEST: 1, const.LOOT_PILE: 2, const.MONSTER_SPAWNER: 1, const.BOSS_SPAWNER: 1},
-        "BR_Strong":   {const.HEALING_STATION: R(), const.CHEST: T(1), const.LOOT_PILE: 5, const.BOSS_SPAWNER: 1, const.SHRINE: 1},
-        "BR_Guarded":  {const.TRAP: 1, const.CHEST: 2, const.LOOT_PILE: 3, const.MONSTER_SPAWNER: 2, const.BOSS_SPAWNER: 1, const.SHRINE: 1},
-        "BR_Double":   {const.CHEST: 3, const.LOOT_PILE: 5, const.BOSS_SPAWNER: 2, const.SHRINE: 1},
-
-        "Empty": {}
+        Theme.SR_TRAPPED:  {Const.HOLE: 1, Const.TRAP: T(3), Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 1},
+        Theme.SR_TREASURE: {Const.TRAP: R(1), Const.CHEST: 2, Const.LOOT_PILE: 3},
+        Theme.SR_GUARDED:  {Const.WATER: R(), Const.TRAP: 1, Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 2},
+        Theme.SR_CHAOS:    {Const.HOLE: 2, Const.WATER: R(), Const.TRAP: 3, Const.CHEST: 1, Const.LOOT_PILE: 2, Const.MONSTER_SPAWNER: 3, Const.SHRINE: 1},
+        Theme.SR_BASIC:    {Const.TRAP: R(), Const.LOOT_PILE: R()},
+        
+        Theme.CN_TRAPPED:  {Const.HOLE: 1, Const.TRAP: T(1), Const.LOOT_PILE: 1},
+        Theme.CN_GUARDED:  {Const.MONSTER_SPAWNER: 1},
+        Theme.CN_BASIC:    {Const.LOOT_PILE: R()},
+        
+        Theme.LR_TRAPPED:  {Const.HOLE: 2, Const.WATER: 1, Const.TRAP: T(3), Const.LOOT_PILE: 2, Const.MONSTER_SPAWNER: 1},
+        Theme.LR_TREASURE: {Const.TRAP: 1, Const.CHEST: 2, Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: 1},
+        Theme.LR_HEALTHY:  {Const.HEALING_STATION: 1},
+        Theme.LR_GUARDED:  {Const.WATER: R(), Const.TRAP: 1, Const.CHEST: 1, Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 3},
+        Theme.LR_CHAOS:    {Const.HOLE: 2, Const.WATER: 1, Const.TRAP: 3, Const.CHEST: 2, Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: T(2), Const.SHRINE: 1},
+        Theme.LR_BASIC:    {Const.TRAP: R(1), Const.LOOT_PILE: R()},
+        
+        Theme.CR_TRAPPED:  {Const.HOLE: 1, Const.TRAP: T(2), Const.LOOT_PILE: 1},
+        Theme.CR_TREASURE: {Const.TRAP: 1, Const.CHEST: 1, Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: 1},
+        Theme.CR_GUARDED:  {Const.WATER: R(), Const.TRAP: 1, Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 2},
+        Theme.CR_CHAOS:    {Const.HOLE: R(), Const.WATER: 1, Const.TRAP: 3, Const.CHEST: T(), Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: R(2), Const.SHRINE: 1},
+        Theme.CR_BASIC:    {Const.TRAP: R(), Const.LOOT_PILE: R()},
+        
+        Theme.HR_TRAPPED:  {Const.HOLE: 1, Const.TRAP: T(2), Const.LOOT_PILE: 1},
+        Theme.HR_TREASURE: {Const.TRAP: 1, Const.CHEST: 1, Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: 1},
+        Theme.HR_GUARDED:  {Const.WATER: R(), Const.TRAP: 1, Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 2},
+        Theme.HR_CHAOS:    {Const.HOLE: R(), Const.WATER: 1, Const.TRAP: 3, Const.MONSTER_SPAWNER: R(2), Const.SHRINE: 1, Const.CHEST: T(), Const.LOOT_PILE: 3},
+        Theme.HR_BASIC:    {Const.TRAP: R(), Const.LOOT_PILE: R()},
+        
+        Theme.BR_HOARD:    {Const.CHEST: 3, Const.LOOT_PILE: 9, Const.BOSS_SPAWNER: 1, Const.SHRINE: 1},
+        Theme.BR_WIZARD:   {Const.CHEST: 4, Const.LOOT_PILE: 3, Const.BOSS_SPAWNER: 1, Const.SHRINE: 1},
+        Theme.BR_WEAK:     {Const.TRAP: R(), Const.CHEST: 1, Const.LOOT_PILE: 2, Const.MONSTER_SPAWNER: 1, Const.BOSS_SPAWNER: 1},
+        Theme.BR_STRONG:   {Const.HEALING_STATION: R(), Const.CHEST: T(1), Const.LOOT_PILE: 5, Const.BOSS_SPAWNER: 1, Const.SHRINE: 1},
+        Theme.BR_GUARDED:  {Const.TRAP: 1, Const.CHEST: 2, Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: 2, Const.BOSS_SPAWNER: 1, Const.SHRINE: 1},
+        Theme.BR_DOUBLE:   {Const.CHEST: 3, Const.LOOT_PILE: 5, Const.BOSS_SPAWNER: 2, Const.SHRINE: 1},
+        
+        Theme.EMPTY:       {}
     }
     pop_vals = population_dict[theme]
     for feature in feature_order:
         count = pop_vals.get(feature)
         if count:
             match feature:
-                case const.HOLE:
-                    available_list = scan_tilemap(tilemap, block = {const.WALL, const.WATER, const.LOOT_PILE})
-                    indices = rng.choice(len(available_list), size=count, replace=False)
+                case Const.HOLE:
+                    available_list = scan_tilemap(tilemap, block = {Const.WALL, Const.WATER, Const.LOOT_PILE})
+                    indices = np_rng.choice(len(available_list), size=count, replace=False)
                     coords = available_list[indices]
                     rows = coords[:, 0]
                     cols = coords[:, 1]
-                    tilemap[rows,cols] = const.HOLE
-                case const.WATER:
-                    available_list = scan_tilemap(tilemap, block = {const.CHEST, const.LOOT_PILE, const.HOLE})
-                    indices = rng.choice(len(available_list), size=count, replace=False)
+                    tilemap[rows,cols] = Const.HOLE
+                case Const.WATER:
+                    available_list = scan_tilemap(tilemap, block = {Const.CHEST, Const.LOOT_PILE, Const.HOLE})
+                    indices = np_rng.choice(len(available_list), size=count, replace=False)
                     coords = available_list[indices]
                     rows = coords[:, 0]
                     cols = coords[:, 1]
-                    tilemap[rows,cols] = const.WATER
-                case const.TRAP:
-                    available_list = scan_tilemap(tilemap, block = {const.TRAP, const.HEALING_STATION, const.SHRINE})
-                    indices = rng.choice(len(available_list), size=count, replace=False)
+                    tilemap[rows,cols] = Const.WATER
+                case Const.TRAP:
+                    available_list = scan_tilemap(tilemap, block = {Const.TRAP, Const.HEALING_STATION, Const.SHRINE})
+                    indices = np_rng.choice(len(available_list), size=count, replace=False)
                     coords = available_list[indices]
                     rows = coords[:, 0]
                     cols = coords[:, 1]
-                    tilemap[rows,cols] = const.TRAP
-                case const.HEALING_STATION:
-                    available_list = scan_tilemap(tilemap, require = {const.FLOOR}, place_on = {const.WALL})
-                    indices = rng.choice(len(available_list), size=count, replace=False)
+                    tilemap[rows,cols] = Const.TRAP
+                case Const.HEALING_STATION:
+                    available_list = scan_tilemap(tilemap, require = {Const.FLOOR}, place_on = {Const.WALL})
+                    indices = np_rng.choice(len(available_list), size=count, replace=False)
                     coords = available_list[indices]
                     rows = coords[:, 0]
                     cols = coords[:, 1]
-                    tilemap[rows,cols] = const.HEALING_STATION
-                case const.CHEST:
-                    available_list = scan_tilemap(tilemap, bias = {const.LOOT_PILE, const.WALL})
-                    indices = rng.choice(len(available_list), size=count, replace=False)
+                    tilemap[rows,cols] = Const.HEALING_STATION
+                case Const.CHEST:
+                    available_list = scan_tilemap(tilemap, bias = {Const.LOOT_PILE, Const.WALL})
+                    indices = np_rng.choice(len(available_list), size=count, replace=False)
                     coords = available_list[indices]
                     rows = coords[:, 0]
                     cols = coords[:, 1]
-                    tilemap[rows,cols] = const.CHEST
-                case const.LOOT_PILE:
-                    available_list = scan_tilemap(tilemap, bias = {const.CHEST, const.LOOT_PILE}, block = {const.WATER, const.HOLE})
+                    tilemap[rows,cols] = Const.CHEST
+                case Const.LOOT_PILE:
+                    available_list = scan_tilemap(tilemap, bias = {Const.CHEST, Const.LOOT_PILE}, block = {Const.WATER, Const.HOLE})
                     for _ in range(count):
                         if len(available_list) > 0:
-                            i = rng.integers(0, len(available_list))
+                            i = np_rng.integers(0, len(available_list))
                             row, col = available_list[i]
-                            tilemap[row,col] = const.LOOT_PILE
+                            tilemap[row,col] = Const.LOOT_PILE
                             available_list = np.delete(available_list, i, axis=0).astype(np.int32)
-                case const.MONSTER_SPAWNER:
-                    available_list = scan_tilemap(tilemap, block = {const.BOSS_SPAWNER, const.HEALING_STATION, const.SHRINE})
-                    indices = rng.choice(len(available_list), size=count, replace=False)
+                case Const.MONSTER_SPAWNER:
+                    available_list = scan_tilemap(tilemap, block = {Const.BOSS_SPAWNER, Const.HEALING_STATION, Const.SHRINE})
+                    indices = np_rng.choice(len(available_list), size=count, replace=False)
                     coords = available_list[indices]
                     rows = coords[:, 0]
                     cols = coords[:, 1]
-                    tilemap[rows,cols] = const.MONSTER_SPAWNER
-                case const.BOSS_SPAWNER:
-                    available_list = scan_tilemap(tilemap, block = {const.MONSTER_SPAWNER, const.HEALING_STATION, const.SHRINE})
-                    indices = rng.choice(len(available_list), size=count, replace=False)
+                    tilemap[rows,cols] = Const.MONSTER_SPAWNER
+                case Const.BOSS_SPAWNER:
+                    available_list = scan_tilemap(tilemap, block = {Const.MONSTER_SPAWNER, Const.HEALING_STATION, Const.SHRINE})
+                    indices = np_rng.choice(len(available_list), size=count, replace=False)
                     coords = available_list[indices]
                     rows = coords[:, 0]
                     cols = coords[:, 1]
-                    tilemap[rows,cols] = const.BOSS_SPAWNER
-                case const.SHRINE:
-                    available_list = scan_tilemap(tilemap, require = {const.FLOOR}, place_on = {const.WALL})
-                    indices = rng.choice(len(available_list), size=count, replace=False)
+                    tilemap[rows,cols] = Const.BOSS_SPAWNER
+                case Const.SHRINE:
+                    available_list = scan_tilemap(tilemap, require = {Const.FLOOR}, place_on = {Const.WALL})
+                    indices = np_rng.choice(len(available_list), size=count, replace=False)
                     coords = available_list[indices]
                     rows = coords[:, 0]
                     cols = coords[:, 1]
-                    tilemap[rows,cols] = const.SHRINE
+                    tilemap[rows,cols] = Const.SHRINE
     return tilemap
 
 @timeit
-def room_map_generator(room_val: int, rng: np.random.Generator) -> tuple[array[uint8], shape, str]:
+def room_map_generator(room_val: int, np_rng: np.random.Generator, rand_rng: Random) -> tuple[array[uint8], Shape, Theme]:
     """
     Handler function to create Room map
 
@@ -383,8 +418,8 @@ def room_map_generator(room_val: int, rng: np.random.Generator) -> tuple[array[u
     ----------
     room_val : int
         value of room tile to generate
-    rng : np.random.Generator
-        numpy seeded rng
+    np_rng : np.random.Generator
+        numpy seeded np_rng
 
     Returns
     -------
@@ -395,15 +430,15 @@ def room_map_generator(room_val: int, rng: np.random.Generator) -> tuple[array[u
     theme : str
         theme of room
     """
-    tilemap = init_tilemap(const.ROOM_SIZE)
-    shape = get_shape(room_val, rng)
-    tilemap = build_room(tilemap, room_val, shape, rng)
-    theme = get_theme(shape, rng)
-    tilemap = populate_tilemap(tilemap, theme, rng)
+    tilemap = init_tilemap(Const.ROOM_SIZE)
+    shape = get_shape(room_val, rand_rng)
+    tilemap = build_room(tilemap, room_val, shape, np_rng)
+    theme = get_theme(shape, rand_rng)
+    tilemap = populate_tilemap(tilemap, theme, np_rng)
     return tilemap, shape, theme
 
 #region DEBUG
-def _on_click(event: Event, ax: Axes, tilemap: array[uint8], room_shape: shape, theme: str) -> None:
+def _on_click(event: Event, ax: Axes, tilemap: array[uint8], room_shape: Shape, room_theme: Theme) -> None:
     """
     Local handler for debug click events
 
@@ -427,14 +462,14 @@ def _on_click(event: Event, ax: Axes, tilemap: array[uint8], room_shape: shape, 
         col = int(event.xdata+0.5)
         row = int(event.ydata+0.5)
         if 0 <= row < tilemap.shape[0] and 0 <= col < tilemap.shape[1]:
-            print(f"\033cShape: {room_shape}\nTheme: {theme}\n"+
+            print(f"\033cShape: {room_shape}\nTheme: {room_theme}\n"+
                 f"Tile Clicked: {row}, {col}\n"+
-                f"Tile Value: {const(tilemap[row,col]).name}")
+                f"Tile Value: {Const(tilemap[row,col]).name}")
     else:
-        print(f"\033cShape: {room_shape}\nTheme: {theme}")
+        print(f"\033cShape: {room_shape}\nTheme: {room_theme}")
     return
 
-def _debug(tilemap: array[uint8], room_shape: shape, theme: str) -> None:
+def _debug(tilemap: array[uint8], room_shape: Shape, room_theme: Theme) -> None:
     """
     Local handler for visualization and debugging
 
@@ -476,7 +511,7 @@ def _debug(tilemap: array[uint8], room_shape: shape, theme: str) -> None:
     ax.set_yticks(np.arange(-0.5, rows, 1), minor=True)                                         #pyright: ignore[reportUnknownMemberType]
 
     fig.canvas.mpl_connect("button_press_event",lambda event:
-                           _on_click(event,ax,tilemap,room_shape,theme))
+                           _on_click(event,ax,tilemap,room_shape,room_theme))
 
     plt.show()                                                                                  #pyright: ignore[reportUnknownMemberType]
     return
@@ -516,9 +551,10 @@ def _time_test(count: int) -> None:
     total_time = 0.0
     for _ in range(count):
         np_rng = np.random.default_rng()
+        rand_rng = Random()
         room_val = np_rng.integers(17, 31, endpoint = True)
         start = clock()
-        _ = room_map_generator(room_val, np_rng)
+        _ = room_map_generator(room_val, np_rng, rand_rng)
         time = (clock()-start)*1e-6
         total_time += time
     print(f"Run count: {count}\nTotal Time: {total_time:.6f} ms\nAverage Time: {total_time/count:.6f} ms")
@@ -534,8 +570,9 @@ def _main() -> None:
     user_input = input("Input Seed: ")
     debug_seed = int(user_input) if user_input else None
     np_rng = np.random.default_rng(debug_seed)
+    rand_rng = Random(debug_seed)
 
-    tilemap, shape, theme = room_map_generator(debug_room_val, np_rng)
+    tilemap, shape, theme = room_map_generator(debug_room_val, np_rng, rand_rng)
 
     print(f"\033cShape: {shape}\nTheme: {theme}\n")
     _debug(tilemap, shape, theme)
