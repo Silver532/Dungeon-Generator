@@ -29,14 +29,15 @@ Dungeon Generator File
                 Example: A room with an exit in each direction would have a value of 31
 
 Room Generator File
+#Complete
     Inputs:
             Room Value (int)
 
     Process:
             Generate Room Tilemap that is populated with objects
-#Complete       Init Tilemap of given size
-#Complete       Use room value to generate shape and theme
-#Complete       Build room outline onto tilemap using shape
+                Init Tilemap of given size
+                Use room value to generate shape and theme
+                Build room outline onto tilemap using shape
                 Populate room tilemap using theme
 
     Output:
@@ -51,6 +52,7 @@ Room Generator File
                 LOOT_PILE = 7
                 MONSTER_SPAWNER = 8
                 BOSS_SPAWNER = 9
+                SHRINE = 10
 
 Room Stitcher File
     Inputs:

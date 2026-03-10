@@ -25,8 +25,8 @@ Iteration 4: Complete rewrite of the program. Dungeon generation entirely rework
              There is a major focus on optimization this iteration, as well as fixing
              the issues from previous iterations.
              Current Features: Dungeon Map Generation
-             Planned Features: Room Map Gen
-                               Tilemap Stitching
+                               Room Map Gen
+             Planned Features: Tilemap Stitching
                                Game Timer
                                Bosses
                                Enemies
