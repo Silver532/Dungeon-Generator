@@ -5,6 +5,7 @@
 import numpy as np
 from numpy import uint8
 from numpy.typing import NDArray as array
+from collections.abc import Collection
 
 def init_tilemap(height: int, width: int | None = None) -> array[uint8]:
     """
@@ -66,7 +67,7 @@ def get_direction_strings(value: int) -> tuple[str, ...]:
     directions = ('North','East','South','West')
     return tuple(direction for i, direction in enumerate(directions) if bits & (1 << i))
 
-def adj_map(tilemap: array[uint8], neighbor_map:array[uint8] | None = None, iso:bool=True, target:set[int] | None = None) -> array[uint8]:
+def adj_map(tilemap: array[uint8], neighbor_map:array[uint8] | None = None, iso:bool=True, target:Collection[int] | None = None) -> array[uint8]:
     """
     Calculates an orthogonal adjacency map for the given tilemap.
 

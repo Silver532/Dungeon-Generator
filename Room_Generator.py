@@ -11,6 +11,7 @@ from matplotlib import rcParams
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from matplotlib.axes import Axes
 from matplotlib.backend_bases import Event, MouseEvent
+from collections.abc import Collection
 from time import perf_counter_ns as clock
 from enum import IntEnum
 from random import Random
@@ -219,8 +220,9 @@ def get_theme(room_shape: Shape, rand_rng: Random) -> Theme:
     return theme
 
 @timeit
-def scan_tilemap(tilemap: array[uint8], require: set[int] | None = None, block: set[int] | None = None,
-                 bias: set[int] | None = None, place_on: set[int] | None = None) -> array[np.int32]:
+def scan_tilemap(tilemap: array[uint8], neighbor_map: array[uint8] | None = None, require: Collection[int] | None = None,
+                 block: Collection[int] | None = None, bias: Collection[int] | None = None,
+                 place_on: Collection[int] | None = None) -> array[np.int32]:
     """
     Universal tilemap scanner for Room_Generator
 
