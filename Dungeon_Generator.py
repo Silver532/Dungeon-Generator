@@ -17,6 +17,7 @@ from matplotlib.backend_bases import Event, MouseEvent
 from time import perf_counter_ns as clock
 from enum import IntEnum
 from random import Random
+from collections import deque
 
 from Generator_Helpers import init_tilemap, adj_map, get_direction_strings
 from Debug_Tools import timeit, arg_parser
@@ -312,47 +313,65 @@ def tilemap_trim(tilemap: array[uint8]) -> array[uint8]:
 @timeit
 def room_clear(tilemap: array[uint8]) -> array[uint8]:
     """
-    Removes unconnected room pairs from the tilemap.
+    Removes all disconnected room groups from the tilemap, keeping only
+    the largest connected group.
 
     Parameters
     ----------
     tilemap : array[uint8]
-        2D array with room connections.
+        2D array with room connections encoded in bits 0-3:
+
+            Bit 0 (value 1) : North exit
+            Bit 1 (value 2) : East exit
+            Bit 2 (value 4) : South exit
+            Bit 3 (value 8) : West exit
 
     Returns
     -------
     tilemap : array[uint8]
-        2D array with unconnected room pairs removed.
+        2D array with all tiles not belonging to the largest connected
+        group set to 0.
 
     Notes
     -----
-    A tile is considered to have one exit if its value is one of:
-        17 (bit 4 + bit 0) : Active tile with only an upward connection
-        18 (bit 4 + bit 1) : Active tile with only a rightward connection
-        20 (bit 4 + bit 2) : Active tile with only a downward connection
-        24 (bit 4 + bit 3) : Active tile with only a leftward connection
-
-    Removal process:
-        - Every tile in the tilemap is scanned.
-        - If a tile has exactly one exit, its single neighbor in that
-          direction is checked.
-        - If that neighbor also has exactly one exit, the two tiles form
-          an isolated pair with no further connections, and both are removed.
-        - Only isolated pairs (groups of exactly 2) are removed; longer
-          chains or larger groups are left intact.
-
-    Note: The original docstring contained a typo — 'unit8' has been
-    corrected to 'uint8' in this version.
+    - All active (non-zero) tile coordinates are collected into a set
+      at the start.
+    - Connected groups are discovered by iterative flood fill, starting
+      from an arbitrary unvisited tile each time.
+    - The flood fill only traverses genuine connections by checking
+      directional bits, rather than just spatial adjacency.
+    - A separate visited set is maintained to prevent tiles from being
+      added to the queue more than once.
+    - After all groups are found, the largest is kept and all other
+      active tiles are zeroed out in a single vectorised numpy operation.
     """
-    ONE_EXIT_TILES = {17, 18, 20, 24}
-    DIR_OFFSETS = {17:(-1,0), 18:(0,1), 20:(1,0), 24:(0,-1)}
-    for index, val in np.ndenumerate(tilemap):
-        if val in ONE_EXIT_TILES:
-            dy, dx = DIR_OFFSETS[int(val)]
-            ny, nx = index[0]+dy, index[1]+dx
-            if tilemap[ny, nx] in ONE_EXIT_TILES:
-                tilemap[index] = 0
-                tilemap[ny, nx] = 0
+    DIR_OFFSETS = ((0,-1,0),(1,0,1),(2,1,0),(3,0,-1))
+    h, w = tilemap.shape
+    active_tiles = {(r, c) for r, c in np.argwhere(tilemap != 0).tolist()}
+    groups: list[set[tuple[int, int]]] = []
+    unvisited = active_tiles.copy()
+    while unvisited:
+        start = next(iter(unvisited))
+        group: set[tuple[int, int]] = set()
+        visited: set[tuple[int, int]] = {start}
+        queue = deque([start])
+        while queue:
+            y, x = queue.popleft()
+            group.add((y, x))
+            val = tilemap[y, x]
+            for bit, dy, dx in DIR_OFFSETS:
+                if val & (1 << bit):
+                    ny, nx = y + dy, x + dx
+                    if 0 <= ny < h and 0 <= nx < w and (ny, nx) not in visited:
+                        visited.add((ny, nx))
+                        queue.append((ny, nx))
+        groups.append(group)
+        unvisited -= group
+    
+    if groups:
+        largest = max(groups, key=len)
+        to_remove = np.array(list(active_tiles - largest), dtype = np.int32).reshape(-1,2)
+        tilemap[to_remove[:, 0], to_remove[:, 1]] = 0
     return tilemap
 
 @timeit
