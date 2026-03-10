@@ -239,7 +239,7 @@ def build_room(tilemap: array[uint8], room_val: int, room_shape: Shape, np_rng: 
 
     Parameters
     ----------
-    tilemap : NDArray[uint8]
+    tilemap : array[uint8]
         Blank 2D array of size Const.ROOM_SIZE x Const.ROOM_SIZE.
     room_val : int
         Dungeon tile value. Bits 0-3 encode orthogonal exits:
@@ -256,7 +256,7 @@ def build_room(tilemap: array[uint8], room_val: int, room_shape: Shape, np_rng: 
 
     Returns
     -------
-    tilemap : NDArray[uint8]
+    tilemap : array[uint8]
         Tilemap with exits and room shape written in.
 
     Notes
@@ -364,9 +364,9 @@ def scan_tilemap(tilemap: array[uint8], neighbor_map: array[uint8] | None = None
 
     Parameters
     ----------
-    tilemap : NDArray[uint8]
+    tilemap : array[uint8]
         Tilemap to scan.
-    neighbor_map : NDArray[uint8] | None, optional
+    neighbor_map : array[uint8] | None, optional
         Pre-allocated buffer for adjacency calculations. If not provided,
         a new buffer is allocated. Pass a pre-allocated buffer when calling
         scan_tilemap multiple times to avoid repeated allocation overhead.
@@ -387,7 +387,7 @@ def scan_tilemap(tilemap: array[uint8], neighbor_map: array[uint8] | None = None
 
     Returns
     -------
-    available_list : NDArray[np.int32]
+    available_list : array[np.int32]
         2D array of [row, col] indices representing valid placement targets.
         Biased tiles appear multiple times to reflect their higher weight.
     """
@@ -418,11 +418,11 @@ def place(tilemap: array[uint8], feature: Const, available_list: array[np.int32]
 
     Parameters
     ----------
-    tilemap : NDArray[uint8]
+    tilemap : array[uint8]
         Tilemap to place the feature onto.
     feature : Const
         Tile value to write at each selected position.
-    available_list : NDArray[np.int32]
+    available_list : array[np.int32]
         2D array of [row, col] indices representing valid placement targets,
         as returned by scan_tilemap.
     count : int
@@ -456,7 +456,7 @@ def populate_tilemap(tilemap: array[uint8], theme: Theme, np_rng: np.random.Gene
 
     Parameters
     ----------
-    tilemap : NDArray[uint8]
+    tilemap : array[uint8]
         Tilemap to populate, with room shape already built.
     theme : Theme
         Theme of the room, used to look up feature counts in
@@ -467,7 +467,7 @@ def populate_tilemap(tilemap: array[uint8], theme: Theme, np_rng: np.random.Gene
 
     Returns
     -------
-    tilemap : NDArray[uint8]
+    tilemap : array[uint8]
         Tilemap with features placed.
 
     Notes
@@ -516,7 +516,7 @@ def room_map_generator(room_val: int, np_rng: np.random.Generator, rand_rng: Ran
 
     Returns
     -------
-    tilemap : NDArray[uint8]
+    tilemap : array[uint8]
         Final populated room tilemap.
     shape : Shape
         Shape of the generated room.
@@ -550,7 +550,7 @@ def _on_click(event: Event, ax: Axes, tilemap: array[uint8], room_shape: Shape, 
         Matplotlib click event.
     ax : Axes
         Matplotlib graph axes.
-    tilemap : NDArray[uint8]
+    tilemap : array[uint8]
         Tilemap of the room.
     room_shape : Shape
         Shape of the generated room.
@@ -589,7 +589,7 @@ def _debug(tilemap: array[uint8], room_shape: Shape, room_theme: Theme) -> None:
 
     Parameters
     ----------
-    tilemap : NDArray[uint8]
+    tilemap : array[uint8]
         Room tilemap to display.
     room_shape : Shape
         Shape of the generated room.
