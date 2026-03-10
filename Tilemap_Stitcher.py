@@ -46,7 +46,7 @@ def _debug(tilemap: array[uint8]) -> None:
     rows, cols = tilemap.shape
     rcParams["toolbar"]="None"
     
-    fig, ax = plt.subplots(figsize = (5,5), dpi = 120)                                          #pyright: ignore[reportUnknownMemberType]
+    fig, ax = plt.subplots(figsize = (7,7), dpi = 120)                                          #pyright: ignore[reportUnknownMemberType]
     ax.imshow(tilemap,cmap=cmap,norm=norm,interpolation="nearest")                              #pyright: ignore[reportUnknownMemberType]
     ax.grid(which="minor", color="black", linewidth=0.5)                                        #pyright: ignore[reportUnknownMemberType]
     ax.tick_params(which="both", bottom=False, left=False, labelbottom=False, labelleft=False)  #pyright: ignore[reportUnknownMemberType]
