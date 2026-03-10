@@ -1,5 +1,8 @@
 """
 **Room Map Generator**
+
+In File Entry Point: _main() or _time_test()
+Import Entry Point: room_map_generator()
 """
 
 import numpy as np
@@ -20,6 +23,10 @@ from Generator_Helpers import init_tilemap, adj_map
 from Debug_Tools import timeit, arg_parser
 
 class InvalidRoom(Exception):
+    """
+    Invalid Room Error for manual calls of functions
+    Program will never throw this error on it's own
+    """
     pass
 
 class Const(IntEnum):
@@ -42,6 +49,9 @@ class Const(IntEnum):
     SHRINE = 10
 
 class Shape(IntEnum):
+    """
+    Shape Constants for Rooms
+    """
     DEAD_END = 1
     BOSS_ROOM = 2
     SMALL_ROOM = 3
@@ -51,6 +61,9 @@ class Shape(IntEnum):
     HALF = 7
 
 class Theme(IntEnum):
+    """
+    Theme Constants for Rooms
+    """
     EMPTY = 0
     DE_TRAPPED = 1
     DE_TREASURE = 2
@@ -178,20 +191,39 @@ _SCAN_PARAMS: dict[Const, dict[str, set[Const]]] = {
 @timeit
 def get_shape(room_val: int, rand_rng: Random) -> Shape:
     """
-    Randomly decides room shape dependent on room value
+    Randomly selects a room shape based on the number of exits encoded
+    in the room's tile value.
 
     Parameters
     ----------
     room_val : int
-        dungeon room value
-    np_rng : np.random.Generator
-        seeded random
+        Dungeon tile value. Must be in the range 0b10000 to 0b11111
+        (bit 4 set, bits 0-3 representing exits).
+    rand_rng : Random
+        Python random generator used for weighted shape selection.
 
     Returns
     -------
-    room_shape : shape
-        shape of room
-    
+    room_shape : Shape
+        Randomly selected shape for the room.
+
+    Raises
+    ------
+    InvalidRoom
+        If room_val is outside the valid range, or if the number of
+        exits encoded in bits 0-3 is not supported.
+
+    Notes
+    -----
+    - Bits 0-3 of room_val encode the orthogonal exits:
+
+        Bit 0 (value 1) : North
+        Bit 1 (value 2) : East
+        Bit 2 (value 4) : South
+        Bit 3 (value 8) : West
+
+    - The exit count is used to look up a weighted shape list in
+      _SHAPE_TABLES, from which a shape is randomly selected.
     """
     if room_val < 0b10000 or room_val > 0b11111: raise InvalidRoom(f"The get_shape function does not support room_val: {room_val}.")
     n = (room_val & 0b01111).bit_count()
@@ -203,23 +235,48 @@ def get_shape(room_val: int, rand_rng: Random) -> Shape:
 @timeit
 def build_room(tilemap: array[uint8], room_val: int, room_shape: Shape, np_rng: np.random.Generator) -> array[uint8]:
     """
-    Builds room exits and shape onto tilemap
+    Builds room exits and central shape onto a blank tilemap in two passes.
 
     Parameters
     ----------
     tilemap : NDArray[uint8]
-        tilemap to build onto
+        Blank 2D array of size Const.ROOM_SIZE x Const.ROOM_SIZE.
     room_val : int
-        dungeon room value
-    room_shape : shape
-        shape of room
+        Dungeon tile value. Bits 0-3 encode orthogonal exits:
+
+            Bit 0 (value 1) : North
+            Bit 1 (value 2) : East
+            Bit 2 (value 4) : South
+            Bit 3 (value 8) : West
+
+    room_shape : Shape
+        Shape of the room, determining how the central area is filled.
     np_rng : np.random.Generator
-        seeded random
+        NumPy random generator, used for randomising Dead End size.
 
     Returns
     -------
     tilemap : NDArray[uint8]
-        tilemap with room outline built
+        Tilemap with exits and room shape written in.
+
+    Notes
+    -----
+    Pass 1 - Exits:
+        Each active bit in room_val carves a 3-tile wide corridor from
+        the edge of the tilemap to the midpoint, ensuring rooms align
+        correctly when placed adjacent to each other in the dungeon.
+
+    Pass 2 - Shape:
+        DEAD_END   : Random square centered on midpoint, 2-5 tiles out.
+                     Note: exits are carved first, then the center is
+                     reset to Const.WALL, creating a dead end pocket.
+        BOSS_ROOM  : Fills almost the entire tilemap wall to wall.
+        SMALL_ROOM : Fixed 7x7 square centered on midpoint.
+        CONNECTION : Minimal 3x3 square, just enough to join corridors.
+        LARGE_ROOM : Fixed 13x13 square centered on midpoint.
+        CORNER     : Fills the quadrant shared by the two active exits.
+                     Falls back to a small room for unexpected combinations.
+        HALF       : Fills the half of the room opposite the missing exit.
     """
     half = Const.HALF
     if 0b00001 & room_val:
@@ -272,18 +329,25 @@ def build_room(tilemap: array[uint8], room_val: int, room_shape: Shape, np_rng: 
 @timeit
 def get_theme(room_shape: Shape, rand_rng: Random) -> Theme:
     """
-    Randomly decides room theme dependent on room shape
+    Randomly selects a room theme based on the room's shape.
 
     Parameters
     ----------
-    shape : str
-        shape of room
-    np_rng : np.random.Generator
+    room_shape : Shape
+        Shape of the room, used to look up the weighted theme list
+        in _THEME_TABLES.
+    rand_rng : Random
+        Python random generator used for weighted theme selection.
 
     Returns
     -------
-    theme : str
-        theme of room
+    theme : Theme
+        Randomly selected theme for the room.
+
+    Raises
+    ------
+    InvalidRoom
+        If room_shape is not present in _THEME_TABLES.
     """
     if room_shape not in _THEME_TABLES:
         raise InvalidRoom(f"The get_theme function does not support rooms with {room_shape} shape")
@@ -296,25 +360,36 @@ def scan_tilemap(tilemap: array[uint8], neighbor_map: array[uint8] | None = None
                  block: Collection[int] | None = None, bias: Collection[int] | None = None,
                  place_on: Collection[int] | None = None) -> array[np.int32]:
     """
-    Universal tilemap scanner for Room_Generator
+    Scans a tilemap and returns a list of valid tile indices to place on.
 
     Parameters
     ----------
     tilemap : NDArray[uint8]
-        tilemap to scan
-    require : set[int] | None = None
-        if provided, active checking tiles are limited to values in the set
-    block : set[int] | None = None
-        if provided, values in this set are blocked from being active checking tiles
-    bias : set[int] | None = None
-        if provided, values in this set are counted 4 extra times in the available_list
-    place_on : set[int] | None = None
-        if provided, active placing tiles are limited to values in the set
+        Tilemap to scan.
+    neighbor_map : NDArray[uint8] | None, optional
+        Pre-allocated buffer for adjacency calculations. If not provided,
+        a new buffer is allocated. Pass a pre-allocated buffer when calling
+        scan_tilemap multiple times to avoid repeated allocation overhead.
+    require : Collection[int] | None, optional
+        If provided, only tiles orthogonally adjacent to a tile in this
+        collection are considered valid placement targets.
+    block : Collection[int] | None, optional
+        If provided, tiles orthogonally adjacent to a tile in this
+        collection are excluded from valid placement targets.
+    bias : Collection[int] | None, optional
+        If provided, tiles orthogonally adjacent to a tile in this
+        collection are repeated 4 extra times in the returned list,
+        increasing their probability of selection.
+    place_on : Collection[int] | None, optional
+        If provided, only tiles whose values are in this collection are
+        considered as placement targets. Defaults to Const.FLOOR if not
+        provided, using a fast equality check instead of np.isin.
 
     Returns
     -------
     available_list : NDArray[np.int32]
-        numpy list of valid indeces to place on
+        2D array of [row, col] indices representing valid placement targets.
+        Biased tiles appear multiple times to reflect their higher weight.
     """
     if place_on is None: available_grid = tilemap == Const.FLOOR
     else: available_grid = np.isin(tilemap,tuple(place_on))
@@ -338,31 +413,76 @@ def scan_tilemap(tilemap: array[uint8], neighbor_map: array[uint8] | None = None
 
 @timeit
 def place(tilemap: array[uint8], feature: Const, available_list: array[np.int32], count: int, np_rng: np.random.Generator) -> None:
-        count = min(count, len(available_list))
-        if not count: return
-        indices = np_rng.choice(len(available_list), size=count, replace=False)
-        coords = available_list[indices]
-        tilemap[coords[:, 0], coords[:, 1]] = feature
-        return
-
-@timeit
-def populate_tilemap(tilemap: array[uint8], theme: Theme, np_rng: np.random.Generator) -> array[uint8]:
     """
-    Populates tilemap with features
+    Places a feature onto randomly selected tiles in the tilemap.
 
     Parameters
     ----------
     tilemap : NDArray[uint8]
-        tilemap to populate
-    theme : str
-        theme of room
+        Tilemap to place the feature onto.
+    feature : Const
+        Tile value to write at each selected position.
+    available_list : NDArray[np.int32]
+        2D array of [row, col] indices representing valid placement targets,
+        as returned by scan_tilemap.
+    count : int
+        Number of tiles to place. Clamped to len(available_list) if the
+        available list is smaller than the requested count.
     np_rng : np.random.Generator
-        seeded random
+        NumPy random generator used for index selection.
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    - Placement is performed without replacement, so no tile will be
+    selected more than once per call.
+    - If available_list is empty, the function returns immediately
+    without placing anything.
+    """
+    count = min(count, len(available_list))
+    if not count: return
+    indices = np_rng.choice(len(available_list), size=count, replace=False)
+    coords = available_list[indices]
+    tilemap[coords[:, 0], coords[:, 1]] = feature
+    return
+
+@timeit
+def populate_tilemap(tilemap: array[uint8], theme: Theme, np_rng: np.random.Generator) -> array[uint8]:
+    """
+    Populates a room tilemap with features based on the given theme.
+
+    Parameters
+    ----------
+    tilemap : NDArray[uint8]
+        Tilemap to populate, with room shape already built.
+    theme : Theme
+        Theme of the room, used to look up feature counts in
+        _POPULATION_TABLES.
+    np_rng : np.random.Generator
+        NumPy random generator used for feature count resolution
+        and placement selection.
 
     Returns
     -------
     tilemap : NDArray[uint8]
-        populated tilemap
+        Tilemap with features placed.
+
+    Notes
+    -----
+    - Feature counts are resolved from _POPULATION_TABLES at the start
+      of each call. Fixed counts are used directly, while tuple entries
+      are resolved to a random integer within the given range.
+    - Features are placed in the order defined by _FEATURE_ORDER, ensuring
+      that earlier features are present when later features scan for
+      adjacency requirements or blocks.
+    - A single neighbor_map buffer is pre-allocated and shared across all
+      scan_tilemap calls to avoid repeated allocation overhead.
+    - Placement parameters for each feature are looked up from _SCAN_PARAMS.
+    - If a theme does not include a feature, or the resolved count is 0,
+      that feature is skipped entirely.
     """
     pop_vals: dict[Const, int] = {}
     for feature, count in _POPULATION_TABLES[theme].items():
@@ -382,23 +502,35 @@ def populate_tilemap(tilemap: array[uint8], theme: Theme, np_rng: np.random.Gene
 @timeit
 def room_map_generator(room_val: int, np_rng: np.random.Generator, rand_rng: Random) -> tuple[array[uint8], Shape, Theme]:
     """
-    Handler function to create Room map
+    Generates a complete room tilemap for a given dungeon tile value.
 
     Parameters
     ----------
     room_val : int
-        value of room tile to generate
+        Dungeon tile value representing the room to generate. Must be
+        in the range 0b10000 to 0b11111.
     np_rng : np.random.Generator
-        numpy seeded np_rng
+        NumPy random generator used for shape building and feature placement.
+    rand_rng : Random
+        Python random generator used for shape and theme selection.
 
     Returns
     -------
     tilemap : NDArray[uint8]
-        final room tilemap
-    shape : str
-        shape of room
-    theme : str
-        theme of room
+        Final populated room tilemap.
+    shape : Shape
+        Shape of the generated room.
+    theme : Theme
+        Theme of the generated room.
+
+    Notes
+    -----
+    Generation pipeline:
+        1. init_tilemap()      : Allocates a blank ROOM_SIZE x ROOM_SIZE array.
+        2. get_shape()         : Selects a weighted random shape based on exit count.
+        3. build_room()        : Carves exits and fills the central room area.
+        4. get_theme()         : Selects a weighted random theme based on shape.
+        5. populate_tilemap()  : Places features according to the selected theme.
     """
     tilemap = init_tilemap(Const.ROOM_SIZE)
     shape = get_shape(room_val, rand_rng)
@@ -410,20 +542,34 @@ def room_map_generator(room_val: int, np_rng: np.random.Generator, rand_rng: Ran
 #region DEBUG
 def _on_click(event: Event, ax: Axes, tilemap: array[uint8], room_shape: Shape, room_theme: Theme) -> None:
     """
-    Local handler for debug click events
+    Local handler for debug click events on the room display.
 
     Parameters
     ----------
     event : Event
-        matplotlib click event
+        Matplotlib click event.
     ax : Axes
-        matplotlib graph axes
+        Matplotlib graph axes.
     tilemap : NDArray[uint8]
-        tilemap of the room
-    shape : str
-        shape of room
-    theme : str
-        theme of room
+        Tilemap of the room.
+    room_shape : Shape
+        Shape of the generated room.
+    room_theme : Theme
+        Theme of the generated room.
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    - Only responds to MouseEvent types; all other event types are ignored.
+    - If the click lands inside the axes on a valid tile:
+        - The clicked pixel coordinates are rounded to the nearest tile index.
+        - The tile's row/column position, raw Const name, shape, and theme
+          are printed to the console.
+    - If the click lands outside the axes, the room shape and theme are
+      printed instead.
     """
     if not isinstance(event, MouseEvent): return
     if event.inaxes is ax and event.xdata is not None and event.ydata is not None:
@@ -439,26 +585,54 @@ def _on_click(event: Event, ax: Axes, tilemap: array[uint8], room_shape: Shape, 
 
 def _debug(tilemap: array[uint8], room_shape: Shape, room_theme: Theme) -> None:
     """
-    Local handler for visualization and debugging
+    Renders an interactive debug visualization of the room tilemap.
 
     Parameters
     ----------
     tilemap : NDArray[uint8]
-        room tilemap
-    shape : str
-        shape of room
-    theme : str
-        theme of room
+        Room tilemap to display.
+    room_shape : Shape
+        Shape of the generated room.
+    room_theme : Theme
+        Theme of the generated room.
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    Colour mapping:
+        Each tile value maps directly to a colour via a fixed 11-colour palette,
+        corresponding to Const values 0-10:
+            0  (WALL)             : Black
+            1  (FLOOR)            : White
+            2  (HOLE)             : Gray
+            3  (WATER)            : Blue
+            4  (TRAP)             : Red
+            5  (HEALING_STATION)  : Green
+            6  (CHEST)            : Brown
+            7  (LOOT_PILE)        : Yellow
+            8  (MONSTER_SPAWNER)  : Orange
+            9  (BOSS_SPAWNER)     : Red   (shared with TRAP)
+            10 (SHRINE)           : Green (shared with HEALING_STATION)
+
+    Interactivity:
+        - Clicking on a tile prints its position, name, shape, and theme.
+        - Clicking outside the axes prints the room shape and theme.
+
+    Type checking:
+        - Several matplotlib calls are marked with pyright: ignore
+          [reportUnknownMemberType] due to false positives from incomplete
+          matplotlib type stubs. The argument and return types are otherwise
+          fully resolved and type-safe.
     """
-    colours = ["black", "white", "gray", "blue", "red", "green", "brown", "yellow", "orange"]
+    colours = ["black", "white", "gray", "blue", "red", "green", "brown", "yellow", "orange", "red", "green"]
     cmap = ListedColormap(colours)
     norm = BoundaryNorm(range(len(colours)+1), cmap.N)
     rows, cols = tilemap.shape
     rcParams["toolbar"]="None"
-    # False positive from Matplotlib type stubs.
-    # Many pyplot/Axes methods define **kwargs as Unknown, which triggers
-    # reportUnknownMemberType under strict mode.
-    # Argument and return types are otherwise fully resolved and type-safe.
+    
     fig, ax = plt.subplots(figsize = (5,5), dpi = 120)                                          #pyright: ignore[reportUnknownMemberType]
     ax.imshow(tilemap,cmap=cmap,norm=norm,interpolation="nearest")                              #pyright: ignore[reportUnknownMemberType]
     ax.grid(which="minor", color="black", linewidth=0.5)                                        #pyright: ignore[reportUnknownMemberType]
@@ -477,7 +651,7 @@ def _debug(tilemap: array[uint8], room_shape: Shape, room_theme: Theme) -> None:
 
 def _time_test(count: int) -> None:
     """
-    Runs the dungeon generator a specified number of times and reports
+    Runs the room map generator a specified number of times and reports
     timing statistics.
 
     Parameters
@@ -492,11 +666,12 @@ def _time_test(count: int) -> None:
 
     Notes
     -----
-    - The console is cleared at the start of each run using the '\\033c'
-      escape code.
+    - The console is cleared at the start using the '\\033c' escape code.
     - Fresh random generators are created at the start of each run to
       ensure every run is fully independent and representative of a real
       cold-start generation.
+    - A random room_val in the range 17-31 is generated for each run,
+      covering all valid single-active-tile room values.
     - Each run is timed individually using clock(), with the raw result
       converted from nanoseconds to milliseconds via multiplication by 1e-6.
     - After all runs complete, the following statistics are printed:
@@ -521,7 +696,28 @@ def _time_test(count: int) -> None:
 
 def _main() -> None:
     """
-    Debug entry point to program
+    Debug entry point to the program. Prompts for a room value and optional
+    seed, generates a room, and launches the debug visualizer.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    - The console is cleared at the start using the '\\033c' escape code.
+    - The user is prompted for a room value and an optional integer seed:
+        - If a seed is provided, both random generators are initialized
+          with it, making the run fully reproducible.
+        - If no seed is entered, both generators are initialized without
+          a seed, producing a random result each run.
+    - The room shape and theme names are printed to the console before
+      the debug visualizer is launched.
+    - This is an internal entry point.
     """
     print("\033c", end="")
 
