@@ -418,7 +418,7 @@ def scan_tilemap(
             adj_map(tilemap, neighbor_map, target = block, iso = False) == 0
         )
 
-    available_list = np.argwhere(available_grid)
+    available_list = np.argwhere(available_grid).astype(np.int32)
     if bias is not None:
         bias_grid = available_grid & (
             adj_map(tilemap, neighbor_map, target = bias, iso = False) != 0
@@ -517,9 +517,9 @@ def populate_tilemap(
     pop_vals: dict[Const, int] = {}
     for feature, count in _POPULATION_TABLES[theme].items():
         if isinstance(count, tuple):
-            pop_vals[feature] = np_rng.integers(
+            pop_vals[feature] = int(np_rng.integers(
                 count[0], count[1], endpoint=True
-            )
+            ))
         else:
             pop_vals[feature] = count
     neighbor_map = np.empty_like(tilemap, dtype = uint8)
@@ -632,7 +632,7 @@ def _time_test(count: int) -> None:
     for _ in range(count):
         np_rng = np.random.default_rng()
         rand_rng = Random()
-        room_val = np_rng.integers(17, 31, endpoint = True)
+        room_val = int(np_rng.integers(17, 31, endpoint = True))
         start = clock()
         _ = room_map_generator(room_val, np_rng, rand_rng)
         time = (clock()-start)*1e-6

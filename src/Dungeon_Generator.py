@@ -74,7 +74,7 @@ def room_fill(
         room_width = 16 - room_height
 
         x_start = np_rng.integers(1, Const.MID)
-        x_end = min(x_start + room_width + 5, Const.DUNGEON_SIZE - 2)
+        x_end = int(np.minimum(x_start + room_width + 5, Const.DUNGEON_SIZE - 2))
 
         tilemap[y_start:y_end, x_start:x_end] = Const.TEMP
     return tilemap
@@ -251,7 +251,7 @@ def room_connector(
     """
     connection_map = get_possible_connections(tilemap)
     H, W = tilemap.shape
-    active_count = np.count_nonzero(tilemap != 0)
+    active_count = int(np.count_nonzero(tilemap != 0))
     connection_counts = room_random(np_rng, active_count)
     MASK_TO_INDICES = tuple(
         tuple(i for i in range(4) if mask & (1 << i))
@@ -636,7 +636,7 @@ def _main() -> None:
 
     tilemap = dungeon_map_generator(np_rng, rand_rng)
 
-    room_count = np.count_nonzero(tilemap)
+    room_count = int(np.count_nonzero(tilemap))
     print(f"Dungeon contains {room_count} rooms")
     _debug(tilemap, room_count)
     return
