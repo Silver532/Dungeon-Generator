@@ -34,7 +34,10 @@ class Const(IntEnum):
     ROOM = 16
 
 @timeit
-def room_fill(tilemap: array[uint8], np_rng: np.random.Generator) -> array[uint8]:
+def room_fill(
+        tilemap: array[uint8],
+        np_rng: np.random.Generator
+) -> array[uint8]:
     """
     Places random room regions inside an array\n
     All regions will cross the midpoint
@@ -54,13 +57,14 @@ def room_fill(tilemap: array[uint8], np_rng: np.random.Generator) -> array[uint8
     Notes
     -----
     For each room:
-        - Vertical span is selected so that each room crosses the midpoint,
-          with y_start above and y_end below it.
-        - Width is inversely proportional to height, with a maximum span of
-          16 tiles, keeping taller rooms narrower.
-        - Horizontal placement is chosen randomly, with added padding and
-          clamped to the interior boundary to avoid edge overflow.
-        - The resulting rectangular region is filled with a temporary tile value.
+        - Vertical span is selected so that each room crosses the
+          midpoint, with y_start above and y_end below it.
+        - Width is inversely proportional to height, with a maximum
+          span of 16 tiles, keeping taller rooms narrower.
+        - Horizontal placement is chosen randomly, with added padding
+          and clamped to the interior boundary to avoid edge overflow.
+        - The resulting rectangular region is filled
+          with a temporary tile value.
     """
     for _ in range(Const.BOX_COUNT):
         y_start = np_rng.integers(1, Const.MID)
@@ -76,7 +80,10 @@ def room_fill(tilemap: array[uint8], np_rng: np.random.Generator) -> array[uint8
     return tilemap
 
 @timeit
-def room_eroder(tilemap: array[uint8], np_rng: np.random.Generator) -> array[uint8]:
+def room_eroder(
+        tilemap: array[uint8],
+        np_rng: np.random.Generator
+) -> array[uint8]:
     """
     Performs edge erosion on existing room regions inside tilemap
     Removes fully isolated tiles
@@ -96,13 +103,17 @@ def room_eroder(tilemap: array[uint8], np_rng: np.random.Generator) -> array[uin
     Notes
     -----
     Erosion process:
-        - An empty neighbor_map is initialized to track adjacency counts for each tile.
-        - On each erosion pass, adj_map() scans the tilemap and populates neighbor_map
-          with the number of filled neighbors each tile has.
-        - Tiles with exactly 2 neighbors (walls) are removed with 50% probability.
-        - Tiles with exactly 3 neighbors (corners) are removed with 10% probability.
-        - After all passes, a final scan removes any remaining fully isolated tiles
-          (tiles with 0 neighbors).
+        - An empty neighbor_map is initialized to track adjacency
+          counts for each tile.
+        - On each erosion pass, adj_map() scans the tilemap and 
+          populates neighbor_map with the number of filled
+          neighbors each tile has.
+        - Tiles with exactly 2 neighbors (walls) are removed with 
+          50% probability.
+        - Tiles with exactly 3 neighbors (corners) are removed with
+          10% probability.
+        - After all passes, a final scan removes any remaining fully
+          isolated tiles (tiles with 0 neighbors).
     """
     neighbor_map = np.empty_like(tilemap, dtype=uint8)
 
@@ -110,10 +121,14 @@ def room_eroder(tilemap: array[uint8], np_rng: np.random.Generator) -> array[uin
         adj_map(tilemap, neighbor_map)
 
         mask_2 = (neighbor_map == 2)
-        tilemap[mask_2 & (np_rng.random(mask_2.shape, dtype = np.float32) < 0.5)] = Const.NO_ROOM
+        tilemap[
+            mask_2 & (np_rng.random(mask_2.shape, dtype = np.float32) < 0.5)
+        ] = Const.NO_ROOM
 
         mask_3 = (neighbor_map == 3)
-        tilemap[mask_3 & (np_rng.random(mask_3.shape, dtype = np.float32) < 0.1)] = Const.NO_ROOM
+        tilemap[
+            mask_3 & (np_rng.random(mask_3.shape, dtype = np.float32) < 0.1)
+        ] = Const.NO_ROOM
 
     adj_map(tilemap, neighbor_map)
     tilemap[neighbor_map == 0] = Const.NO_ROOM
@@ -151,7 +166,7 @@ def get_possible_connections(tilemap: array[uint8]) -> array[uint8]:
     | (t[1:-1, 2:] << 1)
     | (t[2:, 1:-1] << 2)
     | (t[1:-1, :-2] << 3)
-)
+    )
     connections *= t[1:-1, 1:-1]
     return connections
 
@@ -191,7 +206,11 @@ def room_random(np_rng: np.random.Generator, count: int) -> array[uint8]:
     return randoms
 
 @timeit
-def room_connector(tilemap: array[uint8], np_rng: np.random.Generator, rand_rng: Random) -> array[uint8]:
+def room_connector(
+        tilemap: array[uint8],
+        np_rng: np.random.Generator,
+        rand_rng: Random
+) -> array[uint8]:
     """
     Connects adjacent active rooms across the given tilemap by writing
     directional connection bits into each active tile.
@@ -234,7 +253,10 @@ def room_connector(tilemap: array[uint8], np_rng: np.random.Generator, rand_rng:
     H, W = tilemap.shape
     active_count = np.count_nonzero(tilemap != 0)
     connection_counts = room_random(np_rng, active_count)
-    MASK_TO_INDICES = tuple(tuple(i for i in range(4) if mask & (1 << i)) for mask in range(16))
+    MASK_TO_INDICES = tuple(
+        tuple(i for i in range(4) if mask & (1 << i))
+        for mask in range(16)
+    )
     DIR_BITS = (1,2,4,8)
     DY_DX = ((-1,0),(0,1),(1,0),(0,-1))
     OPP_BITS = (4,8,1,2)
@@ -358,7 +380,8 @@ def room_clear(tilemap: array[uint8]) -> array[uint8]:
             for bit, dy, dx in DIR_OFFSETS:
                 if val & (1 << bit):
                     ny, nx = y + dy, x + dx
-                    if 0 <= ny < h and 0 <= nx < w and (ny, nx) not in visited:
+                    in_bounds: bool = 0 <= ny < h and 0 <= nx < w
+                    if in_bounds and (ny, nx) not in visited:
                         visited.add((ny, nx))
                         queue.append((ny, nx))
         groups.append(group)
@@ -366,13 +389,19 @@ def room_clear(tilemap: array[uint8]) -> array[uint8]:
     
     if groups:
         largest = max(groups, key=len)
-        if active_tiles - largest:
-            to_remove = np.array(list(active_tiles - largest), dtype=np.int32).reshape(-1, 2)
+        remainder = active_tiles - largest
+        if remainder:
+            to_remove = np.array(
+                list(remainder), dtype=np.int32
+            ).reshape(-1, 2)
             tilemap[to_remove[:, 0], to_remove[:, 1]] = 0
     return tilemap
 
 @timeit
-def dungeon_map_generator(np_rng: np.random.Generator, rand_rng: Random) -> array[uint8]:
+def dungeon_map_generator(
+        np_rng: np.random.Generator,
+        rand_rng: Random
+) -> array[uint8]:
     """
     Generates a complete dungeon tilemap using all intermediary functions.
 
@@ -439,7 +468,11 @@ def _make_exit_map(tilemap: array[uint8]) -> array[uint8]:
     - The bits are summed across the bit axis, producing a count of how many
       bits are set (i.e. how many exits the tile has).
     """
-    debug_map = np.unpackbits(tilemap[:, :, np.newaxis], axis=-1).sum(axis=-1).astype(np.uint8)
+    debug_map = (
+        np.unpackbits(tilemap[:, :, np.newaxis], axis=-1)
+        .sum(axis=-1)
+        .astype(np.uint8)
+    )
     return debug_map
 
 def _get_direction_strings(value: int) -> tuple[str, str]:
@@ -470,7 +503,11 @@ def _get_direction_strings(value: int) -> tuple[str, str]:
     """
     bits = value & 0b01111
     directions = ('North','East','South','West')
-    dir_string = ", ".join(direction for i, direction in enumerate(directions) if bits & (1 << i))
+    dir_string = ", ".join(
+        direction
+        for i, direction in enumerate(directions)
+        if bits & (1 << i)
+    )
     return ("Exits", dir_string)
 
 def _debug(tilemap: array[uint8], room_count: int) -> None:
@@ -511,7 +548,12 @@ def _debug(tilemap: array[uint8], room_count: int) -> None:
     debug_map = _make_exit_map(tilemap)
     colours = ["white", "black", "green", "blue", "red", "yellow"]
     info = {"Dungeon Rooms": room_count}
-    debug_render(debug_map, colours, info, grid_colour="white", tile_formatter = _get_direction_strings, click_map = tilemap)
+    debug_render(
+        debug_map, colours, info,
+        grid_colour="white",
+        tile_formatter = _get_direction_strings,
+        click_map = tilemap
+    )
 
 def _time_test(count: int) -> None:
     """
@@ -553,7 +595,9 @@ def _time_test(count: int) -> None:
         _ = dungeon_map_generator(np_rng, rand_rng)
         time = (clock()-start)*1e-6
         total_time += time
-    print(f"Run count: {count}\nTotal Time: {total_time:.6f} ms\nAverage Time: {total_time/count:.6f} ms")
+    print(f"Run count: {count}\n"
+          f"Total Time: {total_time:.6f} ms\n"
+          f"Average Time: {total_time/count:.6f} ms")
     return
 
 def _main() -> None:
@@ -589,8 +633,7 @@ def _main() -> None:
     debug_seed = int(user_input) if user_input else None
     np_rng = np.random.default_rng(debug_seed)
     rand_rng = Random(debug_seed)
-  
-    
+
     tilemap = dungeon_map_generator(np_rng, rand_rng)
 
     room_count = np.count_nonzero(tilemap)

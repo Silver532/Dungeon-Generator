@@ -97,7 +97,7 @@ class Theme(IntEnum):
 
 _SHAPE_TABLES: dict[int, tuple[list[Shape], list[float]]] = {
     1: ([Shape.DEAD_END, Shape.BOSS_ROOM, Shape.SMALL_ROOM],                 [0.35, 0.15, 0.50]),
-    2: ([Shape.CONNECTION, Shape.SMALL_ROOM, Shape.LARGE_ROOM, Shape.CORNER],[0.15, 0.25, 0.30, 0.30]),
+    2: ([Shape.CONNECTION, Shape.SMALL_ROOM, Shape.LARGE_ROOM, Shape.CORNER],[0.15, 0.35, 0.20, 0.30]),
     3: ([Shape.CONNECTION, Shape.SMALL_ROOM, Shape.LARGE_ROOM, Shape.HALF],  [0.20, 0.20, 0.30, 0.30]),
     4: ([Shape.CONNECTION, Shape.SMALL_ROOM, Shape.LARGE_ROOM],              [0.20, 0.30, 0.50]),
 }
@@ -220,15 +220,26 @@ def get_shape(room_val: int, rand_rng: Random) -> Shape:
     - The exit count is used to look up a weighted shape list in
       _SHAPE_TABLES, from which a shape is randomly selected.
     """
-    if room_val < 0b10000 or room_val > 0b11111: raise InvalidRoom(f"The get_shape function does not support room_val: {room_val}.")
+    if room_val < 0b10000 or room_val > 0b11111:
+        raise InvalidRoom(
+            f"The get_shape function does not support room_val: {room_val}."
+        )
     n = (room_val & 0b01111).bit_count()
-    if n not in _SHAPE_TABLES: raise InvalidRoom(f"The get_shape function does not support rooms with {n} exits.")
+    if n not in _SHAPE_TABLES:
+        raise InvalidRoom(
+            f"The get_shape function does not support rooms with {n} exits."
+        )
     shape_list, probs = _SHAPE_TABLES[n]
     room_shape: Shape = rand_rng.choices(shape_list, probs)[0]
     return room_shape
 
 @timeit
-def build_room(tilemap: array[uint8], room_val: int, room_shape: Shape, np_rng: np.random.Generator) -> array[uint8]:
+def build_room(
+        tilemap: array[uint8],
+        room_val: int,
+        room_shape: Shape,
+        np_rng: np.random.Generator
+) -> array[uint8]:
     """
     Builds room exits and central shape onto a blank tilemap in two passes.
 
@@ -286,7 +297,8 @@ def build_room(tilemap: array[uint8], room_val: int, room_shape: Shape, np_rng: 
     match room_shape:
         case Shape.DEAD_END:
             length = np_rng.integers(2,5, endpoint = True)
-            tilemap[half-length:half+length+1, half-length:half+length+1] = Const.WALL
+            s = slice(half-length, half+length+1)
+            tilemap[s,s] = Const.WALL
         case Shape.BOSS_ROOM:
             tilemap[1:-1, 1:-1] = Const.FLOOR
         case Shape.SMALL_ROOM:
@@ -351,9 +363,14 @@ def get_theme(room_shape: Shape, rand_rng: Random) -> Theme:
     return theme
 
 @timeit
-def scan_tilemap(tilemap: array[uint8], neighbor_map: array[uint8] | None = None, require: Collection[int] | None = None,
-                 block: Collection[int] | None = None, bias: Collection[int] | None = None,
-                 place_on: Collection[int] | None = None) -> array[np.int32]:
+def scan_tilemap(
+        tilemap: array[uint8],
+        neighbor_map: array[uint8] | None = None,
+        require: Collection[int] | None = None,
+        block: Collection[int] | None = None,
+        bias: Collection[int] | None = None,
+        place_on: Collection[int] | None = None
+) -> array[np.int32]:
     """
     Scans a tilemap and returns a list of valid tile indices to place on.
 
@@ -389,25 +406,39 @@ def scan_tilemap(tilemap: array[uint8], neighbor_map: array[uint8] | None = None
     if place_on is None: available_grid = tilemap == Const.FLOOR
     else: available_grid = np.isin(tilemap,tuple(place_on))
 
-    if neighbor_map is None: neighbor_map = np.empty_like(tilemap, dtype=uint8)
+    if neighbor_map is None:
+        neighbor_map = np.empty_like(tilemap, dtype=uint8)
 
     if require is not None:
-        available_grid &= (adj_map(tilemap, neighbor_map, target = require, iso = False) != 0)
+        available_grid &= (
+            adj_map(tilemap, neighbor_map, target = require, iso = False) != 0
+        )
     if block is not None:
-        available_grid &= (adj_map(tilemap, neighbor_map, target = block, iso = False) == 0)
-    
+        available_grid &= (
+            adj_map(tilemap, neighbor_map, target = block, iso = False) == 0
+        )
+
     available_list = np.argwhere(available_grid)
     if bias is not None:
-        bias_grid = available_grid & (adj_map(tilemap, neighbor_map, target = bias, iso = False) != 0)
+        bias_grid = available_grid & (
+            adj_map(tilemap, neighbor_map, target = bias, iso = False) != 0
+        )
         bias_mask = bias_grid[available_list[:,0], available_list[:, 1]]
         biases = available_list[bias_mask]
         if biases.size > 0:
             bias_list = np.repeat(biases, 4, axis=0)
-            available_list = np.concatenate((available_list,bias_list),axis = 0)
+            available_list = np.concatenate(
+                (available_list,bias_list),axis = 0
+            )
     return available_list
 
 @timeit
-def place(tilemap: array[uint8], feature: Const, available_list: array[np.int32], count: int, np_rng: np.random.Generator) -> None:
+def place(
+        tilemap: array[uint8],
+        feature: Const,
+        available_list: array[np.int32],
+        count: int,
+        np_rng: np.random.Generator) -> None:
     """
     Places a feature onto randomly selected tiles in the tilemap.
 
@@ -445,7 +476,11 @@ def place(tilemap: array[uint8], feature: Const, available_list: array[np.int32]
     return
 
 @timeit
-def populate_tilemap(tilemap: array[uint8], theme: Theme, np_rng: np.random.Generator) -> array[uint8]:
+def populate_tilemap(
+    tilemap: array[uint8],
+    theme: Theme,
+    np_rng: np.random.Generator
+) -> array[uint8]:
     """
     Populates a room tilemap with features based on the given theme.
 
@@ -482,7 +517,9 @@ def populate_tilemap(tilemap: array[uint8], theme: Theme, np_rng: np.random.Gene
     pop_vals: dict[Const, int] = {}
     for feature, count in _POPULATION_TABLES[theme].items():
         if isinstance(count, tuple):
-            pop_vals[feature] = np_rng.integers(count[0], count[1], endpoint=True)
+            pop_vals[feature] = np_rng.integers(
+                count[0], count[1], endpoint=True
+            )
         else:
             pop_vals[feature] = count
     neighbor_map = np.empty_like(tilemap, dtype = uint8)
@@ -490,12 +527,18 @@ def populate_tilemap(tilemap: array[uint8], theme: Theme, np_rng: np.random.Gene
         if feature not in pop_vals: continue
         count = pop_vals[feature]
         if not count: continue
-        available_list = scan_tilemap(tilemap, neighbor_map, **_SCAN_PARAMS[feature])
+        available_list = scan_tilemap(
+            tilemap, neighbor_map, **_SCAN_PARAMS[feature]
+        )
         place(tilemap, feature, available_list, count, np_rng)
     return tilemap
 
 @timeit
-def room_map_generator(room_val: int, np_rng: np.random.Generator, rand_rng: Random) -> tuple[array[uint8], Shape, Theme]:
+def room_map_generator(
+        room_val: int,
+        np_rng: np.random.Generator,
+        rand_rng: Random
+) -> tuple[array[uint8], Shape, Theme]:
     """
     Generates a complete room tilemap for a given dungeon tile value.
 
@@ -538,8 +581,16 @@ def room_map_generator(room_val: int, np_rng: np.random.Generator, rand_rng: Ran
 def _get_tile_value(value: int) -> tuple[str,str]:
     return ("Tile: ", Const(value).name)
 
-def _debug(tilemap: array[uint8], room_shape: Shape, room_theme: Theme) -> None:
-    colours = ["black", "white", "gray", "blue", "red", "green", "brown", "yellow", "orange", "red", "green"]
+def _debug(
+        tilemap: array[uint8],
+        room_shape: Shape,
+        room_theme: Theme
+) -> None:
+    colours = [
+        "black", "white", "gray", "blue",
+        "red", "green", "brown", "yellow",
+        "orange", "red", "green"
+    ]
     info = {"Shape": room_shape.name, "Theme": room_theme.name}
     debug_render(tilemap, colours, info, tile_formatter = _get_tile_value)
     return
@@ -586,7 +637,11 @@ def _time_test(count: int) -> None:
         _ = room_map_generator(room_val, np_rng, rand_rng)
         time = (clock()-start)*1e-6
         total_time += time
-    print(f"Run count: {count}\nTotal Time: {total_time:.6f} ms\nAverage Time: {total_time/count:.6f} ms")
+    print(
+        f"Run count: {count}\n"
+        f"Total Time: {total_time:.6f} ms\n"
+        f"Average Time: {total_time/count:.6f} ms"
+    )
     return
 
 def _main() -> None:
@@ -622,7 +677,9 @@ def _main() -> None:
     np_rng = np.random.default_rng(debug_seed)
     rand_rng = Random(debug_seed)
 
-    tilemap, shape, theme = room_map_generator(debug_room_val, np_rng, rand_rng)
+    tilemap, shape, theme = room_map_generator(
+        debug_room_val, np_rng, rand_rng
+    )
 
     print(f"\033cShape: {shape.name}\nTheme: {theme.name}\n")
     _debug(tilemap, shape, theme)

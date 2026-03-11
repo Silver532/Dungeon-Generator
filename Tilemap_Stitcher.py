@@ -17,7 +17,10 @@ from Dungeon_Generator import dungeon_map_generator
 from Room_Generator import room_map_generator, Const
 
 @timeit
-def dungeon_generator(np_rng: np.random.Generator, rand_rng: Random) -> tuple[array[uint8], array[uint8]]:
+def dungeon_generator(
+        np_rng: np.random.Generator,
+        rand_rng: Random
+) -> tuple[array[uint8], array[uint8]]:
     """
     Generates a complete dungeon tilemap by stitching together individual
     room tilemaps for each active room in the dungeon map.
@@ -61,7 +64,9 @@ def dungeon_generator(np_rng: np.random.Generator, rand_rng: Random) -> tuple[ar
     for (row, col), val in np.ndenumerate(dungeon_map):
         if val == 0:
             continue
-        room_tilemap, _, theme = room_map_generator(int(val), np_rng, rand_rng)
+        room_tilemap, _, theme = room_map_generator(
+            int(val), np_rng, rand_rng
+        )
         y = row * multiplier
         x = col * multiplier
         tilemap[y:y + multiplier, x:x + multiplier] = room_tilemap
@@ -108,9 +113,17 @@ def _debug(tilemap: array[uint8]) -> None:
     - Clicking a tile prints its position and Const name.
     - Clicking outside the axes prints the tilemap dimensions.
     """
-    colours = ["black", "white", "gray", "blue", "red", "green", "brown", "yellow", "orange", "red", "green"]
+    colours = [
+        "black", "white", "gray", "blue",
+        "red", "green", "brown", "yellow",
+        "orange", "red", "green"
+    ]
     info = {"Size": f"{tilemap.shape}"}
-    debug_render(tilemap, colours, info, figsize=(7, 7), tile_formatter = _get_tile_value)
+    debug_render(
+        tilemap, colours, info,
+        figsize=(7, 7),
+        tile_formatter = _get_tile_value
+    )
     return
 
 def _time_test(count: int) -> None:
@@ -152,7 +165,9 @@ def _time_test(count: int) -> None:
         _ = dungeon_generator(np_rng, rand_rng)
         time = (clock()-start)*1e-6
         total_time += time
-    print(f"Run count: {count}\nTotal Time: {total_time:.6f} ms\nAverage Time: {total_time/count:.6f} ms")
+    print(f"Run count: {count}\n"
+          f"Total Time: {total_time:.6f} ms\n"
+          f"Average Time: {total_time/count:.6f} ms")
     return
 
 def _main() -> None:
@@ -189,7 +204,7 @@ def _main() -> None:
     tilemap, theme_map = dungeon_generator(np_rng, rand_rng)
 
     print(f"\033c{theme_map}")
-    _debug(tilemap)
+    _debug(tilemap) 
     return
 #endregion
 

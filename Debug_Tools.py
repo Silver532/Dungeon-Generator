@@ -72,7 +72,11 @@ def arg_parser() -> bool:
     - If --time is not provided, returns False without any side effects.
     """
     parser = ArgumentParser()
-    parser.add_argument("--time", action = "store_true", help = "Enable performance timing")
+    parser.add_argument(
+        "--time",
+        action = "store_true",
+        help = "Enable performance timing"
+    )
     args = parser.parse_args()
     if args.time: enable_timing(); return True
     return False
@@ -162,8 +166,13 @@ def timeit(func: Callable[P,R]) -> Callable[P,R]:
         return result
     return wrapper
 
-def on_click(event: Event, ax: Axes, tilemap: array[uint8], info: Mapping[str, str | int],
-             tile_formatter: Callable[[int], tuple[str,str]] | None = None) -> None:
+def on_click(
+        event: Event,
+        ax: Axes,
+        tilemap: array[uint8],
+        info: Mapping[str, str | int],
+        tile_formatter: Callable[[int], tuple[str,str]] | None = None
+) -> None:
     """
     Handles debug click events on a matplotlib figure.
 
@@ -200,26 +209,46 @@ def on_click(event: Event, ax: Axes, tilemap: array[uint8], info: Mapping[str, s
           additional labelled line below the raw value.
     - If the click lands outside the axes, only the info dict is printed.
     """
-    if not isinstance(event, MouseEvent): return
+    if not isinstance(event, MouseEvent):
+        return
     info_str = "\n".join(f"{k}: {v}" for k, v in info.items())
-    if event.inaxes is ax and event.xdata is not None and event.ydata is not None:
+    in_axes = (
+        event.inaxes is ax
+        and event.xdata is not None
+        and event.ydata is not None
+    )
+    if in_axes:
+        assert event.xdata is not None and event.ydata is not None
         col = int(event.xdata+0.5)
         row = int(event.ydata+0.5)
-        if 0 <= row < tilemap.shape[0] and 0 <= col < tilemap.shape[1]:
+        in_bounds = (
+            0 <= row < tilemap.shape[0]
+            and 0 <= col < tilemap.shape[1]
+        )
+        if in_bounds:
             val = int(tilemap[row, col])
+            tile_info = f"\nTile Clicked: {row}, {col}"\
+                        f"\nTile Value: {val}"
             if tile_formatter is not None:
                 formatter_name, tile_str = tile_formatter(val)
-                print(f"\033c{info_str}\nTile Clicked: {row}, {col}\nTile Value: {tilemap[row, col]}\n{formatter_name}: {tile_str}")
+                print(f"\033c{info_str}{tile_info}\n"
+                      f"{formatter_name}: {tile_str}"
+                )
             else:
-                print(f"\033c{info_str}\nTile Clicked: {row}, {col}\nTile Value: {tilemap[row, col]}")
+                print(f"\033c{info_str}{tile_info}")
     else:
         print(f"\033c{info_str}")
     return
 
-def debug_render(tilemap: array[uint8], colours: list[str], info: Mapping[str,str | int] | None = None, 
-                 grid_colour: str = "black", figsize: tuple[float, float] = (5,5),
-                 tile_formatter: Callable[[int], tuple[str,str]] | None = None,
-                 click_map: array[uint8] | None = None) -> None:
+def debug_render(
+        tilemap: array[uint8],
+        colours: list[str],
+        info: Mapping[str,str | int] | None = None, 
+        grid_colour: str = "black",
+        figsize: tuple[float, float] = (5,5),
+        tile_formatter: Callable[[int], tuple[str,str]] | None = None,
+        click_map: array[uint8] | None = None
+) -> None:
     """
     Renders an interactive debug visualization of a tilemap.
 
@@ -273,7 +302,10 @@ def debug_render(tilemap: array[uint8], colours: list[str], info: Mapping[str,st
     fig, ax = plt.subplots(figsize = figsize, dpi = 120)                                        #pyright: ignore[reportUnknownMemberType]
     ax.imshow(tilemap,cmap=cmap,norm=norm,interpolation="nearest")                              #pyright: ignore[reportUnknownMemberType]
     ax.grid(which="minor", color=grid_colour, linewidth=0.5)                                    #pyright: ignore[reportUnknownMemberType]
-    ax.tick_params(which="both", bottom=False, left=False, labelbottom=False, labelleft=False)  #pyright: ignore[reportUnknownMemberType]
+    ax.tick_params(                                                                             #pyright: ignore[reportUnknownMemberType]
+        which="both", bottom=False, left=False,
+        labelbottom=False, labelleft=False
+    )
     ax.set_xticks(np.arange(-0.5, cols, 1), minor=True)                                         #pyright: ignore[reportUnknownMemberType]
     ax.set_yticks(np.arange(-0.5, rows, 1), minor=True)                                         #pyright: ignore[reportUnknownMemberType]
 
@@ -281,10 +313,11 @@ def debug_render(tilemap: array[uint8], colours: list[str], info: Mapping[str,st
     if manager is not None and hasattr(manager, "set_window_title"):
         manager.set_window_title("DEBUG Window")
     if info is not None:
-        fig.canvas.mpl_connect("button_press_event",
-                               lambda event: on_click(event, ax, 
-                               click_map if click_map is not None else tilemap,
-                               info, tile_formatter))
+        target_map = click_map if click_map is not None else tilemap
+        fig.canvas.mpl_connect(
+            "button_press_event",
+            lambda event: on_click(event, ax, target_map,info, tile_formatter)
+        )
     plt.show()                                                                                  #pyright: ignore[reportUnknownMemberType]
     return
 
