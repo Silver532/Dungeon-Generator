@@ -1,10 +1,22 @@
 """
 **Debug Tools for the entire program**
+
+Imported by: Dungeon_Generator, Room_Generator, Tilemap_Stitcher
 """
+
+import numpy as np
+import matplotlib.pyplot as plt
 
 from atexit import register
 from functools import wraps
 from argparse import ArgumentParser
+from numpy import uint8
+from numpy.typing import NDArray as array
+from matplotlib.backend_bases import Event, MouseEvent
+from matplotlib import rcParams
+from matplotlib.colors import ListedColormap, BoundaryNorm
+from matplotlib.axes import Axes
+from collections.abc import Mapping
 
 from time import perf_counter_ns as clock
 from typing import Callable, TypeVar, ParamSpec
@@ -151,4 +163,130 @@ def timeit(func: Callable[P,R]) -> Callable[P,R]:
         return result
     return wrapper
 
-register(write_timings_to_file)
+def on_click(event: Event, ax: Axes, tilemap: array[uint8], info: Mapping[str, str | int],
+             tile_formatter: Callable[[int], tuple[str,str]] | None = None) -> None:
+    """
+    Handles debug click events on a matplotlib figure.
+
+    Parameters
+    ----------
+    event : Event
+        Matplotlib click event.
+    ax : Axes
+        Matplotlib graph axes, used to determine whether the click
+        landed inside or outside the display area.
+    tilemap : array[uint8]
+        Tilemap to read tile values from on click. May differ from the
+        display tilemap if click_map was provided to debug_render.
+    info : Mapping[str, str | int]
+        Key-value pairs to print on every click, such as room shape,
+        theme, or dungeon statistics.
+    tile_formatter : Callable[[int], tuple[str, str]] | None, optional
+        If provided, called with the raw tile value to produce a
+        formatted label and value string for display. If not provided,
+        the raw integer value is printed instead.
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    - Only responds to MouseEvent types; all other event types are ignored.
+    - The console is cleared before each print using the '\\033c' escape code.
+    - If the click lands inside the axes on a valid tile:
+        - The clicked pixel coordinates are rounded to the nearest tile index.
+        - The info dict, tile position, and raw tile value are printed.
+        - If tile_formatter is provided, its output is printed as an
+          additional labelled line below the raw value.
+    - If the click lands outside the axes, only the info dict is printed.
+    """
+    if not isinstance(event, MouseEvent): return
+    info_str = "\n".join(f"{k}: {v}" for k, v in info.items())
+    if event.inaxes is ax and event.xdata is not None and event.ydata is not None:
+        col = int(event.xdata+0.5)
+        row = int(event.ydata+0.5)
+        if 0 <= row < tilemap.shape[0] and 0 <= col < tilemap.shape[1]:
+            val = int(tilemap[row, col])
+            if tile_formatter is not None:
+                formatter_name, tile_str = tile_formatter(val)
+                print(f"\033c{info_str}\nTile Clicked: {row}, {col}\nTile Value: {tilemap[row, col]}\n{formatter_name}: {tile_str}")
+            else:
+                print(f"\033c{info_str}\nTile Clicked: {row}, {col}\nTile Value: {tilemap[row, col]}")
+    else:
+        print(f"\033c{info_str}")
+    return
+
+def debug_render(tilemap: array[uint8], colours: list[str], info: Mapping[str,str | int] | None = None, 
+                 grid_colour: str = "black", figsize: tuple[float, float] = (5,5),
+                 tile_formatter: Callable[[int], tuple[str,str]] | None = None,
+                 click_map: array[uint8] | None = None) -> None:
+    """
+    Renders an interactive debug visualization of a tilemap.
+
+    Parameters
+    ----------
+    tilemap : array[uint8]
+        Tilemap to display.
+    colours : list[str]
+        Colour palette mapping tile values to display colours. The list
+        index corresponds directly to the tile value.
+    info : Mapping[str, str | int] | None, optional
+        Key-value pairs to print on click. If not provided, no click
+        handler is attached.
+    grid_colour : str, optional
+        Colour of the grid lines drawn between tiles. Defaults to "black".
+    figsize : tuple[float, float], optional
+        Figure size in inches as (width, height). Defaults to (5, 5).
+    tile_formatter : Callable[[int], tuple[str, str]] | None, optional
+        If provided, passed to on_click to format raw tile values into
+        a labelled string for display.
+    click_map : array[uint8] | None, optional
+        If provided, tile values are read from this array on click instead
+        of tilemap. Useful when the display tilemap has been transformed
+        and no longer holds the original tile values.
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    - The matplotlib toolbar is hidden via rcParams for a cleaner window.
+    - The figure is rendered at 120 DPI.
+    - Minor ticks are placed at half-integer positions to draw grid lines
+      between tiles rather than through them.
+    - All tick marks and axis labels are hidden, leaving only the colour
+      grid visible.
+    - The window title is set to "DEBUG Window" if the canvas manager
+      supports it.
+    - If info is provided, a click event listener is connected to the
+      figure, delegating all handling to on_click().
+    - Several matplotlib calls are marked with pyright: ignore
+      [reportUnknownMemberType] due to false positives from incomplete
+      matplotlib type stubs.
+    """
+    cmap = ListedColormap(colours)
+    norm = BoundaryNorm(range(len(colours)+1), cmap.N)
+    rows, cols = tilemap.shape
+    rcParams["toolbar"]="None"
+    
+    fig, ax = plt.subplots(figsize = figsize, dpi = 120)                                        #pyright: ignore[reportUnknownMemberType]
+    ax.imshow(tilemap,cmap=cmap,norm=norm,interpolation="nearest")                              #pyright: ignore[reportUnknownMemberType]
+    ax.grid(which="minor", color=grid_colour, linewidth=0.5)                                    #pyright: ignore[reportUnknownMemberType]
+    ax.tick_params(which="both", bottom=False, left=False, labelbottom=False, labelleft=False)  #pyright: ignore[reportUnknownMemberType]
+    ax.set_xticks(np.arange(-0.5, cols, 1), minor=True)                                         #pyright: ignore[reportUnknownMemberType]
+    ax.set_yticks(np.arange(-0.5, rows, 1), minor=True)                                         #pyright: ignore[reportUnknownMemberType]
+
+    manager = getattr(fig.canvas, "manager", None)
+    if manager is not None and hasattr(manager, "set_window_title"):
+        manager.set_window_title("DEBUG Window")
+    if info is not None:
+        fig.canvas.mpl_connect("button_press_event",
+                               lambda event: on_click(event, ax, 
+                               click_map if click_map is not None else tilemap,
+                               info, tile_formatter))
+    plt.show()                                                                                  #pyright: ignore[reportUnknownMemberType]
+    return
+
+register(lambda: write_timings_to_file() if _TIMINGS else None)

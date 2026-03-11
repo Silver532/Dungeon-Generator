@@ -6,21 +6,16 @@ Import Entry Point: room_map_generator()
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 from numpy import uint8
 from numpy.typing import NDArray as array
-from matplotlib import rcParams
-from matplotlib.colors import ListedColormap, BoundaryNorm
-from matplotlib.axes import Axes
-from matplotlib.backend_bases import Event, MouseEvent
 from collections.abc import Collection
 from time import perf_counter_ns as clock
 from enum import IntEnum
 from random import Random
 
 from Generator_Helpers import init_tilemap, adj_map
-from Debug_Tools import timeit, arg_parser
+from Debug_Tools import timeit, arg_parser, debug_render
 
 class InvalidRoom(Exception):
     """
@@ -540,113 +535,13 @@ def room_map_generator(room_val: int, np_rng: np.random.Generator, rand_rng: Ran
     return tilemap, shape, theme
 
 #region DEBUG
-def _on_click(event: Event, ax: Axes, tilemap: array[uint8], room_shape: Shape, room_theme: Theme) -> None:
-    """
-    Local handler for debug click events on the room display.
-
-    Parameters
-    ----------
-    event : Event
-        Matplotlib click event.
-    ax : Axes
-        Matplotlib graph axes.
-    tilemap : array[uint8]
-        Tilemap of the room.
-    room_shape : Shape
-        Shape of the generated room.
-    room_theme : Theme
-        Theme of the generated room.
-
-    Returns
-    -------
-    None
-
-    Notes
-    -----
-    - Only responds to MouseEvent types; all other event types are ignored.
-    - If the click lands inside the axes on a valid tile:
-        - The clicked pixel coordinates are rounded to the nearest tile index.
-        - The tile's row/column position, raw Const name, shape, and theme
-          are printed to the console.
-    - If the click lands outside the axes, the room shape and theme are
-      printed instead.
-    """
-    if not isinstance(event, MouseEvent): return
-    if event.inaxes is ax and event.xdata is not None and event.ydata is not None:
-        col = int(event.xdata+0.5)
-        row = int(event.ydata+0.5)
-        if 0 <= row < tilemap.shape[0] and 0 <= col < tilemap.shape[1]:
-            print(f"\033cShape: {room_shape.name}\nTheme: {room_theme.name}\n"+
-                f"Tile Clicked: {row}, {col}\n"+
-                f"Tile Value: {Const(tilemap[row,col]).name}")
-    else:
-        print(f"\033cShape: {room_shape.name}\nTheme: {room_theme.name}")
-    return
+def _get_tile_value(value: int) -> tuple[str,str]:
+    return ("Tile: ", Const(value).name)
 
 def _debug(tilemap: array[uint8], room_shape: Shape, room_theme: Theme) -> None:
-    """
-    Renders an interactive debug visualization of the room tilemap.
-
-    Parameters
-    ----------
-    tilemap : array[uint8]
-        Room tilemap to display.
-    room_shape : Shape
-        Shape of the generated room.
-    room_theme : Theme
-        Theme of the generated room.
-
-    Returns
-    -------
-    None
-
-    Notes
-    -----
-    Colour mapping:
-        Each tile value maps directly to a colour via a fixed 11-colour palette,
-        corresponding to Const values 0-10:
-            0  (WALL)             : Black
-            1  (FLOOR)            : White
-            2  (HOLE)             : Gray
-            3  (WATER)            : Blue
-            4  (TRAP)             : Red
-            5  (HEALING_STATION)  : Green
-            6  (CHEST)            : Brown
-            7  (LOOT_PILE)        : Yellow
-            8  (MONSTER_SPAWNER)  : Orange
-            9  (BOSS_SPAWNER)     : Red   (shared with TRAP)
-            10 (SHRINE)           : Green (shared with HEALING_STATION)
-
-    Interactivity:
-        - Clicking on a tile prints its position, name, shape, and theme.
-        - Clicking outside the axes prints the room shape and theme.
-
-    Type checking:
-        - Several matplotlib calls are marked with pyright: ignore
-          [reportUnknownMemberType] due to false positives from incomplete
-          matplotlib type stubs. The argument and return types are otherwise
-          fully resolved and type-safe.
-    """
     colours = ["black", "white", "gray", "blue", "red", "green", "brown", "yellow", "orange", "red", "green"]
-    cmap = ListedColormap(colours)
-    norm = BoundaryNorm(range(len(colours)+1), cmap.N)
-    rows, cols = tilemap.shape
-    rcParams["toolbar"]="None"
-    
-    fig, ax = plt.subplots(figsize = (5,5), dpi = 120)                                          #pyright: ignore[reportUnknownMemberType]
-    ax.imshow(tilemap,cmap=cmap,norm=norm,interpolation="nearest")                              #pyright: ignore[reportUnknownMemberType]
-    ax.grid(which="minor", color="black", linewidth=0.5)                                        #pyright: ignore[reportUnknownMemberType]
-    ax.tick_params(which="both", bottom=False, left=False, labelbottom=False, labelleft=False)  #pyright: ignore[reportUnknownMemberType]
-    ax.set_xticks(np.arange(-0.5, cols, 1), minor=True)                                         #pyright: ignore[reportUnknownMemberType]
-    ax.set_yticks(np.arange(-0.5, rows, 1), minor=True)                                         #pyright: ignore[reportUnknownMemberType]
-
-    manager = getattr(fig.canvas, "manager", None)
-    if manager is not None and hasattr(manager, "set_window_title"):
-        manager.set_window_title("DEBUG Window")
-    fig.canvas.mpl_connect("button_press_event",lambda event:
-                           _on_click(event,ax,tilemap,room_shape,room_theme))
-
-    plt.show()                                                                                  #pyright: ignore[reportUnknownMemberType]
+    info = {"Shape": room_shape.name, "Theme": room_theme.name}
+    debug_render(tilemap, colours, info, tile_formatter = _get_tile_value)
     return
 
 def _time_test(count: int) -> None:

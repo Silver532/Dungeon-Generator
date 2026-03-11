@@ -6,21 +6,16 @@ Import Entry Point: dungeon_map_generator()
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 from numpy import uint8
 from numpy.typing import NDArray as array
-from matplotlib import rcParams
-from matplotlib.colors import ListedColormap, BoundaryNorm
-from matplotlib.axes import Axes
-from matplotlib.backend_bases import Event, MouseEvent
 from time import perf_counter_ns as clock
 from enum import IntEnum
 from random import Random
 from collections import deque
 
-from Generator_Helpers import init_tilemap, adj_map, get_direction_strings
-from Debug_Tools import timeit, arg_parser
+from Generator_Helpers import init_tilemap, adj_map
+from Debug_Tools import timeit, arg_parser, debug_render
 
 class Const(IntEnum):
     """
@@ -344,6 +339,7 @@ def room_clear(tilemap: array[uint8]) -> array[uint8]:
       added to the queue more than once.
     - After all groups are found, the largest is kept and all other
       active tiles are zeroed out in a single vectorised numpy operation.
+    - If all tiles belong to a single connected group, no tiles are removed.
     """
     DIR_OFFSETS = ((0,-1,0),(1,0,1),(2,1,0),(3,0,-1))
     h, w = tilemap.shape
@@ -370,8 +366,9 @@ def room_clear(tilemap: array[uint8]) -> array[uint8]:
     
     if groups:
         largest = max(groups, key=len)
-        to_remove = np.array(list(active_tiles - largest), dtype = np.int32).reshape(-1,2)
-        tilemap[to_remove[:, 0], to_remove[:, 1]] = 0
+        if active_tiles - largest:
+            to_remove = np.array(list(active_tiles - largest), dtype=np.int32).reshape(-1, 2)
+            tilemap[to_remove[:, 0], to_remove[:, 1]] = 0
     return tilemap
 
 @timeit
@@ -404,8 +401,8 @@ def dungeon_map_generator(np_rng: np.random.Generator, rand_rng: Random) -> arra
                               bits 0-3 to store directional connection data.
         5. room_connector() : Connects adjacent active tiles by writing
                               orthogonal connection bits (bits 0-3) into each tile.
-        6. room_clear()     : Removes isolated pairs of tiles that have no
-                              connections beyond each other.
+        6. room_clear()     : Removes all disconnected room groups, keeping only 
+                              the largest connected group.
         7. tilemap_trim()   : Crops the array to the tightest bounding box
                               that still contains all active tiles.
     """
@@ -445,48 +442,36 @@ def _make_exit_map(tilemap: array[uint8]) -> array[uint8]:
     debug_map = np.unpackbits(tilemap[:, :, np.newaxis], axis=-1).sum(axis=-1).astype(np.uint8)
     return debug_map
 
-def _on_click(event: Event, ax: Axes, tilemap: array[uint8], room_count: int) -> None:
+def _get_direction_strings(value: int) -> tuple[str, str]:
     """
-    Local handler for debug click events on the dungeon display.
+    Converts an integer tile value into a string of directions
+    based on its lower 4 bits.
 
     Parameters
     ----------
-    event : Event
-        matplotlib click event.
-    ax : Axes
-        matplotlib graph axes.
-    tilemap : array[uint8]
-        tilemap of the dungeon.
-    room_count : int
-        number of rooms in the dungeon.
+    value : int
+        Bitmask value to extract directions from. The lower 4 bits
+        are each mapped to an orthogonal direction:
+            - Bit 0 (value 1) : North
+            - Bit 1 (value 2) : East
+            - Bit 2 (value 4) : South
+            - Bit 3 (value 8) : West
 
     Returns
     -------
-    None
+    dirs : tuple["Exits", str]
+        Direction strings corresponding to the set bits in
+        the lower 4 bits of value.
 
     Notes
     -----
-    - Only responds to MouseEvent types; all other event types are ignored.
-    - If the click lands inside the axes on a valid tile:
-        - The clicked pixel coordinates are rounded to the nearest tile index.
-        - get_direction_strings() is used to decode the tile's exit bits into
-          human-readable direction names.
-        - The tile's row/column position, raw value, and exit directions are
-          printed to the console.
-    - If the click lands outside the axes, the total room count is printed
-      instead.
+    - Only the lower 4 bits of value are examined via `value & 0b01111`,
+      so bit 4 (the active tile flag) and above are ignored.
     """
-    if not isinstance(event, MouseEvent): return
-    if event.inaxes is ax and event.xdata is not None and event.ydata is not None:
-        col = int(event.xdata+0.5)
-        row = int(event.ydata+0.5)
-        if 0 <= row < tilemap.shape[0] and 0 <= col < tilemap.shape[1]:
-            dirs = get_direction_strings(tilemap[row,col])
-            print(f"\033cTile Clicked: {row}, {col}\n"
-                  f"Tile Value: {tilemap[row,col]}\n"
-                  f"Exits: {", ".join(dirs)}")
-    else: print(f"\033cDungeon contains {room_count} rooms")
-    return
+    bits = value & 0b01111
+    directions = ('North','East','South','West')
+    dir_string = ", ".join(direction for i, direction in enumerate(directions) if bits & (1 << i))
+    return ("Exits", dir_string)
 
 def _debug(tilemap: array[uint8], room_count: int) -> None:
     """
@@ -515,53 +500,18 @@ def _debug(tilemap: array[uint8], room_count: int) -> None:
             4 bits set : Red    (active tile with 3 connections: bit 4 + 3 exits)
             5 bits set : Yellow (active tile with 4 connections: bit 4 + all 4 exits)
 
-    Display setup:
-        - _make_exit_map() converts the raw tilemap into a per-tile exit
-          count array for display.
-        - The figure is rendered at 5x5 inches at 120 DPI.
-        - The matplotlib toolbar is hidden for a cleaner debug window.
-
-    Grid and axes:
-        - Minor ticks are placed at half-integer positions to draw grid
-          lines between tiles rather than through them.
-        - All tick marks and axis labels are hidden, leaving only the
-          colour grid visible.
-
-    Interactivity:
-        - A click event listener is connected to the figure, delegating
-          all click handling to _on_click().
-        - Clicking on a tile prints its position, raw value, and exit
-          directions.
-        - Clicking outside the axes prints the room count.
-
-    Type checking:
-        - Several matplotlib calls are marked with pyright: ignore
-          [reportUnknownMemberType] due to false positives from incomplete
-          matplotlib type stubs. The argument and return types are otherwise
-          fully resolved and type-safe.
+    - _make_exit_map() is used to convert the raw tilemap into a per-tile
+      bit count array for display.
+    - _get_direction_strings() is passed as a tile formatter, so clicking
+      a tile prints its orthogonal exits by name.
+    - The original tilemap is passed as click_map so that click handling
+      reads the raw connection bits rather than the bit count display values.
+    - Clicking outside the axes prints the total room count.
     """
     debug_map = _make_exit_map(tilemap)
     colours = ["white", "black", "green", "blue", "red", "yellow"]
-    cmap = ListedColormap(colours)
-    norm = BoundaryNorm(range(len(colours)+1), cmap.N)
-    rows, cols = debug_map.shape
-    rcParams["toolbar"]="None"
-
-    fig, ax = plt.subplots(figsize = (5,5), dpi = 120)                                          #pyright: ignore[reportUnknownMemberType]
-    ax.imshow(debug_map,cmap=cmap,norm=norm,interpolation="nearest")                            #pyright: ignore[reportUnknownMemberType]
-    ax.grid(which="minor", color="white", linewidth=0.5)                                        #pyright: ignore[reportUnknownMemberType]
-    ax.tick_params(which="both", bottom=False, left=False, labelbottom=False, labelleft=False)  #pyright: ignore[reportUnknownMemberType]
-    ax.set_xticks(np.arange(-0.5, cols, 1), minor=True)                                         #pyright: ignore[reportUnknownMemberType]
-    ax.set_yticks(np.arange(-0.5, rows, 1), minor=True)                                         #pyright: ignore[reportUnknownMemberType]
-
-    manager = getattr(fig.canvas, "manager", None)
-    if manager is not None and hasattr(manager, "set_window_title"):
-        manager.set_window_title("DEBUG Window")
-    fig.canvas.mpl_connect("button_press_event",lambda event:
-                           _on_click(event,ax,tilemap,room_count))
-
-    plt.show()                                                                                  #pyright: ignore[reportUnknownMemberType]
-    return
+    info = {"Dungeon Rooms": room_count}
+    debug_render(debug_map, colours, info, grid_colour="white", tile_formatter = _get_direction_strings, click_map = tilemap)
 
 def _time_test(count: int) -> None:
     """

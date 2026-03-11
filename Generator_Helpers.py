@@ -1,5 +1,7 @@
 """
 **Helper Functions used in both Generators**
+
+Imported by: Dungeon_Generator, Room_Generator
 """
 
 import numpy as np
@@ -34,38 +36,6 @@ def init_tilemap(height: int, width: int | None = None) -> array[uint8]:
     width = width or height
     tilemap = np.zeros((height,width), dtype = uint8)
     return tilemap
-
-def get_direction_strings(value: int) -> tuple[str, ...]:
-    """
-    Converts an integer tile value into a tuple of direction strings
-    based on its lower 4 bits.
-
-    Parameters
-    ----------
-    value : int
-        Bitmask value to extract directions from. The lower 4 bits
-        are each mapped to an orthogonal direction:
-            - Bit 0 (value 1) : North
-            - Bit 1 (value 2) : East
-            - Bit 2 (value 4) : South
-            - Bit 3 (value 8) : West
-
-    Returns
-    -------
-    dirs : tuple[str, ...]
-        Tuple of direction strings corresponding to the set bits in
-        the lower 4 bits of value. May be empty if no bits are set.
-
-    Notes
-    -----
-    - Only the lower 4 bits of value are examined via `value & 0b01111`,
-      so bit 4 (the active tile flag) and above are ignored.
-    - The returned tuple preserves direction order: North, East, South,
-      West, regardless of the input value.
-    """
-    bits = value & 0b01111
-    directions = ('North','East','South','West')
-    return tuple(direction for i, direction in enumerate(directions) if bits & (1 << i))
 
 def adj_map(tilemap: array[uint8], neighbor_map:array[uint8] | None = None, iso:bool=True, target:Collection[int] | None = None) -> array[uint8]:
     """
@@ -104,8 +74,6 @@ def adj_map(tilemap: array[uint8], neighbor_map:array[uint8] | None = None, iso:
       exactly equal to 1, zeroing out counts for all other tiles.
     - An assertion is included to satisfy static type checkers that
       neighbor_map is non-None before returning.
-    - Note: the original docstring listed the return type as 'tilemap'
-      which has been corrected to 'neighbor_map'.
     """
     h, w = tilemap.shape
     if target is not None: mask = np.isin(tilemap, tuple(target))
