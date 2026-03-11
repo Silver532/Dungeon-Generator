@@ -4,22 +4,21 @@
 Imported by: Dungeon_Generator, Room_Generator, Tilemap_Stitcher
 """
 
-import numpy as np
-import matplotlib.pyplot as plt
-
-from atexit import register
-from functools import wraps
 from argparse import ArgumentParser
+from atexit import register
+from collections.abc import Mapping
+from functools import wraps
+from time import perf_counter_ns as clock
+from typing import Callable, ParamSpec, TypeVar
+
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib import rcParams
+from matplotlib.axes import Axes
+from matplotlib.backend_bases import Event, MouseEvent
+from matplotlib.colors import BoundaryNorm, ListedColormap
 from numpy import uint8
 from numpy.typing import NDArray as array
-from matplotlib.backend_bases import Event, MouseEvent
-from matplotlib import rcParams
-from matplotlib.colors import ListedColormap, BoundaryNorm
-from matplotlib.axes import Axes
-from collections.abc import Mapping
-
-from time import perf_counter_ns as clock
-from typing import Callable, TypeVar, ParamSpec
 
 _TIMINGS: dict[str, list[float]] = {}
 _timing_enabled: bool = False

@@ -5,17 +5,17 @@ In File Entry Point: _main() or _time_test()
 Import Entry Point: dungeon_map_generator()
 """
 
-import numpy as np
-
-from numpy import uint8
-from numpy.typing import NDArray as array
-from time import perf_counter_ns as clock
+from collections import deque
 from enum import IntEnum
 from random import Random
-from collections import deque
+from time import perf_counter_ns as clock
 
-from Generator_Helpers import init_tilemap, adj_map
+import numpy as np
+from numpy import uint8
+from numpy.typing import NDArray as array
+
 from Debug_Tools import timeit, arg_parser, debug_render
+from Generator_Helpers import init_tilemap, adj_map
 
 class Const(IntEnum):
     """

@@ -4,10 +4,11 @@
 Imported by: Dungeon_Generator, Room_Generator
 """
 
+from collections.abc import Collection
+
 import numpy as np
 from numpy import uint8
 from numpy.typing import NDArray as array
-from collections.abc import Collection
 
 def init_tilemap(height: int, width: int | None = None) -> array[uint8]:
     """

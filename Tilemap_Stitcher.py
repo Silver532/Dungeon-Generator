@@ -5,17 +5,16 @@ In File Entry Point: _main() or _time_test()
 Import Entry Point: dungeon_generator()
 """
 
-import numpy as np
+from random import Random
+from time import perf_counter_ns as clock
 
+import numpy as np
 from numpy import uint8
 from numpy.typing import NDArray as array
 
-from time import perf_counter_ns as clock
-from random import Random
-
 from Debug_Tools import timeit, arg_parser, debug_render
-from Room_Generator import room_map_generator, Const
 from Dungeon_Generator import dungeon_map_generator
+from Room_Generator import room_map_generator, Const
 
 @timeit
 def dungeon_generator(np_rng: np.random.Generator, rand_rng: Random) -> tuple[array[uint8], array[uint8]]:
