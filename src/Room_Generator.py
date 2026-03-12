@@ -6,7 +6,7 @@ Import Entry Point: room_map_generator()
 """
 
 from collections.abc import Collection
-from enum import IntEnum
+from enum import IntEnum, auto
 from random import Random
 from time import perf_counter_ns as clock
 
@@ -47,69 +47,141 @@ class Shape(IntEnum):
     """
     Shape Constants for Rooms
     """
-    DEAD_END = 1
-    BOSS_ROOM = 2
-    SMALL_ROOM = 3
-    LARGE_ROOM = 4
-    CONNECTION = 5
-    CORNER = 6
-    HALF = 7
+    DEAD_END = 0
+    BOSS_ROOM = auto()
+    SMALL_ROOM = auto()
+    LARGE_ROOM = auto()
+    CONNECTION = auto()
+    CORNER = auto()
+    HALF = auto()
+    SMALL_CIRCLE = auto()
+    LARGE_CIRCLE = auto()
 
 class Theme(IntEnum):
     """
     Theme Constants for Rooms
     """
     EMPTY = 0
-    DE_TRAPPED = 1
-    DE_TREASURE = 2
-    DE_HEALTHY = 3
-    DE_GUARDED = 4
-    BR_HOARD = 5
-    BR_WIZARD = 6
-    BR_WEAK = 7
-    BR_STRONG = 8
-    BR_GUARDED = 9
-    BR_DOUBLE = 10
-    SR_TRAPPED = 11
-    SR_TREASURE = 12
-    SR_GUARDED = 13
-    SR_CHAOS = 14
-    SR_BASIC = 15
-    CN_TRAPPED = 16
-    CN_GUARDED = 17
-    CN_BASIC = 18
-    LR_TRAPPED = 19
-    LR_TREASURE = 20
-    LR_HEALTHY = 21
-    LR_GUARDED = 22
-    LR_CHAOS = 23
-    LR_BASIC = 24
-    CR_TRAPPED = 25
-    CR_TREASURE = 26
-    CR_GUARDED = 27
-    CR_CHAOS = 28
-    CR_BASIC = 29
-    HR_TRAPPED = 30
-    HR_TREASURE = 31
-    HR_GUARDED = 32
-    HR_CHAOS = 33
-    HR_BASIC = 34
+
+    DE_TRAPPED = auto()
+    DE_TREASURE = auto()
+    DE_HEALTHY = auto()
+    DE_GUARDED = auto()
+
+    BR_HOARD = auto()
+    BR_WIZARD = auto()
+    BR_WEAK = auto()
+    BR_STRONG = auto()
+    BR_GUARDED = auto()
+    BR_DOUBLE = auto()
+
+    SR_TRAPPED = auto()
+    SR_TREASURE = auto()
+    SR_GUARDED = auto()
+    SR_CHAOS = auto()
+    SR_BASIC = auto()
+
+    CN_TRAPPED = auto()
+    CN_GUARDED = auto()
+    CN_BASIC = auto()
+
+    LR_TRAPPED = auto()
+    LR_TREASURE = auto()
+    LR_HEALTHY = auto()
+    LR_GUARDED = auto()
+    LR_CHAOS = auto()
+    LR_BASIC = auto()
+
+    CR_TRAPPED = auto()
+    CR_TREASURE = auto()
+    CR_GUARDED = auto()
+    CR_CHAOS = auto()
+    CR_BASIC = auto()
+
+    HR_TRAPPED = auto()
+    HR_TREASURE = auto()
+    HR_GUARDED = auto()
+    HR_CHAOS = auto()
+    HR_BASIC = auto()
+
+    SC_TRAPPED = auto()
+    SC_TREASURE = auto()
+    SC_GUARDED = auto()
+    SC_CHAOS = auto()
+    SC_BASIC = auto()
+    
+    LC_TRAPPED = auto()
+    LC_TREASURE = auto()
+    LC_HEALTHY = auto()
+    LC_GUARDED = auto()
+    LC_CHAOS = auto()
+    LC_BASIC = auto()
 
 _SHAPE_TABLES: dict[int, tuple[list[Shape], list[float]]] = {
-    1: ([Shape.DEAD_END, Shape.BOSS_ROOM, Shape.SMALL_ROOM],                 [0.35, 0.15, 0.50]),
-    2: ([Shape.CONNECTION, Shape.SMALL_ROOM, Shape.LARGE_ROOM, Shape.CORNER],[0.15, 0.35, 0.20, 0.30]),
-    3: ([Shape.CONNECTION, Shape.SMALL_ROOM, Shape.LARGE_ROOM, Shape.HALF],  [0.20, 0.20, 0.30, 0.30]),
-    4: ([Shape.CONNECTION, Shape.SMALL_ROOM, Shape.LARGE_ROOM],              [0.20, 0.30, 0.50]),
+    1: (
+        [Shape.DEAD_END, Shape.BOSS_ROOM, Shape.SMALL_ROOM, Shape.SMALL_CIRCLE, Shape.LARGE_CIRCLE],
+        [0.30, 0.10, 0.35, 0.15, 0.10]
+        ),
+    2: (
+        [Shape.CONNECTION, Shape.SMALL_ROOM, Shape.LARGE_ROOM, Shape.CORNER, Shape.SMALL_CIRCLE],
+        [0.10, 0.25, 0.30, 0.20, 0.15]
+        ),
+    3: (
+        [Shape.CONNECTION, Shape.SMALL_ROOM, Shape.LARGE_ROOM, Shape.HALF, Shape.SMALL_CIRCLE, Shape.LARGE_CIRCLE],
+        [0.15, 0.20, 0.28, 0.17, 0.12, 0.08]
+        ),
+    4: (
+        [Shape.CONNECTION, Shape.SMALL_ROOM, Shape.LARGE_ROOM, Shape.LARGE_CIRCLE],
+        [0.15, 0.28, 0.40, 0.17]
+        )
 }
 
 _THEME_TABLES: dict[Shape, tuple[list[Theme], list[float]]] = {
-    Shape.DEAD_END:   ([Theme.DE_TRAPPED, Theme.DE_TREASURE, Theme.DE_HEALTHY, Theme.DE_GUARDED, Theme.EMPTY], [0.20, 0.15, 0.10, 0.15, 0.40]),
-    Shape.BOSS_ROOM:  ([Theme.BR_HOARD, Theme.BR_WIZARD, Theme.BR_WEAK, Theme.BR_STRONG, Theme.BR_GUARDED, Theme.BR_DOUBLE], [0.20, 0.20, 0.20, 0.10, 0.20, 0.10]),
-    Shape.SMALL_ROOM: ([Theme.SR_TRAPPED, Theme.SR_TREASURE, Theme.SR_GUARDED, Theme.SR_CHAOS, Theme.SR_BASIC, Theme.EMPTY], [0.20, 0.10, 0.15, 0.10, 0.30, 0.15]),
-    Shape.CONNECTION: ([Theme.CN_TRAPPED, Theme.CN_GUARDED, Theme.CN_BASIC, Theme.EMPTY], [0.20, 0.20, 0.30, 0.30]),
-    Shape.LARGE_ROOM: ([Theme.LR_TRAPPED, Theme.LR_TREASURE, Theme.LR_HEALTHY, Theme.LR_GUARDED, Theme.LR_CHAOS, Theme.LR_BASIC, Theme.EMPTY], [0.20, 0.05, 0.05, 0.15, 0.10, 0.30, 0.15]),
-    Shape.CORNER:     ([Theme.CR_TRAPPED, Theme.CR_TREASURE, Theme.CR_GUARDED, Theme.CR_CHAOS, Theme.CR_BASIC, Theme.EMPTY], [0.20, 0.10, 0.15, 0.10, 0.30, 0.15]),
-    Shape.HALF:       ([Theme.HR_TRAPPED, Theme.HR_TREASURE, Theme.HR_GUARDED, Theme.HR_CHAOS, Theme.HR_BASIC, Theme.EMPTY], [0.20, 0.10, 0.15, 0.10, 0.30, 0.15]),
+    Shape.DEAD_END:
+    (
+        [Theme.DE_TRAPPED, Theme.DE_TREASURE, Theme.DE_HEALTHY, Theme.DE_GUARDED, Theme.EMPTY],
+        [0.20, 0.15, 0.10, 0.15, 0.40]
+    ),
+    Shape.BOSS_ROOM:
+    (
+        [Theme.BR_HOARD, Theme.BR_WIZARD, Theme.BR_WEAK, Theme.BR_STRONG, Theme.BR_GUARDED, Theme.BR_DOUBLE],
+        [0.20, 0.20, 0.20, 0.10, 0.20, 0.10]
+    ),
+    Shape.SMALL_ROOM:
+    (
+        [Theme.SR_TRAPPED, Theme.SR_TREASURE, Theme.SR_GUARDED, Theme.SR_CHAOS, Theme.SR_BASIC, Theme.EMPTY],
+        [0.20, 0.10, 0.15, 0.10, 0.30, 0.15]
+    ),
+    Shape.CONNECTION:
+    (
+        [Theme.CN_TRAPPED, Theme.CN_GUARDED, Theme.CN_BASIC, Theme.EMPTY],
+        [0.20, 0.20, 0.30, 0.30]
+    ),
+    Shape.LARGE_ROOM:
+    (
+        [Theme.LR_TRAPPED, Theme.LR_TREASURE, Theme.LR_HEALTHY, Theme.LR_GUARDED, Theme.LR_CHAOS, Theme.LR_BASIC, Theme.EMPTY],
+        [0.20, 0.05, 0.05, 0.15, 0.10, 0.30, 0.15]
+    ),
+    Shape.CORNER:
+    (
+        [Theme.CR_TRAPPED, Theme.CR_TREASURE, Theme.CR_GUARDED, Theme.CR_CHAOS, Theme.CR_BASIC, Theme.EMPTY],
+        [0.20, 0.10, 0.15, 0.10, 0.30, 0.15]
+    ),
+    Shape.HALF:
+    (
+        [Theme.HR_TRAPPED, Theme.HR_TREASURE, Theme.HR_GUARDED, Theme.HR_CHAOS, Theme.HR_BASIC, Theme.EMPTY],
+        [0.20, 0.10, 0.15, 0.10, 0.30, 0.15]
+    ),
+    Shape.SMALL_CIRCLE:
+    (
+        [Theme.SC_TRAPPED, Theme.SC_TREASURE, Theme.SC_GUARDED, Theme.SC_CHAOS, Theme.SC_BASIC, Theme.EMPTY],
+        [0.20, 0.10, 0.15, 0.10, 0.30, 0.15]
+    ),
+    Shape.LARGE_CIRCLE:
+    (
+        [Theme.LC_TRAPPED, Theme.LC_TREASURE, Theme.LC_HEALTHY, Theme.LC_GUARDED, Theme.LC_CHAOS, Theme.LC_BASIC, Theme.EMPTY],
+        [0.20, 0.05, 0.05, 0.15, 0.10, 0.30, 0.15]
+    ),
 }
 
 _POPULATION_TABLES: dict[Theme, dict[Const, int | tuple[int, int]]] = {
@@ -154,6 +226,19 @@ _POPULATION_TABLES: dict[Theme, dict[Const, int | tuple[int, int]]] = {
     Theme.BR_GUARDED:  {Const.TRAP: 1, Const.CHEST: 2, Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: 2, Const.BOSS_SPAWNER: 1, Const.SHRINE: 1},
     Theme.BR_DOUBLE:   {Const.CHEST: 3, Const.LOOT_PILE: 5, Const.BOSS_SPAWNER: 2, Const.SHRINE: 1},
     
+    Theme.SC_TRAPPED:  {Const.HOLE: 1, Const.TRAP: (3,5), Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 1},
+    Theme.SC_TREASURE: {Const.TRAP: (1,2), Const.CHEST: 2, Const.LOOT_PILE: 3},
+    Theme.SC_GUARDED:  {Const.WATER: (0,1), Const.TRAP: 1, Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 2},
+    Theme.SC_CHAOS:    {Const.HOLE: 2, Const.WATER: (0,1), Const.TRAP: 3, Const.CHEST: 1, Const.LOOT_PILE: 2, Const.MONSTER_SPAWNER: 3, Const.SHRINE: 1},
+    Theme.SC_BASIC:    {Const.TRAP: (0,1), Const.LOOT_PILE: (0,1)},
+
+    Theme.LC_TRAPPED:  {Const.HOLE: 2, Const.WATER: 1, Const.TRAP: (3,5), Const.LOOT_PILE: 2, Const.MONSTER_SPAWNER: 1},
+    Theme.LC_TREASURE: {Const.TRAP: 1, Const.CHEST: 2, Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: 1},
+    Theme.LC_HEALTHY:  {Const.HEALING_STATION: 1},
+    Theme.LC_GUARDED:  {Const.WATER: (0,1), Const.TRAP: 1, Const.CHEST: 1, Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 3},
+    Theme.LC_CHAOS:    {Const.HOLE: 2, Const.WATER: 1, Const.TRAP: 3, Const.CHEST: 2, Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: (2,4), Const.SHRINE: 1},
+    Theme.LC_BASIC:    {Const.TRAP: (1,2), Const.LOOT_PILE: (0,1)},
+
     Theme.EMPTY:       {}
     }
 
@@ -331,6 +416,14 @@ def build_room(
                     tilemap[1:-1, half:-1] = Const.FLOOR
                 case _:
                     pass
+        case Shape.SMALL_CIRCLE:
+            y, x = np.ogrid[:Const.ROOM_SIZE, :Const.ROOM_SIZE]
+            mask = (y - half) ** 2 + (x - half) ** 2 <= 3 ** 2
+            tilemap[mask] = Const.FLOOR
+        case Shape.LARGE_CIRCLE:
+            y, x = np.ogrid[:Const.ROOM_SIZE, :Const.ROOM_SIZE]
+            mask = (y - half) ** 2 + (x - half) ** 2 <= 6 ** 2
+            tilemap[mask] = Const.FLOOR
     return tilemap
 
 @timeit
@@ -357,7 +450,7 @@ def get_theme(room_shape: Shape, rand_rng: Random) -> Theme:
         If room_shape is not present in _THEME_TABLES.
     """
     if room_shape not in _THEME_TABLES:
-        raise InvalidRoom(f"The get_theme function does not support rooms with {room_shape} shape")
+        raise InvalidRoom(f"The get_theme function does not support rooms with {room_shape.name} shape")
     theme_list, probs = _THEME_TABLES[room_shape]
     theme: Theme = rand_rng.choices(theme_list, probs)[0]
     return theme
