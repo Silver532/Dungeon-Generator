@@ -128,14 +128,13 @@ def _debug(tilemap: array[uint8]) -> None:
         Const.MONSTER_SPAWNER: "orange"
     }
     max_val = max(colour_dict.keys())
-    colours: list[str] = ["black" * (max_val - 1)]
+    colours: list[str] = ["black"] * (max_val + 1)
     for const, colour in colour_dict.items():
         colours[const] = colour
     debug_render(
         tilemap, colours, info,
         figsize=(7, 7),
-        tile_formatter = _get_tile_value,
-        grid_colour = None
+        tile_formatter = _get_tile_value
     )
     return
 

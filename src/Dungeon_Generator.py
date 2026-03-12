@@ -556,7 +556,7 @@ def _debug(tilemap: array[uint8], room_count: int) -> None:
         5: "yellow",
     }
     max_val = max(colour_dict.keys())
-    colours: list[str] = ["black" * (max_val - 1)]
+    colours: list[str] = ["black"] * (max_val + 1)
     for const, colour in colour_dict.items():
         colours[const] = colour
     debug_render(

@@ -301,7 +301,7 @@ def debug_render(
     
     fig, ax = plt.subplots(figsize = figsize, dpi = 120)                                        #pyright: ignore[reportUnknownMemberType]
     ax.imshow(tilemap,cmap=cmap,norm=norm,interpolation="nearest")                              #pyright: ignore[reportUnknownMemberType]
-    if grid_colour is not None: ax.grid(which="minor", color=grid_colour, linewidth=0.5)        #pyright: ignore[reportUnknownMemberType]
+    if grid_colour is not None: ax.grid(which="minor", color=grid_colour, linewidth=0.2)        #pyright: ignore[reportUnknownMemberType]
     ax.tick_params(                                                                             #pyright: ignore[reportUnknownMemberType]
         which="both", bottom=False, left=False,
         labelbottom=False, labelleft=False
