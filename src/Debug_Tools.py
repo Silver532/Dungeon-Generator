@@ -244,7 +244,7 @@ def debug_render(
         tilemap: array[uint8],
         colours: list[str],
         info: Mapping[str,str | int] | None = None, 
-        grid_colour: str = "black",
+        grid_colour: str | None = "black",
         figsize: tuple[float, float] = (5,5),
         tile_formatter: Callable[[int], tuple[str,str]] | None = None,
         click_map: array[uint8] | None = None
@@ -301,7 +301,7 @@ def debug_render(
     
     fig, ax = plt.subplots(figsize = figsize, dpi = 120)                                        #pyright: ignore[reportUnknownMemberType]
     ax.imshow(tilemap,cmap=cmap,norm=norm,interpolation="nearest")                              #pyright: ignore[reportUnknownMemberType]
-    ax.grid(which="minor", color=grid_colour, linewidth=0.5)                                    #pyright: ignore[reportUnknownMemberType]
+    if grid_colour is not None: ax.grid(which="minor", color=grid_colour, linewidth=0.5)        #pyright: ignore[reportUnknownMemberType]
     ax.tick_params(                                                                             #pyright: ignore[reportUnknownMemberType]
         which="both", bottom=False, left=False,
         labelbottom=False, labelleft=False

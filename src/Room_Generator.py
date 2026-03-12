@@ -34,14 +34,15 @@ class Const(IntEnum):
     FLOOR = 1
     HOLE = 2
     WATER = 3
-    TRAP = 4
-    HEALING_STATION = 5
-    CHEST = 6
-    LOOT_PILE = 7
-    LOOT_CLUSTER = 7
-    MONSTER_SPAWNER = 8
-    BOSS_SPAWNER = 9
-    SHRINE = 10
+    WATER_POOL = 4
+    TRAP = 5
+    HEALING_STATION = 6
+    CHEST = 7
+    LOOT_PILE = 8
+    LOOT_CLUSTER = 9
+    MONSTER_SPAWNER = 10
+    BOSS_SPAWNER = 11
+    SHRINE = 12
 
 class Shape(IntEnum):
     """
@@ -80,10 +81,12 @@ class Theme(IntEnum):
     SR_GUARDED = auto()
     SR_CHAOS = auto()
     SR_BASIC = auto()
+    SR_FLOODED = auto()
 
     CN_TRAPPED = auto()
     CN_GUARDED = auto()
     CN_BASIC = auto()
+    CN_FLOODED = auto()
 
     LR_TRAPPED = auto()
     LR_TREASURE = auto()
@@ -91,24 +94,28 @@ class Theme(IntEnum):
     LR_GUARDED = auto()
     LR_CHAOS = auto()
     LR_BASIC = auto()
+    LR_FLOODED = auto()
 
     CR_TRAPPED = auto()
     CR_TREASURE = auto()
     CR_GUARDED = auto()
     CR_CHAOS = auto()
     CR_BASIC = auto()
+    CR_FLOODED = auto()
 
     HR_TRAPPED = auto()
     HR_TREASURE = auto()
     HR_GUARDED = auto()
     HR_CHAOS = auto()
     HR_BASIC = auto()
+    HR_FLOODED = auto()
 
     SC_TRAPPED = auto()
     SC_TREASURE = auto()
     SC_GUARDED = auto()
     SC_CHAOS = auto()
     SC_BASIC = auto()
+    SC_FLOODED = auto()
     
     LC_TRAPPED = auto()
     LC_TREASURE = auto()
@@ -116,6 +123,7 @@ class Theme(IntEnum):
     LC_GUARDED = auto()
     LC_CHAOS = auto()
     LC_BASIC = auto()
+    LC_FLOODED = auto()
 
 _SHAPE_TABLES: dict[int, tuple[list[Shape], list[float]]] = {
     1: (
@@ -149,38 +157,38 @@ _THEME_TABLES: dict[Shape, tuple[list[Theme], list[float]]] = {
     ),
     Shape.SMALL_ROOM:
     (
-        [Theme.SR_TRAPPED, Theme.SR_TREASURE, Theme.SR_GUARDED, Theme.SR_CHAOS, Theme.SR_BASIC, Theme.EMPTY],
-        [0.20, 0.10, 0.15, 0.10, 0.30, 0.15]
+        [Theme.SR_TRAPPED, Theme.SR_TREASURE, Theme.SR_GUARDED, Theme.SR_CHAOS, Theme.SR_BASIC, Theme.SR_FLOODED, Theme.EMPTY],
+        [0.20, 0.10, 0.15, 0.10, 0.25, 0.10, 0.10]
     ),
     Shape.CONNECTION:
     (
-        [Theme.CN_TRAPPED, Theme.CN_GUARDED, Theme.CN_BASIC, Theme.EMPTY],
-        [0.20, 0.20, 0.30, 0.30]
+        [Theme.CN_TRAPPED, Theme.CN_GUARDED, Theme.CN_BASIC, Theme.CN_FLOODED, Theme.EMPTY],
+        [0.20, 0.20, 0.25, 0.10, 0.25]
     ),
     Shape.LARGE_ROOM:
     (
-        [Theme.LR_TRAPPED, Theme.LR_TREASURE, Theme.LR_HEALTHY, Theme.LR_GUARDED, Theme.LR_CHAOS, Theme.LR_BASIC, Theme.EMPTY],
-        [0.20, 0.05, 0.05, 0.15, 0.10, 0.30, 0.15]
+        [Theme.LR_TRAPPED, Theme.LR_TREASURE, Theme.LR_HEALTHY, Theme.LR_GUARDED, Theme.LR_CHAOS, Theme.LR_BASIC, Theme.LR_FLOODED, Theme.EMPTY],
+        [0.20, 0.05, 0.05, 0.15, 0.10, 0.25, 0.10, 0.10]
     ),
     Shape.CORNER:
     (
-        [Theme.CR_TRAPPED, Theme.CR_TREASURE, Theme.CR_GUARDED, Theme.CR_CHAOS, Theme.CR_BASIC, Theme.EMPTY],
-        [0.20, 0.10, 0.15, 0.10, 0.30, 0.15]
+        [Theme.CR_TRAPPED, Theme.CR_TREASURE, Theme.CR_GUARDED, Theme.CR_CHAOS, Theme.CR_BASIC, Theme.CR_FLOODED, Theme.EMPTY],
+        [0.20, 0.10, 0.15, 0.10, 0.25, 0.10, 0.10]
     ),
     Shape.HALF:
     (
-        [Theme.HR_TRAPPED, Theme.HR_TREASURE, Theme.HR_GUARDED, Theme.HR_CHAOS, Theme.HR_BASIC, Theme.EMPTY],
-        [0.20, 0.10, 0.15, 0.10, 0.30, 0.15]
+        [Theme.HR_TRAPPED, Theme.HR_TREASURE, Theme.HR_GUARDED, Theme.HR_CHAOS, Theme.HR_BASIC, Theme.HR_FLOODED, Theme.EMPTY],
+        [0.20, 0.10, 0.15, 0.10, 0.25, 0.10, 0.10]
     ),
     Shape.SMALL_CIRCLE:
     (
-        [Theme.SC_TRAPPED, Theme.SC_TREASURE, Theme.SC_GUARDED, Theme.SC_CHAOS, Theme.SC_BASIC, Theme.EMPTY],
-        [0.20, 0.10, 0.15, 0.10, 0.30, 0.15]
+        [Theme.SC_TRAPPED, Theme.SC_TREASURE, Theme.SC_GUARDED, Theme.SC_CHAOS, Theme.SC_BASIC, Theme.SC_FLOODED, Theme.EMPTY],
+        [0.20, 0.10, 0.15, 0.10, 0.25, 0.10, 0.10]
     ),
     Shape.LARGE_CIRCLE:
     (
-        [Theme.LC_TRAPPED, Theme.LC_TREASURE, Theme.LC_HEALTHY, Theme.LC_GUARDED, Theme.LC_CHAOS, Theme.LC_BASIC, Theme.EMPTY],
-        [0.20, 0.05, 0.05, 0.15, 0.10, 0.30, 0.15]
+        [Theme.LC_TRAPPED, Theme.LC_TREASURE, Theme.LC_HEALTHY, Theme.LC_GUARDED, Theme.LC_CHAOS, Theme.LC_BASIC, Theme.LC_FLOODED, Theme.EMPTY],
+        [0.20, 0.05, 0.05, 0.15, 0.10, 0.25, 0.10, 0.10]
     ),
 }
 
@@ -195,10 +203,12 @@ _POPULATION_TABLES: dict[Theme, dict[Const, int | tuple[int, int]]] = {
     Theme.SR_GUARDED:  {Const.WATER: (0,1), Const.TRAP: 1, Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 2},
     Theme.SR_CHAOS:    {Const.HOLE: 2, Const.WATER: (0,1), Const.TRAP: 3, Const.CHEST: 1, Const.LOOT_PILE: 2, Const.MONSTER_SPAWNER: 3, Const.SHRINE: 1},
     Theme.SR_BASIC:    {Const.TRAP: (0,1), Const.LOOT_PILE: (0,1)},
+    Theme.SR_FLOODED:  {Const.WATER: 5, Const.WATER_POOL: 13, Const.MONSTER_SPAWNER: 1},
     
     Theme.CN_TRAPPED:  {Const.HOLE: 1, Const.TRAP: (1,3), Const.LOOT_PILE: 1},
     Theme.CN_GUARDED:  {Const.MONSTER_SPAWNER: 1},
     Theme.CN_BASIC:    {Const.LOOT_PILE: (0,1)},
+    Theme.CN_FLOODED:  {Const.WATER: 4, Const.WATER_POOL: 10, Const.MONSTER_SPAWNER: (0,1)},
     
     Theme.LR_TRAPPED:  {Const.HOLE: 2, Const.WATER: 1, Const.TRAP: (3,5), Const.LOOT_PILE: 2, Const.MONSTER_SPAWNER: 1},
     Theme.LR_TREASURE: {Const.TRAP: 1, Const.CHEST: 2, Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: 1},
@@ -206,18 +216,21 @@ _POPULATION_TABLES: dict[Theme, dict[Const, int | tuple[int, int]]] = {
     Theme.LR_GUARDED:  {Const.WATER: (0,1), Const.TRAP: 1, Const.CHEST: 1, Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 3},
     Theme.LR_CHAOS:    {Const.HOLE: 2, Const.WATER: 1, Const.TRAP: 3, Const.CHEST: 2, Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: (2,4), Const.SHRINE: 1},
     Theme.LR_BASIC:    {Const.TRAP: (1,2), Const.LOOT_PILE: (0,1)},
+    Theme.LR_FLOODED:  {Const.WATER: 6, Const.WATER_POOL: 18, Const.MONSTER_SPAWNER: 1},
     
     Theme.CR_TRAPPED:  {Const.HOLE: 1, Const.TRAP: (2,4), Const.LOOT_PILE: 1},
     Theme.CR_TREASURE: {Const.TRAP: 1, Const.CHEST: 1, Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: 1},
     Theme.CR_GUARDED:  {Const.WATER: (0,1), Const.TRAP: 1, Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 2},
     Theme.CR_CHAOS:    {Const.HOLE: (0,1), Const.WATER: 1, Const.TRAP: 3, Const.CHEST: (0,2), Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: (2,3), Const.SHRINE: 1},
     Theme.CR_BASIC:    {Const.TRAP: (0,1), Const.LOOT_PILE: (0,1)},
+    Theme.CR_FLOODED:  {Const.WATER: 4, Const.WATER_POOL: 12, Const.MONSTER_SPAWNER: (0,1)},
     
     Theme.HR_TRAPPED:  {Const.HOLE: 1, Const.TRAP: (2,4), Const.LOOT_PILE: 1},
     Theme.HR_TREASURE: {Const.TRAP: 1, Const.CHEST: 1, Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: 1},
     Theme.HR_GUARDED:  {Const.WATER: (0,1), Const.TRAP: 1, Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 2},
     Theme.HR_CHAOS:    {Const.HOLE: (0,1), Const.WATER: 1, Const.TRAP: 3, Const.MONSTER_SPAWNER: (2,3), Const.SHRINE: 1, Const.CHEST: (0,2), Const.LOOT_PILE: 3},
     Theme.HR_BASIC:    {Const.TRAP: (0,1), Const.LOOT_PILE: (0,1)},
+    Theme.HR_FLOODED:  {Const.WATER: 5, Const.WATER_POOL: 15, Const.MONSTER_SPAWNER: (0,1)},
     
     Theme.BR_HOARD:    {Const.CHEST: 3, Const.LOOT_PILE: 9, Const.BOSS_SPAWNER: 1, Const.SHRINE: 1},
     Theme.BR_WIZARD:   {Const.CHEST: 4, Const.LOOT_PILE: 3, Const.BOSS_SPAWNER: 1, Const.SHRINE: 1},
@@ -231,6 +244,7 @@ _POPULATION_TABLES: dict[Theme, dict[Const, int | tuple[int, int]]] = {
     Theme.SC_GUARDED:  {Const.WATER: (0,1), Const.TRAP: 1, Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 2},
     Theme.SC_CHAOS:    {Const.HOLE: 2, Const.WATER: (0,1), Const.TRAP: 3, Const.CHEST: 1, Const.LOOT_PILE: 2, Const.MONSTER_SPAWNER: 3, Const.SHRINE: 1},
     Theme.SC_BASIC:    {Const.TRAP: (0,1), Const.LOOT_PILE: (0,1)},
+    Theme.SC_FLOODED:  {Const.WATER: 4, Const.WATER_POOL: 12, Const.MONSTER_SPAWNER: (0,1)},
 
     Theme.LC_TRAPPED:  {Const.HOLE: 2, Const.WATER: 1, Const.TRAP: (3,5), Const.LOOT_PILE: 2, Const.MONSTER_SPAWNER: 1},
     Theme.LC_TREASURE: {Const.TRAP: 1, Const.CHEST: 2, Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: 1},
@@ -238,12 +252,14 @@ _POPULATION_TABLES: dict[Theme, dict[Const, int | tuple[int, int]]] = {
     Theme.LC_GUARDED:  {Const.WATER: (0,1), Const.TRAP: 1, Const.CHEST: 1, Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 3},
     Theme.LC_CHAOS:    {Const.HOLE: 2, Const.WATER: 1, Const.TRAP: 3, Const.CHEST: 2, Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: (2,4), Const.SHRINE: 1},
     Theme.LC_BASIC:    {Const.TRAP: (1,2), Const.LOOT_PILE: (0,1)},
+    Theme.LC_FLOODED:  {Const.WATER: 7, Const.WATER_POOL: 21, Const.MONSTER_SPAWNER: (1,2)},
 
     Theme.EMPTY:       {}
     }
 
 _FEATURE_ORDER = (
         Const.WATER,
+        Const.WATER_POOL,
         Const.HOLE,
         Const.HEALING_STATION,
         Const.SHRINE,
@@ -257,6 +273,7 @@ _FEATURE_ORDER = (
 
 _SCAN_PARAMS: dict[Const, dict[str, set[Const]]] = {
     Const.WATER:            {"block": {Const.CHEST, Const.LOOT_PILE, Const.HOLE}},
+    Const.WATER_POOL:       {"require": {Const.WATER}, "block": {Const.CHEST, Const.LOOT_PILE, Const.HOLE}},
     Const.HOLE:             {"block": {Const.WALL, Const.WATER, Const.LOOT_PILE}},
     Const.HEALING_STATION:  {"require": {Const.FLOOR}, "place_on": {Const.WALL}},
     Const.SHRINE:           {"require": {Const.FLOOR}, "place_on": {Const.WALL}},
@@ -267,6 +284,11 @@ _SCAN_PARAMS: dict[Const, dict[str, set[Const]]] = {
     Const.BOSS_SPAWNER:     {"block": {Const.MONSTER_SPAWNER, Const.HEALING_STATION, Const.SHRINE}},
     Const.MONSTER_SPAWNER:  {"block": {Const.BOSS_SPAWNER, Const.HEALING_STATION, Const.SHRINE}}
     }
+
+_DUPLICATES: dict[Const, Const] = {
+    Const.WATER_POOL: Const.WATER,
+    Const.LOOT_CLUSTER: Const.LOOT_PILE
+}
 
 @timeit
 def get_shape(room_val: int, rand_rng: Random) -> Shape:
@@ -565,7 +587,11 @@ def place(
     if not count: return
     indices = np_rng.choice(len(available_list), size=count, replace=False)
     coords = available_list[indices]
-    tilemap[coords[:, 0], coords[:, 1]] = feature
+    if feature in _DUPLICATES:
+        tile = _DUPLICATES[feature]
+    else:
+        tile = feature
+    tilemap[coords[:, 0], coords[:, 1]] = tile
     return
 
 @timeit
@@ -679,12 +705,24 @@ def _debug(
         room_shape: Shape,
         room_theme: Theme
 ) -> None:
-    colours = [
-        "black", "white", "gray", "blue",
-        "red", "green", "brown", "yellow",
-        "orange", "red", "green"
-    ]
     info = {"Shape": room_shape.name, "Theme": room_theme.name}
+    colour_dict: dict[Const, str] = {
+        Const.WALL: "black",
+        Const.FLOOR: "white",
+        Const.WATER: "blue",
+        Const.HOLE: "gray",
+        Const.HEALING_STATION: "green",
+        Const.SHRINE: "silver",
+        Const.CHEST: "brown",
+        Const.LOOT_PILE: "gold",
+        Const.TRAP: "red",
+        Const.BOSS_SPAWNER: "orange",
+        Const.MONSTER_SPAWNER: "orange"
+    }
+    max_val = max(colour_dict.keys())
+    colours: list[str] = ["black" * (max_val - 1)]
+    for const, colour in colour_dict.items():
+        colours[const] = colour
     debug_render(tilemap, colours, info, tile_formatter = _get_tile_value)
     return
 

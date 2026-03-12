@@ -546,8 +546,19 @@ def _debug(tilemap: array[uint8], room_count: int) -> None:
     - Clicking outside the axes prints the total room count.
     """
     debug_map = _make_exit_map(tilemap)
-    colours = ["white", "black", "green", "blue", "red", "yellow"]
     info = {"Dungeon Rooms": room_count}
+    colour_dict: dict[int, str] = {
+        0: "white",
+        1: "black",
+        2: "green",
+        3: "blue",
+        4: "red",
+        5: "yellow",
+    }
+    max_val = max(colour_dict.keys())
+    colours: list[str] = ["black" * (max_val - 1)]
+    for const, colour in colour_dict.items():
+        colours[const] = colour
     debug_render(
         debug_map, colours, info,
         grid_colour="white",

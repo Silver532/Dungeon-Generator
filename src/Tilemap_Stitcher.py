@@ -113,16 +113,29 @@ def _debug(tilemap: array[uint8]) -> None:
     - Clicking a tile prints its position and Const name.
     - Clicking outside the axes prints the tilemap dimensions.
     """
-    colours = [
-        "black", "white", "gray", "blue",
-        "red", "green", "brown", "yellow",
-        "orange", "red", "green"
-    ]
     info = {"Size": f"{tilemap.shape}"}
+    colour_dict: dict[Const, str] = {
+        Const.WALL: "black",
+        Const.FLOOR: "white",
+        Const.WATER: "blue",
+        Const.HOLE: "gray",
+        Const.HEALING_STATION: "green",
+        Const.SHRINE: "silver",
+        Const.CHEST: "brown",
+        Const.LOOT_PILE: "gold",
+        Const.TRAP: "red",
+        Const.BOSS_SPAWNER: "orange",
+        Const.MONSTER_SPAWNER: "orange"
+    }
+    max_val = max(colour_dict.keys())
+    colours: list[str] = ["black" * (max_val - 1)]
+    for const, colour in colour_dict.items():
+        colours[const] = colour
     debug_render(
         tilemap, colours, info,
         figsize=(7, 7),
-        tile_formatter = _get_tile_value
+        tile_formatter = _get_tile_value,
+        grid_colour = None
     )
     return
 
