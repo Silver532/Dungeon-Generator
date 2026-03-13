@@ -290,6 +290,14 @@ _DUPLICATES: dict[Const, Const] = {
     Const.LOOT_CLUSTER: Const.LOOT_PILE
 }
 
+_ROOM_Y, _ROOM_X = np.ogrid[:Const.ROOM_SIZE, :Const.ROOM_SIZE]
+_SMALL_CIRCLE_MASK = (
+    (_ROOM_Y - Const.HALF) ** 2 + (_ROOM_X - Const.HALF) ** 2 <= 3 ** 2
+)
+_LARGE_CIRCLE_MASK = (
+    (_ROOM_Y - Const.HALF) ** 2 + (_ROOM_X - Const.HALF) ** 2 <= 6 ** 2
+)
+
 @timeit
 def get_shape(room_val: int, rand_rng: Random) -> Shape:
     """
@@ -439,13 +447,9 @@ def build_room(
                 case _:
                     pass
         case Shape.SMALL_CIRCLE:
-            y, x = np.ogrid[:Const.ROOM_SIZE, :Const.ROOM_SIZE]
-            mask = (y - half) ** 2 + (x - half) ** 2 <= 3 ** 2
-            tilemap[mask] = Const.FLOOR
+            tilemap[_SMALL_CIRCLE_MASK] = Const.FLOOR
         case Shape.LARGE_CIRCLE:
-            y, x = np.ogrid[:Const.ROOM_SIZE, :Const.ROOM_SIZE]
-            mask = (y - half) ** 2 + (x - half) ** 2 <= 6 ** 2
-            tilemap[mask] = Const.FLOOR
+            tilemap[_LARGE_CIRCLE_MASK] = Const.FLOOR
     return tilemap
 
 @timeit
@@ -533,12 +537,12 @@ def scan_tilemap(
             adj_map(tilemap, neighbor_map, target = block, iso = False) == 0
         )
 
-    available_list = np.argwhere(available_grid).astype(np.int32)
+    available_list = np.argwhere(available_grid).astype(np.int32, copy=False)
     if bias is not None:
-        bias_grid = available_grid & (
-            adj_map(tilemap, neighbor_map, target = bias, iso = False) != 0
+        bias_grid = (
+            adj_map(tilemap, neighbor_map, target=bias, iso=False) != 0
         )
-        bias_mask = bias_grid[available_list[:,0], available_list[:, 1]]
+        bias_mask = bias_grid[available_list[:, 0], available_list[:, 1]]
         biases = available_list[bias_mask]
         if biases.size > 0:
             bias_list = np.repeat(biases, 4, axis=0)
