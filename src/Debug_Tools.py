@@ -21,6 +21,7 @@ from numpy import uint8
 from numpy.typing import NDArray as array
 
 _TIMINGS: dict[str, list[float]] = {}
+_RUN_KEYS = ("dungeon_generator", "dungeon_map_generator", "room_map_generator")
 _timing_enabled: bool = False
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -81,7 +82,13 @@ def arg_parser() -> bool:
     if args.time: enable_timing(); return True
     return False
 
-def write_timings_to_file(filename: str = "timings.txt") -> None:
+def _get_run_count() -> float:
+    for key in _RUN_KEYS:
+        if key in _TIMINGS:
+            return _TIMINGS[key][1]
+    return 1
+
+def _write_timings_to_file(filename: str = "../timings.txt") -> None:
     """
     Writes collected timing statistics from all @timeit decorated
     functions to a file.
@@ -108,14 +115,19 @@ def write_timings_to_file(filename: str = "timings.txt") -> None:
     - The file is written in UTF-8 encoding, overwriting any existing
       file with the same name.
     """
+    run_count = _get_run_count()
     with open(filename, "w", encoding="utf-8") as f:
         for name, (total, count) in _TIMINGS.items():
             avg = total/count
+            per_run_calls = count / run_count
+            per_run_time = total / run_count
             f.write(
-                f"{name:<25}  "
-                f"avg={avg:>7.3f} ms  "
-                f"calls={count:>6}  "
-                f"total={total:>9.3f} ms\n"
+                f"{name}\n"
+                f"\t{'per call':<12}{avg:>9.3f} ms\n"
+                f"\t{'calls':<12}{count:>9}\n"
+                f"\t{'calls/run':<12}{per_run_calls:>9.1f}\n"
+                f"\t{'ms/run':<12}{per_run_time:>9.3f} ms\n"
+                f"\t{'total':<12}{total:>9.3f} ms\n\n"
             )
     return
 
@@ -321,4 +333,4 @@ def debug_render(
     plt.show()                                                                                  #pyright: ignore[reportUnknownMemberType]
     return
 
-register(lambda: write_timings_to_file() if _TIMINGS else None)
+register(lambda: _write_timings_to_file() if _TIMINGS else None)
