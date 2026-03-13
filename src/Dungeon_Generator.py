@@ -15,7 +15,7 @@ from numpy import uint8
 from numpy.typing import NDArray as array
 
 from Debug_Tools import timeit, arg_parser, debug_render
-from Generator_Helpers import init_tilemap, adj_map
+from Generator_Helpers import init_tilemap
 
 class Const(IntEnum):
     """
@@ -80,6 +80,19 @@ def room_fill(
     return tilemap
 
 @timeit
+def fast_adj(
+        tilemap: array[uint8],
+        neighbor_map: array[uint8]
+) -> None:
+    h, w = tilemap.shape
+    mask = (tilemap != 0).astype(uint8)
+    neighbor_map.fill(0)
+    neighbor_map[1:h-1, :] = mask[0:h-2, :] + mask[2:h, :]
+    neighbor_map[:, 1:w-1] += mask[:, 0:w-2] + mask[:, 2:w]
+    neighbor_map *= (tilemap == 1)
+    return
+
+@timeit
 def room_eroder(
         tilemap: array[uint8],
         np_rng: np.random.Generator
@@ -118,7 +131,7 @@ def room_eroder(
     neighbor_map = np.empty_like(tilemap, dtype=uint8)
 
     for _ in range(Const.ERODE_COUNT):
-        adj_map(tilemap, neighbor_map)
+        fast_adj(tilemap, neighbor_map)
 
         mask_2 = (neighbor_map == 2)
         tilemap[
@@ -130,7 +143,7 @@ def room_eroder(
             mask_3 & (np_rng.random(mask_3.shape, dtype = np.float32) < 0.1)
         ] = Const.NO_ROOM
 
-    adj_map(tilemap, neighbor_map)
+    fast_adj(tilemap, neighbor_map)
     tilemap[neighbor_map == 0] = Const.NO_ROOM
     return tilemap
 
