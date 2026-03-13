@@ -5,22 +5,17 @@ In File Entry Point: _main() or _time_test()
 Import Entry Point: room_map_generator()
 """
 
-import numpy as np
-import matplotlib.pyplot as plt
+from collections.abc import Collection
+from enum import IntEnum, auto
+from random import Random
+from time import perf_counter_ns as clock
 
+import numpy as np
 from numpy import uint8
 from numpy.typing import NDArray as array
-from matplotlib import rcParams
-from matplotlib.colors import ListedColormap, BoundaryNorm
-from matplotlib.axes import Axes
-from matplotlib.backend_bases import Event, MouseEvent
-from collections.abc import Collection
-from time import perf_counter_ns as clock
-from enum import IntEnum
-from random import Random
 
-from Generator_Helpers import init_tilemap, adj_map
-from Debug_Tools import timeit, arg_parser
+from Debug_Tools import timeit, arg_parser, debug_render
+from Generator_Helpers import init_tilemap
 
 class InvalidRoom(Exception):
     """
@@ -39,82 +34,162 @@ class Const(IntEnum):
     FLOOR = 1
     HOLE = 2
     WATER = 3
-    TRAP = 4
-    HEALING_STATION = 5
-    CHEST = 6
-    LOOT_PILE = 7
-    LOOT_CLUSTER = 7
-    MONSTER_SPAWNER = 8
-    BOSS_SPAWNER = 9
-    SHRINE = 10
+    WATER_POOL = 4
+    TRAP = 5
+    HEALING_STATION = 6
+    CHEST = 7
+    LOOT_PILE = 8
+    LOOT_CLUSTER = 9
+    MONSTER_SPAWNER = 10
+    BOSS_SPAWNER = 11
+    SHRINE = 12
 
 class Shape(IntEnum):
     """
     Shape Constants for Rooms
     """
-    DEAD_END = 1
-    BOSS_ROOM = 2
-    SMALL_ROOM = 3
-    LARGE_ROOM = 4
-    CONNECTION = 5
-    CORNER = 6
-    HALF = 7
+    DEAD_END = 0
+    BOSS_ROOM = auto()
+    SMALL_ROOM = auto()
+    LARGE_ROOM = auto()
+    CONNECTION = auto()
+    CORNER = auto()
+    HALF = auto()
+    SMALL_CIRCLE = auto()
+    LARGE_CIRCLE = auto()
 
 class Theme(IntEnum):
     """
     Theme Constants for Rooms
     """
     EMPTY = 0
-    DE_TRAPPED = 1
-    DE_TREASURE = 2
-    DE_HEALTHY = 3
-    DE_GUARDED = 4
-    BR_HOARD = 5
-    BR_WIZARD = 6
-    BR_WEAK = 7
-    BR_STRONG = 8
-    BR_GUARDED = 9
-    BR_DOUBLE = 10
-    SR_TRAPPED = 11
-    SR_TREASURE = 12
-    SR_GUARDED = 13
-    SR_CHAOS = 14
-    SR_BASIC = 15
-    CN_TRAPPED = 16
-    CN_GUARDED = 17
-    CN_BASIC = 18
-    LR_TRAPPED = 19
-    LR_TREASURE = 20
-    LR_HEALTHY = 21
-    LR_GUARDED = 22
-    LR_CHAOS = 23
-    LR_BASIC = 24
-    CR_TRAPPED = 25
-    CR_TREASURE = 26
-    CR_GUARDED = 27
-    CR_CHAOS = 28
-    CR_BASIC = 29
-    HR_TRAPPED = 30
-    HR_TREASURE = 31
-    HR_GUARDED = 32
-    HR_CHAOS = 33
-    HR_BASIC = 34
+
+    DE_TRAPPED = auto()
+    DE_TREASURE = auto()
+    DE_HEALTHY = auto()
+    DE_GUARDED = auto()
+
+    BR_HOARD = auto()
+    BR_WIZARD = auto()
+    BR_WEAK = auto()
+    BR_STRONG = auto()
+    BR_GUARDED = auto()
+    BR_DOUBLE = auto()
+
+    SR_TRAPPED = auto()
+    SR_TREASURE = auto()
+    SR_GUARDED = auto()
+    SR_CHAOS = auto()
+    SR_BASIC = auto()
+    SR_FLOODED = auto()
+
+    CN_TRAPPED = auto()
+    CN_GUARDED = auto()
+    CN_BASIC = auto()
+    CN_FLOODED = auto()
+
+    LR_TRAPPED = auto()
+    LR_TREASURE = auto()
+    LR_HEALTHY = auto()
+    LR_GUARDED = auto()
+    LR_CHAOS = auto()
+    LR_BASIC = auto()
+    LR_FLOODED = auto()
+
+    CR_TRAPPED = auto()
+    CR_TREASURE = auto()
+    CR_GUARDED = auto()
+    CR_CHAOS = auto()
+    CR_BASIC = auto()
+    CR_FLOODED = auto()
+
+    HR_TRAPPED = auto()
+    HR_TREASURE = auto()
+    HR_GUARDED = auto()
+    HR_CHAOS = auto()
+    HR_BASIC = auto()
+    HR_FLOODED = auto()
+
+    SC_TRAPPED = auto()
+    SC_TREASURE = auto()
+    SC_GUARDED = auto()
+    SC_CHAOS = auto()
+    SC_BASIC = auto()
+    SC_FLOODED = auto()
+    
+    LC_TRAPPED = auto()
+    LC_TREASURE = auto()
+    LC_HEALTHY = auto()
+    LC_GUARDED = auto()
+    LC_CHAOS = auto()
+    LC_BASIC = auto()
+    LC_FLOODED = auto()
 
 _SHAPE_TABLES: dict[int, tuple[list[Shape], list[float]]] = {
-    1: ([Shape.DEAD_END, Shape.BOSS_ROOM, Shape.SMALL_ROOM],                 [0.35, 0.15, 0.50]),
-    2: ([Shape.CONNECTION, Shape.SMALL_ROOM, Shape.LARGE_ROOM, Shape.CORNER],[0.15, 0.25, 0.30, 0.30]),
-    3: ([Shape.CONNECTION, Shape.SMALL_ROOM, Shape.LARGE_ROOM, Shape.HALF],  [0.20, 0.20, 0.30, 0.30]),
-    4: ([Shape.CONNECTION, Shape.SMALL_ROOM, Shape.LARGE_ROOM],              [0.20, 0.30, 0.50]),
+    1: (
+        [Shape.DEAD_END, Shape.BOSS_ROOM, Shape.SMALL_ROOM, Shape.SMALL_CIRCLE, Shape.LARGE_CIRCLE],
+        [0.30, 0.10, 0.35, 0.15, 0.10]
+        ),
+    2: (
+        [Shape.CONNECTION, Shape.SMALL_ROOM, Shape.LARGE_ROOM, Shape.CORNER, Shape.SMALL_CIRCLE],
+        [0.10, 0.25, 0.30, 0.20, 0.15]
+        ),
+    3: (
+        [Shape.CONNECTION, Shape.SMALL_ROOM, Shape.LARGE_ROOM, Shape.HALF, Shape.SMALL_CIRCLE, Shape.LARGE_CIRCLE],
+        [0.15, 0.20, 0.28, 0.17, 0.12, 0.08]
+        ),
+    4: (
+        [Shape.CONNECTION, Shape.SMALL_ROOM, Shape.LARGE_ROOM, Shape.LARGE_CIRCLE],
+        [0.15, 0.28, 0.40, 0.17]
+        )
 }
 
 _THEME_TABLES: dict[Shape, tuple[list[Theme], list[float]]] = {
-    Shape.DEAD_END:   ([Theme.DE_TRAPPED, Theme.DE_TREASURE, Theme.DE_HEALTHY, Theme.DE_GUARDED, Theme.EMPTY], [0.20, 0.15, 0.10, 0.15, 0.40]),
-    Shape.BOSS_ROOM:  ([Theme.BR_HOARD, Theme.BR_WIZARD, Theme.BR_WEAK, Theme.BR_STRONG, Theme.BR_GUARDED, Theme.BR_DOUBLE], [0.20, 0.20, 0.20, 0.10, 0.20, 0.10]),
-    Shape.SMALL_ROOM: ([Theme.SR_TRAPPED, Theme.SR_TREASURE, Theme.SR_GUARDED, Theme.SR_CHAOS, Theme.SR_BASIC, Theme.EMPTY], [0.20, 0.10, 0.15, 0.10, 0.30, 0.15]),
-    Shape.CONNECTION: ([Theme.CN_TRAPPED, Theme.CN_GUARDED, Theme.CN_BASIC, Theme.EMPTY], [0.20, 0.20, 0.30, 0.30]),
-    Shape.LARGE_ROOM: ([Theme.LR_TRAPPED, Theme.LR_TREASURE, Theme.LR_HEALTHY, Theme.LR_GUARDED, Theme.LR_CHAOS, Theme.LR_BASIC, Theme.EMPTY], [0.20, 0.05, 0.05, 0.15, 0.10, 0.30, 0.15]),
-    Shape.CORNER:     ([Theme.CR_TRAPPED, Theme.CR_TREASURE, Theme.CR_GUARDED, Theme.CR_CHAOS, Theme.CR_BASIC, Theme.EMPTY], [0.20, 0.10, 0.15, 0.10, 0.30, 0.15]),
-    Shape.HALF:       ([Theme.HR_TRAPPED, Theme.HR_TREASURE, Theme.HR_GUARDED, Theme.HR_CHAOS, Theme.HR_BASIC, Theme.EMPTY], [0.20, 0.10, 0.15, 0.10, 0.30, 0.15]),
+    Shape.DEAD_END:
+    (
+        [Theme.DE_TRAPPED, Theme.DE_TREASURE, Theme.DE_HEALTHY, Theme.DE_GUARDED, Theme.EMPTY],
+        [0.20, 0.15, 0.10, 0.15, 0.40]
+    ),
+    Shape.BOSS_ROOM:
+    (
+        [Theme.BR_HOARD, Theme.BR_WIZARD, Theme.BR_WEAK, Theme.BR_STRONG, Theme.BR_GUARDED, Theme.BR_DOUBLE],
+        [0.20, 0.20, 0.20, 0.10, 0.20, 0.10]
+    ),
+    Shape.SMALL_ROOM:
+    (
+        [Theme.SR_TRAPPED, Theme.SR_TREASURE, Theme.SR_GUARDED, Theme.SR_CHAOS, Theme.SR_BASIC, Theme.SR_FLOODED, Theme.EMPTY],
+        [0.20, 0.10, 0.15, 0.10, 0.25, 0.10, 0.10]
+    ),
+    Shape.CONNECTION:
+    (
+        [Theme.CN_TRAPPED, Theme.CN_GUARDED, Theme.CN_BASIC, Theme.CN_FLOODED, Theme.EMPTY],
+        [0.20, 0.20, 0.25, 0.10, 0.25]
+    ),
+    Shape.LARGE_ROOM:
+    (
+        [Theme.LR_TRAPPED, Theme.LR_TREASURE, Theme.LR_HEALTHY, Theme.LR_GUARDED, Theme.LR_CHAOS, Theme.LR_BASIC, Theme.LR_FLOODED, Theme.EMPTY],
+        [0.20, 0.05, 0.05, 0.15, 0.10, 0.25, 0.10, 0.10]
+    ),
+    Shape.CORNER:
+    (
+        [Theme.CR_TRAPPED, Theme.CR_TREASURE, Theme.CR_GUARDED, Theme.CR_CHAOS, Theme.CR_BASIC, Theme.CR_FLOODED, Theme.EMPTY],
+        [0.20, 0.10, 0.15, 0.10, 0.25, 0.10, 0.10]
+    ),
+    Shape.HALF:
+    (
+        [Theme.HR_TRAPPED, Theme.HR_TREASURE, Theme.HR_GUARDED, Theme.HR_CHAOS, Theme.HR_BASIC, Theme.HR_FLOODED, Theme.EMPTY],
+        [0.20, 0.10, 0.15, 0.10, 0.25, 0.10, 0.10]
+    ),
+    Shape.SMALL_CIRCLE:
+    (
+        [Theme.SC_TRAPPED, Theme.SC_TREASURE, Theme.SC_GUARDED, Theme.SC_CHAOS, Theme.SC_BASIC, Theme.SC_FLOODED, Theme.EMPTY],
+        [0.20, 0.10, 0.15, 0.10, 0.25, 0.10, 0.10]
+    ),
+    Shape.LARGE_CIRCLE:
+    (
+        [Theme.LC_TRAPPED, Theme.LC_TREASURE, Theme.LC_HEALTHY, Theme.LC_GUARDED, Theme.LC_CHAOS, Theme.LC_BASIC, Theme.LC_FLOODED, Theme.EMPTY],
+        [0.20, 0.05, 0.05, 0.15, 0.10, 0.25, 0.10, 0.10]
+    ),
 }
 
 _POPULATION_TABLES: dict[Theme, dict[Const, int | tuple[int, int]]] = {
@@ -128,10 +203,12 @@ _POPULATION_TABLES: dict[Theme, dict[Const, int | tuple[int, int]]] = {
     Theme.SR_GUARDED:  {Const.WATER: (0,1), Const.TRAP: 1, Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 2},
     Theme.SR_CHAOS:    {Const.HOLE: 2, Const.WATER: (0,1), Const.TRAP: 3, Const.CHEST: 1, Const.LOOT_PILE: 2, Const.MONSTER_SPAWNER: 3, Const.SHRINE: 1},
     Theme.SR_BASIC:    {Const.TRAP: (0,1), Const.LOOT_PILE: (0,1)},
+    Theme.SR_FLOODED:  {Const.WATER: 5, Const.WATER_POOL: 13, Const.MONSTER_SPAWNER: 1},
     
     Theme.CN_TRAPPED:  {Const.HOLE: 1, Const.TRAP: (1,3), Const.LOOT_PILE: 1},
     Theme.CN_GUARDED:  {Const.MONSTER_SPAWNER: 1},
     Theme.CN_BASIC:    {Const.LOOT_PILE: (0,1)},
+    Theme.CN_FLOODED:  {Const.WATER: 4, Const.WATER_POOL: 10, Const.MONSTER_SPAWNER: (0,1)},
     
     Theme.LR_TRAPPED:  {Const.HOLE: 2, Const.WATER: 1, Const.TRAP: (3,5), Const.LOOT_PILE: 2, Const.MONSTER_SPAWNER: 1},
     Theme.LR_TREASURE: {Const.TRAP: 1, Const.CHEST: 2, Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: 1},
@@ -139,18 +216,21 @@ _POPULATION_TABLES: dict[Theme, dict[Const, int | tuple[int, int]]] = {
     Theme.LR_GUARDED:  {Const.WATER: (0,1), Const.TRAP: 1, Const.CHEST: 1, Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 3},
     Theme.LR_CHAOS:    {Const.HOLE: 2, Const.WATER: 1, Const.TRAP: 3, Const.CHEST: 2, Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: (2,4), Const.SHRINE: 1},
     Theme.LR_BASIC:    {Const.TRAP: (1,2), Const.LOOT_PILE: (0,1)},
+    Theme.LR_FLOODED:  {Const.WATER: 6, Const.WATER_POOL: 18, Const.MONSTER_SPAWNER: 1},
     
     Theme.CR_TRAPPED:  {Const.HOLE: 1, Const.TRAP: (2,4), Const.LOOT_PILE: 1},
     Theme.CR_TREASURE: {Const.TRAP: 1, Const.CHEST: 1, Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: 1},
     Theme.CR_GUARDED:  {Const.WATER: (0,1), Const.TRAP: 1, Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 2},
     Theme.CR_CHAOS:    {Const.HOLE: (0,1), Const.WATER: 1, Const.TRAP: 3, Const.CHEST: (0,2), Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: (2,3), Const.SHRINE: 1},
     Theme.CR_BASIC:    {Const.TRAP: (0,1), Const.LOOT_PILE: (0,1)},
+    Theme.CR_FLOODED:  {Const.WATER: 4, Const.WATER_POOL: 12, Const.MONSTER_SPAWNER: (0,1)},
     
     Theme.HR_TRAPPED:  {Const.HOLE: 1, Const.TRAP: (2,4), Const.LOOT_PILE: 1},
     Theme.HR_TREASURE: {Const.TRAP: 1, Const.CHEST: 1, Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: 1},
     Theme.HR_GUARDED:  {Const.WATER: (0,1), Const.TRAP: 1, Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 2},
     Theme.HR_CHAOS:    {Const.HOLE: (0,1), Const.WATER: 1, Const.TRAP: 3, Const.MONSTER_SPAWNER: (2,3), Const.SHRINE: 1, Const.CHEST: (0,2), Const.LOOT_PILE: 3},
     Theme.HR_BASIC:    {Const.TRAP: (0,1), Const.LOOT_PILE: (0,1)},
+    Theme.HR_FLOODED:  {Const.WATER: 5, Const.WATER_POOL: 15, Const.MONSTER_SPAWNER: (0,1)},
     
     Theme.BR_HOARD:    {Const.CHEST: 3, Const.LOOT_PILE: 9, Const.BOSS_SPAWNER: 1, Const.SHRINE: 1},
     Theme.BR_WIZARD:   {Const.CHEST: 4, Const.LOOT_PILE: 3, Const.BOSS_SPAWNER: 1, Const.SHRINE: 1},
@@ -159,11 +239,27 @@ _POPULATION_TABLES: dict[Theme, dict[Const, int | tuple[int, int]]] = {
     Theme.BR_GUARDED:  {Const.TRAP: 1, Const.CHEST: 2, Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: 2, Const.BOSS_SPAWNER: 1, Const.SHRINE: 1},
     Theme.BR_DOUBLE:   {Const.CHEST: 3, Const.LOOT_PILE: 5, Const.BOSS_SPAWNER: 2, Const.SHRINE: 1},
     
+    Theme.SC_TRAPPED:  {Const.HOLE: 1, Const.TRAP: (3,5), Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 1},
+    Theme.SC_TREASURE: {Const.TRAP: (1,2), Const.CHEST: 2, Const.LOOT_PILE: 3},
+    Theme.SC_GUARDED:  {Const.WATER: (0,1), Const.TRAP: 1, Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 2},
+    Theme.SC_CHAOS:    {Const.HOLE: 2, Const.WATER: (0,1), Const.TRAP: 3, Const.CHEST: 1, Const.LOOT_PILE: 2, Const.MONSTER_SPAWNER: 3, Const.SHRINE: 1},
+    Theme.SC_BASIC:    {Const.TRAP: (0,1), Const.LOOT_PILE: (0,1)},
+    Theme.SC_FLOODED:  {Const.WATER: 4, Const.WATER_POOL: 12, Const.MONSTER_SPAWNER: (0,1)},
+
+    Theme.LC_TRAPPED:  {Const.HOLE: 2, Const.WATER: 1, Const.TRAP: (3,5), Const.LOOT_PILE: 2, Const.MONSTER_SPAWNER: 1},
+    Theme.LC_TREASURE: {Const.TRAP: 1, Const.CHEST: 2, Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: 1},
+    Theme.LC_HEALTHY:  {Const.HEALING_STATION: 1},
+    Theme.LC_GUARDED:  {Const.WATER: (0,1), Const.TRAP: 1, Const.CHEST: 1, Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 3},
+    Theme.LC_CHAOS:    {Const.HOLE: 2, Const.WATER: 1, Const.TRAP: 3, Const.CHEST: 2, Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: (2,4), Const.SHRINE: 1},
+    Theme.LC_BASIC:    {Const.TRAP: (1,2), Const.LOOT_PILE: (0,1)},
+    Theme.LC_FLOODED:  {Const.WATER: 7, Const.WATER_POOL: 21, Const.MONSTER_SPAWNER: (1,2)},
+
     Theme.EMPTY:       {}
     }
 
 _FEATURE_ORDER = (
         Const.WATER,
+        Const.WATER_POOL,
         Const.HOLE,
         Const.HEALING_STATION,
         Const.SHRINE,
@@ -177,6 +273,7 @@ _FEATURE_ORDER = (
 
 _SCAN_PARAMS: dict[Const, dict[str, set[Const]]] = {
     Const.WATER:            {"block": {Const.CHEST, Const.LOOT_PILE, Const.HOLE}},
+    Const.WATER_POOL:       {"require": {Const.WATER}, "block": {Const.CHEST, Const.LOOT_PILE, Const.HOLE}},
     Const.HOLE:             {"block": {Const.WALL, Const.WATER, Const.LOOT_PILE}},
     Const.HEALING_STATION:  {"require": {Const.FLOOR}, "place_on": {Const.WALL}},
     Const.SHRINE:           {"require": {Const.FLOOR}, "place_on": {Const.WALL}},
@@ -187,6 +284,19 @@ _SCAN_PARAMS: dict[Const, dict[str, set[Const]]] = {
     Const.BOSS_SPAWNER:     {"block": {Const.MONSTER_SPAWNER, Const.HEALING_STATION, Const.SHRINE}},
     Const.MONSTER_SPAWNER:  {"block": {Const.BOSS_SPAWNER, Const.HEALING_STATION, Const.SHRINE}}
     }
+
+_DUPLICATES: dict[Const, Const] = {
+    Const.WATER_POOL: Const.WATER,
+    Const.LOOT_CLUSTER: Const.LOOT_PILE
+}
+
+_ROOM_Y, _ROOM_X = np.ogrid[:Const.ROOM_SIZE, :Const.ROOM_SIZE]
+_SMALL_CIRCLE_MASK = (
+    (_ROOM_Y - Const.HALF) ** 2 + (_ROOM_X - Const.HALF) ** 2 <= 3 ** 2
+)
+_LARGE_CIRCLE_MASK = (
+    (_ROOM_Y - Const.HALF) ** 2 + (_ROOM_X - Const.HALF) ** 2 <= 6 ** 2
+)
 
 @timeit
 def get_shape(room_val: int, rand_rng: Random) -> Shape:
@@ -225,21 +335,32 @@ def get_shape(room_val: int, rand_rng: Random) -> Shape:
     - The exit count is used to look up a weighted shape list in
       _SHAPE_TABLES, from which a shape is randomly selected.
     """
-    if room_val < 0b10000 or room_val > 0b11111: raise InvalidRoom(f"The get_shape function does not support room_val: {room_val}.")
+    if room_val < 0b10000 or room_val > 0b11111:
+        raise InvalidRoom(
+            f"The get_shape function does not support room_val: {room_val}."
+        )
     n = (room_val & 0b01111).bit_count()
-    if n not in _SHAPE_TABLES: raise InvalidRoom(f"The get_shape function does not support rooms with {n} exits.")
+    if n not in _SHAPE_TABLES:
+        raise InvalidRoom(
+            f"The get_shape function does not support rooms with {n} exits."
+        )
     shape_list, probs = _SHAPE_TABLES[n]
     room_shape: Shape = rand_rng.choices(shape_list, probs)[0]
     return room_shape
 
 @timeit
-def build_room(tilemap: array[uint8], room_val: int, room_shape: Shape, np_rng: np.random.Generator) -> array[uint8]:
+def build_room(
+        tilemap: array[uint8],
+        room_val: int,
+        room_shape: Shape,
+        np_rng: np.random.Generator
+) -> array[uint8]:
     """
     Builds room exits and central shape onto a blank tilemap in two passes.
 
     Parameters
     ----------
-    tilemap : NDArray[uint8]
+    tilemap : array[uint8]
         Blank 2D array of size Const.ROOM_SIZE x Const.ROOM_SIZE.
     room_val : int
         Dungeon tile value. Bits 0-3 encode orthogonal exits:
@@ -256,7 +377,7 @@ def build_room(tilemap: array[uint8], room_val: int, room_shape: Shape, np_rng: 
 
     Returns
     -------
-    tilemap : NDArray[uint8]
+    tilemap : array[uint8]
         Tilemap with exits and room shape written in.
 
     Notes
@@ -291,7 +412,8 @@ def build_room(tilemap: array[uint8], room_val: int, room_shape: Shape, np_rng: 
     match room_shape:
         case Shape.DEAD_END:
             length = np_rng.integers(2,5, endpoint = True)
-            tilemap[half-length:half+length+1, half-length:half+length+1] = Const.WALL
+            s = slice(half-length, half+length+1)
+            tilemap[s,s] = Const.WALL
         case Shape.BOSS_ROOM:
             tilemap[1:-1, 1:-1] = Const.FLOOR
         case Shape.SMALL_ROOM:
@@ -324,6 +446,10 @@ def build_room(tilemap: array[uint8], room_val: int, room_shape: Shape, np_rng: 
                     tilemap[1:-1, half:-1] = Const.FLOOR
                 case _:
                     pass
+        case Shape.SMALL_CIRCLE:
+            tilemap[_SMALL_CIRCLE_MASK] = Const.FLOOR
+        case Shape.LARGE_CIRCLE:
+            tilemap[_LARGE_CIRCLE_MASK] = Const.FLOOR
     return tilemap
 
 @timeit
@@ -350,23 +476,90 @@ def get_theme(room_shape: Shape, rand_rng: Random) -> Theme:
         If room_shape is not present in _THEME_TABLES.
     """
     if room_shape not in _THEME_TABLES:
-        raise InvalidRoom(f"The get_theme function does not support rooms with {room_shape} shape")
+        raise InvalidRoom(f"The get_theme function does not support rooms with {room_shape.name} shape")
     theme_list, probs = _THEME_TABLES[room_shape]
     theme: Theme = rand_rng.choices(theme_list, probs)[0]
     return theme
 
 @timeit
-def scan_tilemap(tilemap: array[uint8], neighbor_map: array[uint8] | None = None, require: Collection[int] | None = None,
-                 block: Collection[int] | None = None, bias: Collection[int] | None = None,
-                 place_on: Collection[int] | None = None) -> array[np.int32]:
+def adj_map(
+            tilemap: array[uint8],
+            neighbor_map:array[uint8] | None = None,
+            iso:bool=True,
+            target:Collection[int] | None = None
+) -> array[uint8]:
+    """
+    Calculates an orthogonal adjacency map for the given tilemap.
+
+    Parameters
+    ----------
+    tilemap : NDArray[uint8]
+        2D array with rooms placed.
+    neighbor_map : NDArray[uint8] | None, optional
+        2D array to write neighbor counts into. If not provided, a
+        zero-filled array of the same shape as tilemap is created.
+    iso : bool, optional
+        If True, trims the result to only count neighbors for tiles
+        that are active in the tilemap (value == 1). Defaults to True.
+    target : set[int] | None, optional
+        If provided, only tiles whose values are in this set are
+        considered active when counting neighbors. If not provided,
+        any non-zero tile is considered active.
+
+    Returns
+    -------
+    neighbor_map : NDArray[uint8]
+        2D array of the same dimensions as tilemap, where each value
+        represents how many orthogonal neighbors the tile has.
+
+    Notes
+    -----
+    - The active tile mask is built from either the target set (if
+      provided) or any non-zero tile value.
+    - Neighbor counts are accumulated using array slicing across all
+      four orthogonal directions in two passes:
+        - Vertical pass   : counts neighbors above and below
+        - Horizontal pass : counts neighbors to the left and right
+    - If iso is True, the neighbor map is masked by tiles with value
+      exactly equal to 1, zeroing out counts for all other tiles.
+    - An assertion is included to satisfy static type checkers that
+      neighbor_map is non-None before returning.
+    """
+    h, w = tilemap.shape
+    if target is not None:
+        if len(target) == 1:
+            mask = (tilemap == next(iter(target))).astype(uint8)
+        else:
+            mask = np.isin(tilemap, tuple(target)).astype(uint8)
+    else:
+        mask = (tilemap != 0).astype(uint8)
+    if neighbor_map is None:
+        neighbor_map = np.zeros_like(tilemap, dtype = uint8)
+    else: neighbor_map.fill(0)
+
+    neighbor_map[1:h-1, :] = mask[0:h-2, :] + mask[2:h, :]
+    neighbor_map[:, 1:w-1] += mask[:, 0:w-2] + mask[:, 2:w]
+    if iso: neighbor_map *= (tilemap == 1)
+    assert neighbor_map is not None
+    return neighbor_map
+
+@timeit
+def scan_tilemap(
+        tilemap: array[uint8],
+        neighbor_map: array[uint8] | None = None,
+        require: Collection[int] | None = None,
+        block: Collection[int] | None = None,
+        bias: Collection[int] | None = None,
+        place_on: Collection[int] | None = None
+) -> array[np.int32]:
     """
     Scans a tilemap and returns a list of valid tile indices to place on.
 
     Parameters
     ----------
-    tilemap : NDArray[uint8]
+    tilemap : array[uint8]
         Tilemap to scan.
-    neighbor_map : NDArray[uint8] | None, optional
+    neighbor_map : array[uint8] | None, optional
         Pre-allocated buffer for adjacency calculations. If not provided,
         a new buffer is allocated. Pass a pre-allocated buffer when calling
         scan_tilemap multiple times to avoid repeated allocation overhead.
@@ -387,42 +580,56 @@ def scan_tilemap(tilemap: array[uint8], neighbor_map: array[uint8] | None = None
 
     Returns
     -------
-    available_list : NDArray[np.int32]
+    available_list : array[np.int32]
         2D array of [row, col] indices representing valid placement targets.
         Biased tiles appear multiple times to reflect their higher weight.
     """
     if place_on is None: available_grid = tilemap == Const.FLOOR
     else: available_grid = np.isin(tilemap,tuple(place_on))
 
-    if neighbor_map is None: neighbor_map = np.empty_like(tilemap, dtype=uint8)
+    if neighbor_map is None:
+        neighbor_map = np.empty_like(tilemap, dtype=uint8)
 
     if require is not None:
-        available_grid &= (adj_map(tilemap, neighbor_map, target = require, iso = False) != 0)
+        available_grid &= (
+            adj_map(tilemap, neighbor_map, target = require, iso = False) != 0
+        )
     if block is not None:
-        available_grid &= (adj_map(tilemap, neighbor_map, target = block, iso = False) == 0)
-    
-    available_list = np.argwhere(available_grid)
+        available_grid &= (
+            adj_map(tilemap, neighbor_map, target = block, iso = False) == 0
+        )
+
+    available_list = np.argwhere(available_grid).astype(np.int32, copy=False)
     if bias is not None:
-        bias_grid = available_grid & (adj_map(tilemap, neighbor_map, target = bias, iso = False) != 0)
-        bias_mask = bias_grid[available_list[:,0], available_list[:, 1]]
+        bias_grid = (
+            adj_map(tilemap, neighbor_map, target=bias, iso=False) != 0
+        )
+        bias_mask = bias_grid[available_list[:, 0], available_list[:, 1]]
         biases = available_list[bias_mask]
         if biases.size > 0:
             bias_list = np.repeat(biases, 4, axis=0)
-            available_list = np.concatenate((available_list,bias_list),axis = 0)
+            available_list = np.concatenate(
+                (available_list,bias_list),axis = 0
+            )
     return available_list
 
 @timeit
-def place(tilemap: array[uint8], feature: Const, available_list: array[np.int32], count: int, np_rng: np.random.Generator) -> None:
+def place(
+        tilemap: array[uint8],
+        feature: Const,
+        available_list: array[np.int32],
+        count: int,
+        np_rng: np.random.Generator) -> None:
     """
     Places a feature onto randomly selected tiles in the tilemap.
 
     Parameters
     ----------
-    tilemap : NDArray[uint8]
+    tilemap : array[uint8]
         Tilemap to place the feature onto.
     feature : Const
         Tile value to write at each selected position.
-    available_list : NDArray[np.int32]
+    available_list : array[np.int32]
         2D array of [row, col] indices representing valid placement targets,
         as returned by scan_tilemap.
     count : int
@@ -446,17 +653,25 @@ def place(tilemap: array[uint8], feature: Const, available_list: array[np.int32]
     if not count: return
     indices = np_rng.choice(len(available_list), size=count, replace=False)
     coords = available_list[indices]
-    tilemap[coords[:, 0], coords[:, 1]] = feature
+    if feature in _DUPLICATES:
+        tile = _DUPLICATES[feature]
+    else:
+        tile = feature
+    tilemap[coords[:, 0], coords[:, 1]] = tile
     return
 
 @timeit
-def populate_tilemap(tilemap: array[uint8], theme: Theme, np_rng: np.random.Generator) -> array[uint8]:
+def populate_tilemap(
+    tilemap: array[uint8],
+    theme: Theme,
+    np_rng: np.random.Generator
+) -> array[uint8]:
     """
     Populates a room tilemap with features based on the given theme.
 
     Parameters
     ----------
-    tilemap : NDArray[uint8]
+    tilemap : array[uint8]
         Tilemap to populate, with room shape already built.
     theme : Theme
         Theme of the room, used to look up feature counts in
@@ -467,7 +682,7 @@ def populate_tilemap(tilemap: array[uint8], theme: Theme, np_rng: np.random.Gene
 
     Returns
     -------
-    tilemap : NDArray[uint8]
+    tilemap : array[uint8]
         Tilemap with features placed.
 
     Notes
@@ -487,7 +702,9 @@ def populate_tilemap(tilemap: array[uint8], theme: Theme, np_rng: np.random.Gene
     pop_vals: dict[Const, int] = {}
     for feature, count in _POPULATION_TABLES[theme].items():
         if isinstance(count, tuple):
-            pop_vals[feature] = np_rng.integers(count[0], count[1], endpoint=True)
+            pop_vals[feature] = int(np_rng.integers(
+                count[0], count[1], endpoint=True
+            ))
         else:
             pop_vals[feature] = count
     neighbor_map = np.empty_like(tilemap, dtype = uint8)
@@ -495,12 +712,18 @@ def populate_tilemap(tilemap: array[uint8], theme: Theme, np_rng: np.random.Gene
         if feature not in pop_vals: continue
         count = pop_vals[feature]
         if not count: continue
-        available_list = scan_tilemap(tilemap, neighbor_map, **_SCAN_PARAMS[feature])
+        available_list = scan_tilemap(
+            tilemap, neighbor_map, **_SCAN_PARAMS[feature]
+        )
         place(tilemap, feature, available_list, count, np_rng)
     return tilemap
 
 @timeit
-def room_map_generator(room_val: int, np_rng: np.random.Generator, rand_rng: Random) -> tuple[array[uint8], Shape, Theme]:
+def room_map_generator(
+        room_val: int,
+        np_rng: np.random.Generator,
+        rand_rng: Random
+) -> tuple[array[uint8], Shape, Theme]:
     """
     Generates a complete room tilemap for a given dungeon tile value.
 
@@ -516,7 +739,7 @@ def room_map_generator(room_val: int, np_rng: np.random.Generator, rand_rng: Ran
 
     Returns
     -------
-    tilemap : NDArray[uint8]
+    tilemap : array[uint8]
         Final populated room tilemap.
     shape : Shape
         Shape of the generated room.
@@ -540,113 +763,33 @@ def room_map_generator(room_val: int, np_rng: np.random.Generator, rand_rng: Ran
     return tilemap, shape, theme
 
 #region DEBUG
-def _on_click(event: Event, ax: Axes, tilemap: array[uint8], room_shape: Shape, room_theme: Theme) -> None:
-    """
-    Local handler for debug click events on the room display.
+def _get_tile_value(value: int) -> tuple[str,str]:
+    return ("Tile: ", Const(value).name)
 
-    Parameters
-    ----------
-    event : Event
-        Matplotlib click event.
-    ax : Axes
-        Matplotlib graph axes.
-    tilemap : NDArray[uint8]
-        Tilemap of the room.
-    room_shape : Shape
-        Shape of the generated room.
-    room_theme : Theme
-        Theme of the generated room.
-
-    Returns
-    -------
-    None
-
-    Notes
-    -----
-    - Only responds to MouseEvent types; all other event types are ignored.
-    - If the click lands inside the axes on a valid tile:
-        - The clicked pixel coordinates are rounded to the nearest tile index.
-        - The tile's row/column position, raw Const name, shape, and theme
-          are printed to the console.
-    - If the click lands outside the axes, the room shape and theme are
-      printed instead.
-    """
-    if not isinstance(event, MouseEvent): return
-    if event.inaxes is ax and event.xdata is not None and event.ydata is not None:
-        col = int(event.xdata+0.5)
-        row = int(event.ydata+0.5)
-        if 0 <= row < tilemap.shape[0] and 0 <= col < tilemap.shape[1]:
-            print(f"\033cShape: {room_shape.name}\nTheme: {room_theme.name}\n"+
-                f"Tile Clicked: {row}, {col}\n"+
-                f"Tile Value: {Const(tilemap[row,col]).name}")
-    else:
-        print(f"\033cShape: {room_shape.name}\nTheme: {room_theme.name}")
-    return
-
-def _debug(tilemap: array[uint8], room_shape: Shape, room_theme: Theme) -> None:
-    """
-    Renders an interactive debug visualization of the room tilemap.
-
-    Parameters
-    ----------
-    tilemap : NDArray[uint8]
-        Room tilemap to display.
-    room_shape : Shape
-        Shape of the generated room.
-    room_theme : Theme
-        Theme of the generated room.
-
-    Returns
-    -------
-    None
-
-    Notes
-    -----
-    Colour mapping:
-        Each tile value maps directly to a colour via a fixed 11-colour palette,
-        corresponding to Const values 0-10:
-            0  (WALL)             : Black
-            1  (FLOOR)            : White
-            2  (HOLE)             : Gray
-            3  (WATER)            : Blue
-            4  (TRAP)             : Red
-            5  (HEALING_STATION)  : Green
-            6  (CHEST)            : Brown
-            7  (LOOT_PILE)        : Yellow
-            8  (MONSTER_SPAWNER)  : Orange
-            9  (BOSS_SPAWNER)     : Red   (shared with TRAP)
-            10 (SHRINE)           : Green (shared with HEALING_STATION)
-
-    Interactivity:
-        - Clicking on a tile prints its position, name, shape, and theme.
-        - Clicking outside the axes prints the room shape and theme.
-
-    Type checking:
-        - Several matplotlib calls are marked with pyright: ignore
-          [reportUnknownMemberType] due to false positives from incomplete
-          matplotlib type stubs. The argument and return types are otherwise
-          fully resolved and type-safe.
-    """
-    colours = ["black", "white", "gray", "blue", "red", "green", "brown", "yellow", "orange", "red", "green"]
-    cmap = ListedColormap(colours)
-    norm = BoundaryNorm(range(len(colours)+1), cmap.N)
-    rows, cols = tilemap.shape
-    rcParams["toolbar"]="None"
-    
-    fig, ax = plt.subplots(figsize = (5,5), dpi = 120)                                          #pyright: ignore[reportUnknownMemberType]
-    ax.imshow(tilemap,cmap=cmap,norm=norm,interpolation="nearest")                              #pyright: ignore[reportUnknownMemberType]
-    ax.grid(which="minor", color="black", linewidth=0.5)                                        #pyright: ignore[reportUnknownMemberType]
-    ax.tick_params(which="both", bottom=False, left=False, labelbottom=False, labelleft=False)  #pyright: ignore[reportUnknownMemberType]
-    ax.set_xticks(np.arange(-0.5, cols, 1), minor=True)                                         #pyright: ignore[reportUnknownMemberType]
-    ax.set_yticks(np.arange(-0.5, rows, 1), minor=True)                                         #pyright: ignore[reportUnknownMemberType]
-
-    manager = getattr(fig.canvas, "manager", None)
-    if manager is not None and hasattr(manager, "set_window_title"):
-        manager.set_window_title("DEBUG Window")
-    fig.canvas.mpl_connect("button_press_event",lambda event:
-                           _on_click(event,ax,tilemap,room_shape,room_theme))
-
-    plt.show()                                                                                  #pyright: ignore[reportUnknownMemberType]
+def _debug(
+        tilemap: array[uint8],
+        room_shape: Shape,
+        room_theme: Theme
+) -> None:
+    info = {"Shape": room_shape.name, "Theme": room_theme.name}
+    colour_dict: dict[Const, str] = {
+        Const.WALL: "black",
+        Const.FLOOR: "white",
+        Const.WATER: "blue",
+        Const.HOLE: "gray",
+        Const.HEALING_STATION: "green",
+        Const.SHRINE: "silver",
+        Const.CHEST: "brown",
+        Const.LOOT_PILE: "gold",
+        Const.TRAP: "red",
+        Const.BOSS_SPAWNER: "orange",
+        Const.MONSTER_SPAWNER: "orange"
+    }
+    max_val = max(colour_dict.keys())
+    colours: list[str] = ["black"] * (max_val + 1)
+    for const, colour in colour_dict.items():
+        colours[const] = colour
+    debug_render(tilemap, colours, info, tile_formatter = _get_tile_value)
     return
 
 def _time_test(count: int) -> None:
@@ -686,12 +829,16 @@ def _time_test(count: int) -> None:
     for _ in range(count):
         np_rng = np.random.default_rng()
         rand_rng = Random()
-        room_val = np_rng.integers(17, 31, endpoint = True)
+        room_val = int(np_rng.integers(17, 31, endpoint = True))
         start = clock()
         _ = room_map_generator(room_val, np_rng, rand_rng)
         time = (clock()-start)*1e-6
         total_time += time
-    print(f"Run count: {count}\nTotal Time: {total_time:.6f} ms\nAverage Time: {total_time/count:.6f} ms")
+    print(
+        f"Run count: {count}\n"
+        f"Total Time: {total_time:.6f} ms\n"
+        f"Average Time: {total_time/count:.6f} ms"
+    )
     return
 
 def _main() -> None:
@@ -727,7 +874,9 @@ def _main() -> None:
     np_rng = np.random.default_rng(debug_seed)
     rand_rng = Random(debug_seed)
 
-    tilemap, shape, theme = room_map_generator(debug_room_val, np_rng, rand_rng)
+    tilemap, shape, theme = room_map_generator(
+        debug_room_val, np_rng, rand_rng
+    )
 
     print(f"\033cShape: {shape.name}\nTheme: {theme.name}\n")
     _debug(tilemap, shape, theme)

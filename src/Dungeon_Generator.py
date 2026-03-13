@@ -5,21 +5,17 @@ In File Entry Point: _main() or _time_test()
 Import Entry Point: dungeon_map_generator()
 """
 
-import numpy as np
-import matplotlib.pyplot as plt
-
-from numpy import uint8
-from numpy.typing import NDArray as array
-from matplotlib import rcParams
-from matplotlib.colors import ListedColormap, BoundaryNorm
-from matplotlib.axes import Axes
-from matplotlib.backend_bases import Event, MouseEvent
-from time import perf_counter_ns as clock
+from collections import deque
 from enum import IntEnum
 from random import Random
+from time import perf_counter_ns as clock
 
-from Generator_Helpers import init_tilemap, adj_map, get_direction_strings
-from Debug_Tools import timeit, arg_parser
+import numpy as np
+from numpy import uint8
+from numpy.typing import NDArray as array
+
+from Debug_Tools import timeit, arg_parser, debug_render
+from Generator_Helpers import init_tilemap
 
 class Const(IntEnum):
     """
@@ -38,7 +34,10 @@ class Const(IntEnum):
     ROOM = 16
 
 @timeit
-def room_fill(tilemap: array[uint8], np_rng: np.random.Generator) -> array[uint8]:
+def room_fill(
+        tilemap: array[uint8],
+        np_rng: np.random.Generator
+) -> array[uint8]:
     """
     Places random room regions inside an array\n
     All regions will cross the midpoint
@@ -58,13 +57,14 @@ def room_fill(tilemap: array[uint8], np_rng: np.random.Generator) -> array[uint8
     Notes
     -----
     For each room:
-        - Vertical span is selected so that each room crosses the midpoint,
-          with y_start above and y_end below it.
-        - Width is inversely proportional to height, with a maximum span of
-          16 tiles, keeping taller rooms narrower.
-        - Horizontal placement is chosen randomly, with added padding and
-          clamped to the interior boundary to avoid edge overflow.
-        - The resulting rectangular region is filled with a temporary tile value.
+        - Vertical span is selected so that each room crosses the
+          midpoint, with y_start above and y_end below it.
+        - Width is inversely proportional to height, with a maximum
+          span of 16 tiles, keeping taller rooms narrower.
+        - Horizontal placement is chosen randomly, with added padding
+          and clamped to the interior boundary to avoid edge overflow.
+        - The resulting rectangular region is filled
+          with a temporary tile value.
     """
     for _ in range(Const.BOX_COUNT):
         y_start = np_rng.integers(1, Const.MID)
@@ -74,13 +74,29 @@ def room_fill(tilemap: array[uint8], np_rng: np.random.Generator) -> array[uint8
         room_width = 16 - room_height
 
         x_start = np_rng.integers(1, Const.MID)
-        x_end = min(x_start + room_width + 5, Const.DUNGEON_SIZE - 2)
+        x_end = int(np.minimum(x_start + room_width + 5, Const.DUNGEON_SIZE - 2))
 
         tilemap[y_start:y_end, x_start:x_end] = Const.TEMP
     return tilemap
 
 @timeit
-def room_eroder(tilemap: array[uint8], np_rng: np.random.Generator) -> array[uint8]:
+def fast_adj(
+        tilemap: array[uint8],
+        neighbor_map: array[uint8]
+) -> None:
+    h, w = tilemap.shape
+    mask = (tilemap != 0).astype(uint8)
+    neighbor_map.fill(0)
+    neighbor_map[1:h-1, :] = mask[0:h-2, :] + mask[2:h, :]
+    neighbor_map[:, 1:w-1] += mask[:, 0:w-2] + mask[:, 2:w]
+    neighbor_map *= (tilemap == 1)
+    return
+
+@timeit
+def room_eroder(
+        tilemap: array[uint8],
+        np_rng: np.random.Generator
+) -> array[uint8]:
     """
     Performs edge erosion on existing room regions inside tilemap
     Removes fully isolated tiles
@@ -100,26 +116,34 @@ def room_eroder(tilemap: array[uint8], np_rng: np.random.Generator) -> array[uin
     Notes
     -----
     Erosion process:
-        - An empty neighbor_map is initialized to track adjacency counts for each tile.
-        - On each erosion pass, adj_map() scans the tilemap and populates neighbor_map
-          with the number of filled neighbors each tile has.
-        - Tiles with exactly 2 neighbors (walls) are removed with 50% probability.
-        - Tiles with exactly 3 neighbors (corners) are removed with 10% probability.
-        - After all passes, a final scan removes any remaining fully isolated tiles
-          (tiles with 0 neighbors).
+        - An empty neighbor_map is initialized to track adjacency
+          counts for each tile.
+        - On each erosion pass, adj_map() scans the tilemap and 
+          populates neighbor_map with the number of filled
+          neighbors each tile has.
+        - Tiles with exactly 2 neighbors (walls) are removed with 
+          50% probability.
+        - Tiles with exactly 3 neighbors (corners) are removed with
+          10% probability.
+        - After all passes, a final scan removes any remaining fully
+          isolated tiles (tiles with 0 neighbors).
     """
     neighbor_map = np.empty_like(tilemap, dtype=uint8)
 
     for _ in range(Const.ERODE_COUNT):
-        adj_map(tilemap, neighbor_map)
+        fast_adj(tilemap, neighbor_map)
 
         mask_2 = (neighbor_map == 2)
-        tilemap[mask_2 & (np_rng.random(mask_2.shape, dtype = np.float32) < 0.5)] = Const.NO_ROOM
+        tilemap[
+            mask_2 & (np_rng.random(mask_2.shape, dtype = np.float32) < 0.5)
+        ] = Const.NO_ROOM
 
         mask_3 = (neighbor_map == 3)
-        tilemap[mask_3 & (np_rng.random(mask_3.shape, dtype = np.float32) < 0.1)] = Const.NO_ROOM
+        tilemap[
+            mask_3 & (np_rng.random(mask_3.shape, dtype = np.float32) < 0.1)
+        ] = Const.NO_ROOM
 
-    adj_map(tilemap, neighbor_map)
+    fast_adj(tilemap, neighbor_map)
     tilemap[neighbor_map == 0] = Const.NO_ROOM
     return tilemap
 
@@ -155,7 +179,7 @@ def get_possible_connections(tilemap: array[uint8]) -> array[uint8]:
     | (t[1:-1, 2:] << 1)
     | (t[2:, 1:-1] << 2)
     | (t[1:-1, :-2] << 3)
-)
+    )
     connections *= t[1:-1, 1:-1]
     return connections
 
@@ -195,7 +219,11 @@ def room_random(np_rng: np.random.Generator, count: int) -> array[uint8]:
     return randoms
 
 @timeit
-def room_connector(tilemap: array[uint8], np_rng: np.random.Generator, rand_rng: Random) -> array[uint8]:
+def room_connector(
+        tilemap: array[uint8],
+        np_rng: np.random.Generator,
+        rand_rng: Random
+) -> array[uint8]:
     """
     Connects adjacent active rooms across the given tilemap by writing
     directional connection bits into each active tile.
@@ -236,9 +264,12 @@ def room_connector(tilemap: array[uint8], np_rng: np.random.Generator, rand_rng:
     """
     connection_map = get_possible_connections(tilemap)
     H, W = tilemap.shape
-    active_count = np.count_nonzero(tilemap != 0)
+    active_count = int(np.count_nonzero(tilemap != 0))
     connection_counts = room_random(np_rng, active_count)
-    MASK_TO_INDICES = tuple(tuple(i for i in range(4) if mask & (1 << i)) for mask in range(16))
+    MASK_TO_INDICES = tuple(
+        tuple(i for i in range(4) if mask & (1 << i))
+        for mask in range(16)
+    )
     DIR_BITS = (1,2,4,8)
     DY_DX = ((-1,0),(0,1),(1,0),(0,-1))
     OPP_BITS = (4,8,1,2)
@@ -312,51 +343,78 @@ def tilemap_trim(tilemap: array[uint8]) -> array[uint8]:
 @timeit
 def room_clear(tilemap: array[uint8]) -> array[uint8]:
     """
-    Removes unconnected room pairs from the tilemap.
+    Removes all disconnected room groups from the tilemap, keeping only
+    the largest connected group.
 
     Parameters
     ----------
     tilemap : array[uint8]
-        2D array with room connections.
+        2D array with room connections encoded in bits 0-3:
+
+            Bit 0 (value 1) : North exit
+            Bit 1 (value 2) : East exit
+            Bit 2 (value 4) : South exit
+            Bit 3 (value 8) : West exit
 
     Returns
     -------
     tilemap : array[uint8]
-        2D array with unconnected room pairs removed.
+        2D array with all tiles not belonging to the largest connected
+        group set to 0.
 
     Notes
     -----
-    A tile is considered to have one exit if its value is one of:
-        17 (bit 4 + bit 0) : Active tile with only an upward connection
-        18 (bit 4 + bit 1) : Active tile with only a rightward connection
-        20 (bit 4 + bit 2) : Active tile with only a downward connection
-        24 (bit 4 + bit 3) : Active tile with only a leftward connection
-
-    Removal process:
-        - Every tile in the tilemap is scanned.
-        - If a tile has exactly one exit, its single neighbor in that
-          direction is checked.
-        - If that neighbor also has exactly one exit, the two tiles form
-          an isolated pair with no further connections, and both are removed.
-        - Only isolated pairs (groups of exactly 2) are removed; longer
-          chains or larger groups are left intact.
-
-    Note: The original docstring contained a typo — 'unit8' has been
-    corrected to 'uint8' in this version.
+    - All active (non-zero) tile coordinates are collected into a set
+      at the start.
+    - Connected groups are discovered by iterative flood fill, starting
+      from an arbitrary unvisited tile each time.
+    - The flood fill only traverses genuine connections by checking
+      directional bits, rather than just spatial adjacency.
+    - A separate visited set is maintained to prevent tiles from being
+      added to the queue more than once.
+    - After all groups are found, the largest is kept and all other
+      active tiles are zeroed out in a single vectorised numpy operation.
+    - If all tiles belong to a single connected group, no tiles are removed.
     """
-    ONE_EXIT_TILES = {17, 18, 20, 24}
-    DIR_OFFSETS = {17:(-1,0), 18:(0,1), 20:(1,0), 24:(0,-1)}
-    for index, val in np.ndenumerate(tilemap):
-        if val in ONE_EXIT_TILES:
-            dy, dx = DIR_OFFSETS[int(val)]
-            ny, nx = index[0]+dy, index[1]+dx
-            if tilemap[ny, nx] in ONE_EXIT_TILES:
-                tilemap[index] = 0
-                tilemap[ny, nx] = 0
+    DIR_OFFSETS = ((0,-1,0),(1,0,1),(2,1,0),(3,0,-1))
+    h, w = tilemap.shape
+    active_tiles = {(r, c) for r, c in np.argwhere(tilemap != 0).tolist()}
+    groups: list[set[tuple[int, int]]] = []
+    unvisited = active_tiles.copy()
+    while unvisited:
+        start = next(iter(unvisited))
+        group: set[tuple[int, int]] = set()
+        visited: set[tuple[int, int]] = {start}
+        queue = deque([start])
+        while queue:
+            y, x = queue.popleft()
+            group.add((y, x))
+            val = tilemap[y, x]
+            for bit, dy, dx in DIR_OFFSETS:
+                if val & (1 << bit):
+                    ny, nx = y + dy, x + dx
+                    in_bounds: bool = 0 <= ny < h and 0 <= nx < w
+                    if in_bounds and (ny, nx) not in visited:
+                        visited.add((ny, nx))
+                        queue.append((ny, nx))
+        groups.append(group)
+        unvisited -= group
+    
+    if groups:
+        largest = max(groups, key=len)
+        remainder = active_tiles - largest
+        if remainder:
+            to_remove = np.array(
+                list(remainder), dtype=np.int32
+            ).reshape(-1, 2)
+            tilemap[to_remove[:, 0], to_remove[:, 1]] = 0
     return tilemap
 
 @timeit
-def dungeon_map_generator(np_rng: np.random.Generator, rand_rng: Random) -> array[uint8]:
+def dungeon_map_generator(
+        np_rng: np.random.Generator,
+        rand_rng: Random
+) -> array[uint8]:
     """
     Generates a complete dungeon tilemap using all intermediary functions.
 
@@ -385,8 +443,8 @@ def dungeon_map_generator(np_rng: np.random.Generator, rand_rng: Random) -> arra
                               bits 0-3 to store directional connection data.
         5. room_connector() : Connects adjacent active tiles by writing
                               orthogonal connection bits (bits 0-3) into each tile.
-        6. room_clear()     : Removes isolated pairs of tiles that have no
-                              connections beyond each other.
+        6. room_clear()     : Removes all disconnected room groups, keeping only 
+                              the largest connected group.
         7. tilemap_trim()   : Crops the array to the tightest bounding box
                               that still contains all active tiles.
     """
@@ -423,51 +481,47 @@ def _make_exit_map(tilemap: array[uint8]) -> array[uint8]:
     - The bits are summed across the bit axis, producing a count of how many
       bits are set (i.e. how many exits the tile has).
     """
-    debug_map = np.unpackbits(tilemap[:, :, np.newaxis], axis=-1).sum(axis=-1).astype(np.uint8)
+    debug_map = (
+        np.unpackbits(tilemap[:, :, np.newaxis], axis=-1)
+        .sum(axis=-1)
+        .astype(np.uint8)
+    )
     return debug_map
 
-def _on_click(event: Event, ax: Axes, tilemap: array[uint8], room_count: int) -> None:
+def _get_direction_strings(value: int) -> tuple[str, str]:
     """
-    Local handler for debug click events on the dungeon display.
+    Converts an integer tile value into a string of directions
+    based on its lower 4 bits.
 
     Parameters
     ----------
-    event : Event
-        matplotlib click event.
-    ax : Axes
-        matplotlib graph axes.
-    tilemap : array[uint8]
-        tilemap of the dungeon.
-    room_count : int
-        number of rooms in the dungeon.
+    value : int
+        Bitmask value to extract directions from. The lower 4 bits
+        are each mapped to an orthogonal direction:
+            - Bit 0 (value 1) : North
+            - Bit 1 (value 2) : East
+            - Bit 2 (value 4) : South
+            - Bit 3 (value 8) : West
 
     Returns
     -------
-    None
+    dirs : tuple["Exits", str]
+        Direction strings corresponding to the set bits in
+        the lower 4 bits of value.
 
     Notes
     -----
-    - Only responds to MouseEvent types; all other event types are ignored.
-    - If the click lands inside the axes on a valid tile:
-        - The clicked pixel coordinates are rounded to the nearest tile index.
-        - get_direction_strings() is used to decode the tile's exit bits into
-          human-readable direction names.
-        - The tile's row/column position, raw value, and exit directions are
-          printed to the console.
-    - If the click lands outside the axes, the total room count is printed
-      instead.
+    - Only the lower 4 bits of value are examined via `value & 0b01111`,
+      so bit 4 (the active tile flag) and above are ignored.
     """
-    if not isinstance(event, MouseEvent): return
-    if event.inaxes is ax and event.xdata is not None and event.ydata is not None:
-        col = int(event.xdata+0.5)
-        row = int(event.ydata+0.5)
-        if 0 <= row < tilemap.shape[0] and 0 <= col < tilemap.shape[1]:
-            dirs = get_direction_strings(tilemap[row,col])
-            print(f"\033cTile Clicked: {row}, {col}\n"
-                  f"Tile Value: {tilemap[row,col]}\n"
-                  f"Exits: {", ".join(dirs)}")
-    else: print(f"\033cDungeon contains {room_count} rooms")
-    return
+    bits = value & 0b01111
+    directions = ('North','East','South','West')
+    dir_string = ", ".join(
+        direction
+        for i, direction in enumerate(directions)
+        if bits & (1 << i)
+    )
+    return ("Exits", dir_string)
 
 def _debug(tilemap: array[uint8], room_count: int) -> None:
     """
@@ -496,53 +550,34 @@ def _debug(tilemap: array[uint8], room_count: int) -> None:
             4 bits set : Red    (active tile with 3 connections: bit 4 + 3 exits)
             5 bits set : Yellow (active tile with 4 connections: bit 4 + all 4 exits)
 
-    Display setup:
-        - _make_exit_map() converts the raw tilemap into a per-tile exit
-          count array for display.
-        - The figure is rendered at 5x5 inches at 120 DPI.
-        - The matplotlib toolbar is hidden for a cleaner debug window.
-
-    Grid and axes:
-        - Minor ticks are placed at half-integer positions to draw grid
-          lines between tiles rather than through them.
-        - All tick marks and axis labels are hidden, leaving only the
-          colour grid visible.
-
-    Interactivity:
-        - A click event listener is connected to the figure, delegating
-          all click handling to _on_click().
-        - Clicking on a tile prints its position, raw value, and exit
-          directions.
-        - Clicking outside the axes prints the room count.
-
-    Type checking:
-        - Several matplotlib calls are marked with pyright: ignore
-          [reportUnknownMemberType] due to false positives from incomplete
-          matplotlib type stubs. The argument and return types are otherwise
-          fully resolved and type-safe.
+    - _make_exit_map() is used to convert the raw tilemap into a per-tile
+      bit count array for display.
+    - _get_direction_strings() is passed as a tile formatter, so clicking
+      a tile prints its orthogonal exits by name.
+    - The original tilemap is passed as click_map so that click handling
+      reads the raw connection bits rather than the bit count display values.
+    - Clicking outside the axes prints the total room count.
     """
     debug_map = _make_exit_map(tilemap)
-    colours = ["white", "black", "green", "blue", "red", "yellow"]
-    cmap = ListedColormap(colours)
-    norm = BoundaryNorm(range(len(colours)+1), cmap.N)
-    rows, cols = debug_map.shape
-    rcParams["toolbar"]="None"
-
-    fig, ax = plt.subplots(figsize = (5,5), dpi = 120)                                          #pyright: ignore[reportUnknownMemberType]
-    ax.imshow(debug_map,cmap=cmap,norm=norm,interpolation="nearest")                            #pyright: ignore[reportUnknownMemberType]
-    ax.grid(which="minor", color="white", linewidth=0.5)                                        #pyright: ignore[reportUnknownMemberType]
-    ax.tick_params(which="both", bottom=False, left=False, labelbottom=False, labelleft=False)  #pyright: ignore[reportUnknownMemberType]
-    ax.set_xticks(np.arange(-0.5, cols, 1), minor=True)                                         #pyright: ignore[reportUnknownMemberType]
-    ax.set_yticks(np.arange(-0.5, rows, 1), minor=True)                                         #pyright: ignore[reportUnknownMemberType]
-
-    manager = getattr(fig.canvas, "manager", None)
-    if manager is not None and hasattr(manager, "set_window_title"):
-        manager.set_window_title("DEBUG Window")
-    fig.canvas.mpl_connect("button_press_event",lambda event:
-                           _on_click(event,ax,tilemap,room_count))
-
-    plt.show()                                                                                  #pyright: ignore[reportUnknownMemberType]
-    return
+    info = {"Dungeon Rooms": room_count}
+    colour_dict: dict[int, str] = {
+        0: "white",
+        1: "black",
+        2: "green",
+        3: "blue",
+        4: "red",
+        5: "yellow",
+    }
+    max_val = max(colour_dict.keys())
+    colours: list[str] = ["black"] * (max_val + 1)
+    for const, colour in colour_dict.items():
+        colours[const] = colour
+    debug_render(
+        debug_map, colours, info,
+        grid_colour="white",
+        tile_formatter = _get_direction_strings,
+        click_map = tilemap
+    )
 
 def _time_test(count: int) -> None:
     """
@@ -584,7 +619,9 @@ def _time_test(count: int) -> None:
         _ = dungeon_map_generator(np_rng, rand_rng)
         time = (clock()-start)*1e-6
         total_time += time
-    print(f"Run count: {count}\nTotal Time: {total_time:.6f} ms\nAverage Time: {total_time/count:.6f} ms")
+    print(f"Run count: {count}\n"
+          f"Total Time: {total_time:.6f} ms\n"
+          f"Average Time: {total_time/count:.6f} ms")
     return
 
 def _main() -> None:
@@ -620,11 +657,10 @@ def _main() -> None:
     debug_seed = int(user_input) if user_input else None
     np_rng = np.random.default_rng(debug_seed)
     rand_rng = Random(debug_seed)
-  
-    
+
     tilemap = dungeon_map_generator(np_rng, rand_rng)
 
-    room_count = np.count_nonzero(tilemap)
+    room_count = int(np.count_nonzero(tilemap))
     print(f"Dungeon contains {room_count} rooms")
     _debug(tilemap, room_count)
     return

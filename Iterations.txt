@@ -21,14 +21,6 @@ Iteration 3: Partial rewrite of i2, with dungeon generation having a complete re
              and full dungeon view. Enemies were added for this iteration, but I couldnt
              get them to do anything.
 
-Iteration 4: Complete rewrite of the program. Dungeon generation entirely reworked.
-             There is a major focus on optimization this iteration, as well as fixing
-             the issues from previous iterations.
-             Current Features: Dungeon Map Generation
-                               Room Map Gen
-             Planned Features: Tilemap Stitching
-                               Game Timer
-                               Bosses
-                               Enemies
-                               Player Movement
-                               Combat
+Iteration 4: Current Iteration. Complete rewrite of the program. Dungeon and Room
+             generation entirely reworked. There is a major focus on optimization
+             this iteration, as well as fixing the issues from previous iterations.
