@@ -10,6 +10,8 @@ import numpy as np
 from numpy import uint8
 from numpy.typing import NDArray as array
 
+from Debug_Tools import timeit
+
 def init_tilemap(height: int, width: int | None = None) -> array[uint8]:
     """
     Initializes an empty 2D tilemap filled with zeros.
@@ -38,6 +40,7 @@ def init_tilemap(height: int, width: int | None = None) -> array[uint8]:
     tilemap = np.zeros((height,width), dtype = uint8)
     return tilemap
 
+@timeit
 def adj_map(
             tilemap: array[uint8],
             neighbor_map:array[uint8] | None = None,
@@ -82,9 +85,13 @@ def adj_map(
       neighbor_map is non-None before returning.
     """
     h, w = tilemap.shape
-    if target is not None: mask = np.isin(tilemap, tuple(target))
-    else: mask = tilemap != 0
-    mask = mask.astype(uint8)
+    if target is not None:
+        if len(target) == 1:
+            mask = (tilemap == next(iter(target))).astype(uint8)
+        else:
+            mask = np.isin(tilemap, tuple(target)).astype(uint8)
+    else:
+        mask = (tilemap != 0).astype(uint8)
     if neighbor_map is None:
         neighbor_map = np.zeros_like(tilemap, dtype = uint8)
     else: neighbor_map.fill(0)
