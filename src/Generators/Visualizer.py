@@ -1,4 +1,5 @@
 import subprocess
+import sys
 import tkinter as tk
 from functools import partial
 from random import Random
@@ -24,6 +25,12 @@ from Debug import (
     write_timings_to_file
 )
 from Helpers import Theme, Const
+
+def _reload(root):
+    subprocess.Popen([sys.executable] + sys.argv)
+    root.destroy()
+    sys.exit()
+    return
 
 def _init_seeds(seed_str: StringVar) -> tuple[np.random.Generator, Random]:
     seed_val = seed_str.get()
@@ -248,7 +255,7 @@ def _main():
     subprocess.run("cls||clear", shell = True)
     root = tk.Tk()
     root.title("Debugger")
-    root.geometry("225x150")
+    root.geometry("225x160")
 
     seed_var = tk.StringVar()
     timing_var = tk.BooleanVar()
@@ -268,6 +275,7 @@ def _main():
                           command = partial(_run_Stage_2, timing_var, time_count, seed_var))
     s3_button = tk.Button(root, text="Stage 3",
                           command = partial(_run_Stage_3, timing_var, time_count, seed_var))
+    restart_button = tk.Button(root, text = "Reload", command = lambda: _reload(root))
 
     seed_entry.grid(row = 0, column = 0, sticky = "nsew")
     timing_check.grid(row = 0, column = 1, sticky = "w")
@@ -278,6 +286,7 @@ def _main():
     s1_button.grid(row = 1, sticky = "w")
     s2_button.grid(row = 2, sticky = "w")
     s3_button.grid(row = 3, sticky = "w")
+    restart_button.grid(row = 5, column = 1, sticky = "w")
 
     root.mainloop()
 

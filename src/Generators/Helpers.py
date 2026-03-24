@@ -15,6 +15,7 @@ class Shape(IntEnum):
 
 class Theme(IntEnum):
     EMPTY = 0
+    ENTRANCE = auto()
 
     DE_TRAPPED = auto()
     DE_TREASURE = auto()
@@ -93,6 +94,10 @@ class Const(IntEnum):
     MONSTER_SPAWNER = 10
     BOSS_SPAWNER = 11
     SHRINE = 12
+    PAINT_1 = 13
+    PAINT_2 = 14
+    PAINT_3 = 15
+    ENTRANCE = 16
 
 class S1_Const(IntEnum):
     DUNGEON_SIZE = 20
@@ -239,10 +244,12 @@ POPULATION_TABLES: dict[Theme, dict[Const, int | tuple[int, int]]] = {
     Theme.LC_BASIC:    {Const.TRAP: (1,2), Const.LOOT_PILE: (0,1)},
     Theme.LC_FLOODED:  {Const.WATER: 7, Const.WATER_POOL: 21, Const.MONSTER_SPAWNER: (1,2)},
 
+    Theme.ENTRANCE:    {Const.ENTRANCE: 1},
     Theme.EMPTY:       {}
     }
 
 FEATURE_ORDER = (
+        Const.ENTRANCE,
         Const.WATER,
         Const.WATER_POOL,
         Const.HOLE,
@@ -257,6 +264,7 @@ FEATURE_ORDER = (
     )
 
 SCAN_PARAMS: dict[Const, dict[str, set[Const]]] = {
+    Const.ENTRANCE:         {"require": {Const.FLOOR}, "place_on": {Const.WALL}},
     Const.WATER:            {"block": {Const.CHEST, Const.LOOT_PILE, Const.HOLE}},
     Const.WATER_POOL:       {"require": {Const.WATER}, "block": {Const.CHEST, Const.LOOT_PILE, Const.HOLE}},
     Const.HOLE:             {"block": {Const.WALL, Const.WATER, Const.LOOT_PILE}},
@@ -282,3 +290,5 @@ SMALL_CIRCLE_MASK = (
 LARGE_CIRCLE_MASK = (
     (_ROOM_Y - Const.HALF) ** 2 + (_ROOM_X - Const.HALF) ** 2 <= 6 ** 2
 )
+
+ONE_EXIT_ROOMS = [17, 18, 20, 24]

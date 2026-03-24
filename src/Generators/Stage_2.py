@@ -13,11 +13,21 @@ from Helpers import (
     THEME_TABLES, 
     SMALL_CIRCLE_MASK, 
     LARGE_CIRCLE_MASK,
+    ONE_EXIT_ROOMS,
     )
 from Debug import timeit
 
 @timeit
-def _init_maps(multiplier: int, h: int,w: int):
+def _get_entrance_room(dungeon_map: array[uint8], rand_rng: Random):
+    mask = np.isin(dungeon_map, ONE_EXIT_ROOMS)
+    coords = np.argwhere(mask)
+    if coords.size == 0:
+        coords = np.argwhere(dungeon_map != 0)
+    r, c = coords[rand_rng.randrange(coords.shape[0])]
+    return int(r), int(c)
+
+@timeit
+def _init_maps(multiplier: int, h: int,w: int) -> tuple[array[uint8], array[uint8]]:
     tilemap = np.zeros((h * multiplier, w * multiplier), dtype = uint8)
     theme_map = np.zeros((h * multiplier, w * multiplier), dtype = uint8)
     return tilemap, theme_map
@@ -113,6 +123,7 @@ def tilemap_builder(
 ) -> tuple[array[uint8],array[uint8]]:
     multiplier = Const.ROOM_SIZE
     tilemap, theme_map = _init_maps(multiplier, *dungeon_map.shape)
+    entrance = _get_entrance_room(dungeon_map, rand_rng)
     room_tilemap = np.empty(
         shape = (Const.ROOM_SIZE, Const.ROOM_SIZE),
         dtype = uint8
@@ -120,9 +131,13 @@ def tilemap_builder(
     for row, col in np.argwhere(dungeon_map != 0):
         room_tilemap.fill(0)
         val = uint8(dungeon_map[row, col])
-        shape = _get_shape(val, rand_rng)
+        if (row, col) == entrance:
+            theme = Theme.ENTRANCE
+            shape = Shape.DEAD_END
+        else:
+            shape = _get_shape(val, rand_rng)
+            theme = _get_theme(shape, rand_rng)
         room_tilemap = _build_room(room_tilemap, val, shape, np_rng)
-        theme = _get_theme(shape, rand_rng)
         y = row * multiplier
         x = col * multiplier
         tilemap[y:y + multiplier, x:x + multiplier] = room_tilemap

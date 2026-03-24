@@ -1,5 +1,5 @@
 Next Step:
-    Add more room shapes and themes to the generation system
+    Build Item System
 
 Planned Steps:
     Add Entity support and collision
