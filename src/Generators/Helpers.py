@@ -14,7 +14,8 @@ class Shape(IntEnum):
     LARGE_CIRCLE = auto()
 
 class Theme(IntEnum):
-    EMPTY = 0
+    NULL = 0
+    EMPTY = auto()
     ENTRANCE = auto()
 
     DE_TRAPPED = auto()
