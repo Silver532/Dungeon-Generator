@@ -24,7 +24,7 @@ from Debug import (
     reset_timings,
     write_timings_to_file
 )
-from Helpers import Theme, Const
+from Gen_Helpers import Theme, Const
 
 def _reload(root):
     subprocess.Popen([sys.executable] + sys.argv)

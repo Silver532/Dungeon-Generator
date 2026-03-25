@@ -6,7 +6,7 @@ from numpy import uint8
 from numpy.typing import NDArray as array
 
 from Debug import timeit
-from Helpers import S1_Const
+from Gen_Helpers import S1_Const
 
 @timeit
 def _init_tilemap(height: int, width: int | None = None) -> array[uint8]:

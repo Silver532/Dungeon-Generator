@@ -5,7 +5,7 @@ from numpy import uint8
 from numpy.typing import NDArray as array
 
 from Debug import timeit
-from Helpers import (
+from Gen_Helpers import (
     Const,
     Theme,
     POPULATION_TABLES,
