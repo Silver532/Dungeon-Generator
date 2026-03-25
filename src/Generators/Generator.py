@@ -11,7 +11,4 @@ def generate_dungeon(seed: int | None = None):
     dungeon_map = Stage_1.map_generator(np_rng, rand_rng)
     tilemap, theme_map = Stage_2.tilemap_builder(dungeon_map, np_rng, rand_rng)
     tilemap = Stage_3.room_populator(tilemap, theme_map, np_rng)
-    return
-
-if __name__ == "__main__":
-    generate_dungeon()
+    return tilemap, theme_map

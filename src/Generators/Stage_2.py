@@ -29,7 +29,7 @@ def _get_entrance_room(dungeon_map: array[uint8], rand_rng: Random):
 @timeit
 def _init_maps(multiplier: int, h: int,w: int) -> tuple[array[uint8], array[uint8]]:
     tilemap = np.zeros((h * multiplier, w * multiplier), dtype = uint8)
-    theme_map = np.zeros((h * multiplier, w * multiplier), dtype = uint8)
+    theme_map = np.zeros((h, w), dtype = uint8)
     return tilemap, theme_map
 
 @timeit
@@ -141,5 +141,5 @@ def tilemap_builder(
         y = row * multiplier
         x = col * multiplier
         tilemap[y:y + multiplier, x:x + multiplier] = room_tilemap
-        theme_map[y:y + multiplier, x:x + multiplier] = theme
+        theme_map[row, col] = theme
     return tilemap, theme_map

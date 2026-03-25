@@ -20,9 +20,8 @@ def _resolve_counts(
         np_rng: np.random.Generator
 ) -> dict[tuple[int,int],dict[Const,int]]:
     counts: dict[tuple[int, int], dict[Const, int]] = {}
-    room_themes = theme_map[::Const.ROOM_SIZE, ::Const.ROOM_SIZE]
-    for row, col in np.argwhere(room_themes != 0):
-        theme = Theme(int(room_themes[row, col]))
+    for row, col in np.argwhere(theme_map != 0):
+        theme = Theme(int(theme_map[row, col]))
         resolved: dict[Const, int] = {}
         for feature, count in POPULATION_TABLES[theme].items():
             if isinstance(count, tuple):
