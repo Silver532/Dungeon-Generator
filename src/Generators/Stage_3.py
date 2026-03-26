@@ -37,7 +37,7 @@ def _resolve_counts(
 @timeit
 def _adj_map(
             tilemap: array[uint8],
-            neighbor_map:array[uint8] | None = None,
+            neighbor_map:array[uint8],
             iso:bool=True,
             target:Collection[int] | None = None
 ) -> array[uint8]:
@@ -49,9 +49,7 @@ def _adj_map(
             mask = np.isin(tilemap, tuple(target)).astype(uint8)
     else:
         mask = (tilemap != 0).astype(uint8)
-    if neighbor_map is None:
-        neighbor_map = np.zeros_like(tilemap, dtype = uint8)
-    else: neighbor_map.fill(0)
+    neighbor_map.fill(0)
 
     neighbor_map[1:h-1, :] = mask[0:h-2, :] + mask[2:h, :]
     neighbor_map[:, 1:w-1] += mask[:, 0:w-2] + mask[:, 2:w]
