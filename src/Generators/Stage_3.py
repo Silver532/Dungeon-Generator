@@ -6,6 +6,7 @@ from numpy.typing import NDArray as array
 
 from Debug import timeit
 from Gen_Helpers import (
+    Tile,
     Const,
     Theme,
     POPULATION_TABLES,
@@ -18,11 +19,11 @@ from Gen_Helpers import (
 def _resolve_counts(
         theme_map: array[uint8],
         np_rng: np.random.Generator
-) -> dict[tuple[int,int],dict[Const,int]]:
-    counts: dict[tuple[int, int], dict[Const, int]] = {}
+) -> dict[tuple[int,int],dict[Tile,int]]:
+    counts: dict[tuple[int, int], dict[Tile, int]] = {}
     for row, col in np.argwhere(theme_map != 0):
         theme = Theme(int(theme_map[row, col]))
-        resolved: dict[Const, int] = {}
+        resolved: dict[Tile, int] = {}
         for feature, count in POPULATION_TABLES[theme].items():
             if isinstance(count, tuple):
                 resolved[feature] = int(np_rng.integers(
@@ -67,7 +68,7 @@ def _scan_tilemap(
         bias: Collection[int] | None = None,
         place_on: Collection[int] | None = None
 ) -> array[np.int32]:
-    if place_on is None: available_grid = tilemap == Const.FLOOR
+    if place_on is None: available_grid = tilemap == Tile.FLOOR
     else: available_grid = np.isin(tilemap,tuple(place_on))
 
     if neighbor_map is None:
@@ -99,7 +100,7 @@ def _scan_tilemap(
 @timeit
 def _place(
         tilemap: array[uint8],
-        feature: Const,
+        feature: Tile,
         available_list: array[np.int32],
         count: int,
         np_rng: np.random.Generator) -> None:

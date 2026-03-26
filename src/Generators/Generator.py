@@ -4,7 +4,6 @@ import numpy as np
 
 import Stage_1, Stage_2, Stage_3
 
-
 def generate_dungeon(seed: int | None = None):
     np_rng = np.random.default_rng(seed)
     rand_rng = Random(seed)

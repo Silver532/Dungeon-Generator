@@ -86,8 +86,8 @@ def _room_random(np_rng: np.random.Generator, count: int) -> array[uint8]:
     r = np_rng.random(count, dtype = np.float32)
 
     randoms = np.ones(count, dtype = uint8)
-    randoms[r >= 0.55] = 2
-    randoms[r >= 0.80] = 3
+    randoms[r >= 0.50] = 2
+    randoms[r >= 0.85] = 3
     return randoms
 
 @timeit

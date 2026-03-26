@@ -5,9 +5,10 @@ from numpy import uint8
 from numpy.typing import NDArray as array
 
 from Gen_Helpers import (
-    Const, 
-    Shape, 
-    Theme, 
+    Tile,
+    Const,
+    Shape,
+    Theme,
     InvalidRoom,
     SHAPE_TABLES, 
     THEME_TABLES, 
@@ -56,55 +57,55 @@ def _build_room(
 ) -> array[uint8]:
     half = Const.HALF
     if 0b00001 & room_val:
-        tilemap[0:half+1, half-1:half+2] = Const.FLOOR
+        tilemap[0:half+1, half-1:half+2] = Tile.FLOOR
     if 0b00010 & room_val:
-        tilemap[half-1:half+2, half:Const.ROOM_SIZE] = Const.FLOOR
+        tilemap[half-1:half+2, half:Const.ROOM_SIZE] = Tile.FLOOR
     if 0b00100 & room_val:
-        tilemap[half:Const.ROOM_SIZE, half-1:half+2] = Const.FLOOR
+        tilemap[half:Const.ROOM_SIZE, half-1:half+2] = Tile.FLOOR
     if 0b01000 & room_val:
-        tilemap[half-1:half+2, 0:half+1] = Const.FLOOR
+        tilemap[half-1:half+2, 0:half+1] = Tile.FLOOR
     
     match room_shape:
         case Shape.DEAD_END:
             length = np_rng.integers(2,5, endpoint = True)
             s = slice(half-length, half+length+1)
-            tilemap[s,s] = Const.WALL
+            tilemap[s,s] = Tile.WALL
         case Shape.BOSS_ROOM:
-            tilemap[1:-1, 1:-1] = Const.FLOOR
+            tilemap[1:-1, 1:-1] = Tile.FLOOR
         case Shape.SMALL_ROOM:
-            tilemap[half-3:half+4, half-3:half+4] = Const.FLOOR
+            tilemap[half-3:half+4, half-3:half+4] = Tile.FLOOR
         case Shape.CONNECTION:
-            tilemap[half-1:half+2, half-1:half+2] = Const.FLOOR
+            tilemap[half-1:half+2, half-1:half+2] = Tile.FLOOR
         case Shape.LARGE_ROOM:
-            tilemap[half-6:half+7, half-6:half+7] = Const.FLOOR
+            tilemap[half-6:half+7, half-6:half+7] = Tile.FLOOR
         case Shape.CORNER:
             match int(room_val) & 0b01111:
                 case 0b01001:
-                    tilemap[1:half+2, 1:half+2] = Const.FLOOR
+                    tilemap[1:half+2, 1:half+2] = Tile.FLOOR
                 case 0b00011:
-                    tilemap[1:half+2, half-1:-1] = Const.FLOOR
+                    tilemap[1:half+2, half-1:-1] = Tile.FLOOR
                 case 0b01100:
-                    tilemap[half-1:-1, 1:half+2] = Const.FLOOR
+                    tilemap[half-1:-1, 1:half+2] = Tile.FLOOR
                 case 0b00110:
-                    tilemap[half-1:-1, half-1:-1] = Const.FLOOR
+                    tilemap[half-1:-1, half-1:-1] = Tile.FLOOR
                 case _:
-                    tilemap[half-3:half+4, half-3:half+4] = Const.FLOOR
+                    tilemap[half-3:half+4, half-3:half+4] = Tile.FLOOR
         case Shape.HALF:
             match int(room_val) & 0b01111:
                 case 0b01110:
-                    tilemap[half:-1, 1:-1] = Const.FLOOR
+                    tilemap[half:-1, 1:-1] = Tile.FLOOR
                 case 0b01101:
-                    tilemap[1:-1, 1:half] = Const.FLOOR
+                    tilemap[1:-1, 1:half] = Tile.FLOOR
                 case 0b01011:
-                    tilemap[1:half, 1:-1] = Const.FLOOR
+                    tilemap[1:half, 1:-1] = Tile.FLOOR
                 case 0b00111:
-                    tilemap[1:-1, half:-1] = Const.FLOOR
+                    tilemap[1:-1, half:-1] = Tile.FLOOR
                 case _:
                     pass
         case Shape.SMALL_CIRCLE:
-            tilemap[SMALL_CIRCLE_MASK] = Const.FLOOR
+            tilemap[SMALL_CIRCLE_MASK] = Tile.FLOOR
         case Shape.LARGE_CIRCLE:
-            tilemap[LARGE_CIRCLE_MASK] = Const.FLOOR
+            tilemap[LARGE_CIRCLE_MASK] = Tile.FLOOR
     return tilemap
 
 @timeit

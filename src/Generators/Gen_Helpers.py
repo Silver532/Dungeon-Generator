@@ -82,6 +82,8 @@ class Theme(IntEnum):
 class Const(IntEnum):
     ROOM_SIZE = 17
     HALF = ROOM_SIZE//2
+
+class Tile(IntEnum):
     WALL = 0
     FLOOR = 1
     HOLE = 2
@@ -123,7 +125,7 @@ SHAPE_TABLES: dict[int, tuple[list[Shape], list[float]]] = {
         ),
     2: (
         [Shape.CONNECTION, Shape.SMALL_ROOM, Shape.LARGE_ROOM, Shape.CORNER, Shape.SMALL_CIRCLE],
-        [0.15, 0.25, 0.25, 0.20, 0.15]
+        [0.16, 0.27, 0.20, 0.22, 0.15]
         ),
     3: (
         [Shape.CONNECTION, Shape.SMALL_ROOM, Shape.LARGE_ROOM, Shape.HALF, Shape.SMALL_CIRCLE, Shape.LARGE_CIRCLE],
@@ -183,105 +185,105 @@ THEME_TABLES: dict[Shape, tuple[list[Theme], list[float]]] = {
     ),
 }
 
-POPULATION_TABLES: dict[Theme, dict[Const, int | tuple[int, int]]] = {
-    Theme.DE_TRAPPED:  {Const.HOLE: 1, Const.WATER: (0,1), Const.TRAP: 3},
-    Theme.DE_TREASURE: {Const.TRAP: 1, Const.CHEST: 1, Const.LOOT_PILE: 2, Const.MONSTER_SPAWNER: 1},
-    Theme.DE_HEALTHY:  {Const.HEALING_STATION: 1},
-    Theme.DE_GUARDED:  {Const.MONSTER_SPAWNER: 1},
+POPULATION_TABLES: dict[Theme, dict[Tile, int | tuple[int, int]]] = {
+    Theme.DE_TRAPPED:  {Tile.HOLE: 1, Tile.WATER: (0,1), Tile.TRAP: 3},
+    Theme.DE_TREASURE: {Tile.TRAP: 1, Tile.CHEST: 1, Tile.LOOT_PILE: 2, Tile.MONSTER_SPAWNER: 1},
+    Theme.DE_HEALTHY:  {Tile.HEALING_STATION: 1},
+    Theme.DE_GUARDED:  {Tile.MONSTER_SPAWNER: 1},
 
-    Theme.SR_TRAPPED:  {Const.HOLE: 1, Const.TRAP: (3,5), Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 1},
-    Theme.SR_TREASURE: {Const.TRAP: (1,2), Const.CHEST: 2, Const.LOOT_PILE: 3},
-    Theme.SR_GUARDED:  {Const.WATER: (0,1), Const.TRAP: 1, Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 2},
-    Theme.SR_CHAOS:    {Const.HOLE: 2, Const.WATER: (0,1), Const.TRAP: 3, Const.CHEST: 1, Const.LOOT_PILE: 2, Const.MONSTER_SPAWNER: 3, Const.SHRINE: 1},
-    Theme.SR_BASIC:    {Const.TRAP: (0,1), Const.LOOT_PILE: (0,1)},
-    Theme.SR_FLOODED:  {Const.WATER: 5, Const.WATER_POOL: 13, Const.MONSTER_SPAWNER: 1},
+    Theme.SR_TRAPPED:  {Tile.HOLE: 1, Tile.TRAP: (3,5), Tile.LOOT_PILE: 1, Tile.MONSTER_SPAWNER: 1},
+    Theme.SR_TREASURE: {Tile.TRAP: (1,2), Tile.CHEST: 2, Tile.LOOT_PILE: 3},
+    Theme.SR_GUARDED:  {Tile.WATER: (0,1), Tile.TRAP: 1, Tile.LOOT_PILE: 1, Tile.MONSTER_SPAWNER: 2},
+    Theme.SR_CHAOS:    {Tile.HOLE: 2, Tile.WATER: (0,1), Tile.TRAP: 3, Tile.CHEST: 1, Tile.LOOT_PILE: 2, Tile.MONSTER_SPAWNER: 3, Tile.SHRINE: 1},
+    Theme.SR_BASIC:    {Tile.TRAP: (0,1), Tile.LOOT_PILE: (0,1)},
+    Theme.SR_FLOODED:  {Tile.WATER: 5, Tile.WATER_POOL: 13, Tile.MONSTER_SPAWNER: 1},
     
-    Theme.CN_TRAPPED:  {Const.HOLE: 1, Const.TRAP: (1,3), Const.LOOT_PILE: 1},
-    Theme.CN_GUARDED:  {Const.MONSTER_SPAWNER: 1},
-    Theme.CN_BASIC:    {Const.LOOT_PILE: (0,1)},
-    Theme.CN_FLOODED:  {Const.WATER: 4, Const.WATER_POOL: 10, Const.MONSTER_SPAWNER: (0,1)},
+    Theme.CN_TRAPPED:  {Tile.HOLE: 1, Tile.TRAP: (1,3), Tile.LOOT_PILE: 1},
+    Theme.CN_GUARDED:  {Tile.MONSTER_SPAWNER: 1},
+    Theme.CN_BASIC:    {Tile.LOOT_PILE: (0,1)},
+    Theme.CN_FLOODED:  {Tile.WATER: 4, Tile.WATER_POOL: 10, Tile.MONSTER_SPAWNER: (0,1)},
     
-    Theme.LR_TRAPPED:  {Const.HOLE: 2, Const.WATER: 1, Const.TRAP: (3,5), Const.LOOT_PILE: 2, Const.MONSTER_SPAWNER: 1},
-    Theme.LR_TREASURE: {Const.TRAP: 1, Const.CHEST: 2, Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: 1},
-    Theme.LR_HEALTHY:  {Const.HEALING_STATION: 1},
-    Theme.LR_GUARDED:  {Const.WATER: (0,1), Const.TRAP: 1, Const.CHEST: 1, Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 3},
-    Theme.LR_CHAOS:    {Const.HOLE: 2, Const.WATER: 1, Const.TRAP: 3, Const.CHEST: 2, Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: (2,4), Const.SHRINE: 1},
-    Theme.LR_BASIC:    {Const.TRAP: (1,2), Const.LOOT_PILE: (0,1)},
-    Theme.LR_FLOODED:  {Const.WATER: 6, Const.WATER_POOL: 18, Const.MONSTER_SPAWNER: 1},
+    Theme.LR_TRAPPED:  {Tile.HOLE: 2, Tile.WATER: 1, Tile.TRAP: (3,5), Tile.LOOT_PILE: 2, Tile.MONSTER_SPAWNER: 1},
+    Theme.LR_TREASURE: {Tile.TRAP: 1, Tile.CHEST: 2, Tile.LOOT_PILE: 3, Tile.MONSTER_SPAWNER: 1},
+    Theme.LR_HEALTHY:  {Tile.HEALING_STATION: 1},
+    Theme.LR_GUARDED:  {Tile.WATER: (0,1), Tile.TRAP: 1, Tile.CHEST: 1, Tile.LOOT_PILE: 1, Tile.MONSTER_SPAWNER: 3},
+    Theme.LR_CHAOS:    {Tile.HOLE: 2, Tile.WATER: 1, Tile.TRAP: 3, Tile.CHEST: 2, Tile.LOOT_PILE: 3, Tile.MONSTER_SPAWNER: (2,4), Tile.SHRINE: 1},
+    Theme.LR_BASIC:    {Tile.TRAP: (1,2), Tile.LOOT_PILE: (0,1)},
+    Theme.LR_FLOODED:  {Tile.WATER: 6, Tile.WATER_POOL: 18, Tile.MONSTER_SPAWNER: 1},
     
-    Theme.CR_TRAPPED:  {Const.HOLE: 1, Const.TRAP: (2,4), Const.LOOT_PILE: 1},
-    Theme.CR_TREASURE: {Const.TRAP: 1, Const.CHEST: 1, Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: 1},
-    Theme.CR_GUARDED:  {Const.WATER: (0,1), Const.TRAP: 1, Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 2},
-    Theme.CR_CHAOS:    {Const.HOLE: (0,1), Const.WATER: 1, Const.TRAP: 3, Const.CHEST: (0,2), Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: (2,3), Const.SHRINE: 1},
-    Theme.CR_BASIC:    {Const.TRAP: (0,1), Const.LOOT_PILE: (0,1)},
-    Theme.CR_FLOODED:  {Const.WATER: 4, Const.WATER_POOL: 12, Const.MONSTER_SPAWNER: (0,1)},
+    Theme.CR_TRAPPED:  {Tile.HOLE: 1, Tile.TRAP: (2,4), Tile.LOOT_PILE: 1},
+    Theme.CR_TREASURE: {Tile.TRAP: 1, Tile.CHEST: 1, Tile.LOOT_PILE: 3, Tile.MONSTER_SPAWNER: 1},
+    Theme.CR_GUARDED:  {Tile.WATER: (0,1), Tile.TRAP: 1, Tile.LOOT_PILE: 1, Tile.MONSTER_SPAWNER: 2},
+    Theme.CR_CHAOS:    {Tile.HOLE: (0,1), Tile.WATER: 1, Tile.TRAP: 3, Tile.CHEST: (0,2), Tile.LOOT_PILE: 3, Tile.MONSTER_SPAWNER: (2,3), Tile.SHRINE: 1},
+    Theme.CR_BASIC:    {Tile.TRAP: (0,1), Tile.LOOT_PILE: (0,1)},
+    Theme.CR_FLOODED:  {Tile.WATER: 4, Tile.WATER_POOL: 12, Tile.MONSTER_SPAWNER: (0,1)},
     
-    Theme.HR_TRAPPED:  {Const.HOLE: 1, Const.TRAP: (2,4), Const.LOOT_PILE: 1},
-    Theme.HR_TREASURE: {Const.TRAP: 1, Const.CHEST: 1, Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: 1},
-    Theme.HR_GUARDED:  {Const.WATER: (0,1), Const.TRAP: 1, Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 2},
-    Theme.HR_CHAOS:    {Const.HOLE: (0,1), Const.WATER: 1, Const.TRAP: 3, Const.MONSTER_SPAWNER: (2,3), Const.SHRINE: 1, Const.CHEST: (0,2), Const.LOOT_PILE: 3},
-    Theme.HR_BASIC:    {Const.TRAP: (0,1), Const.LOOT_PILE: (0,1)},
-    Theme.HR_FLOODED:  {Const.WATER: 5, Const.WATER_POOL: 15, Const.MONSTER_SPAWNER: (0,1)},
+    Theme.HR_TRAPPED:  {Tile.HOLE: 1, Tile.TRAP: (2,4), Tile.LOOT_PILE: 1},
+    Theme.HR_TREASURE: {Tile.TRAP: 1, Tile.CHEST: 1, Tile.LOOT_PILE: 3, Tile.MONSTER_SPAWNER: 1},
+    Theme.HR_GUARDED:  {Tile.WATER: (0,1), Tile.TRAP: 1, Tile.LOOT_PILE: 1, Tile.MONSTER_SPAWNER: 2},
+    Theme.HR_CHAOS:    {Tile.HOLE: (0,1), Tile.WATER: 1, Tile.TRAP: 3, Tile.MONSTER_SPAWNER: (2,3), Tile.SHRINE: 1, Tile.CHEST: (0,2), Tile.LOOT_PILE: 3},
+    Theme.HR_BASIC:    {Tile.TRAP: (0,1), Tile.LOOT_PILE: (0,1)},
+    Theme.HR_FLOODED:  {Tile.WATER: 5, Tile.WATER_POOL: 15, Tile.MONSTER_SPAWNER: (0,1)},
     
-    Theme.BR_HOARD:    {Const.CHEST: 3, Const.LOOT_PILE: 9, Const.BOSS_SPAWNER: 1, Const.SHRINE: 1},
-    Theme.BR_WIZARD:   {Const.CHEST: 4, Const.LOOT_PILE: 3, Const.BOSS_SPAWNER: 1, Const.SHRINE: 1},
-    Theme.BR_WEAK:     {Const.TRAP: (0,1), Const.CHEST: 1, Const.LOOT_PILE: 2, Const.MONSTER_SPAWNER: 1, Const.BOSS_SPAWNER: 1},
-    Theme.BR_STRONG:   {Const.HEALING_STATION: (0,1), Const.CHEST: (1,3), Const.LOOT_PILE: 5, Const.BOSS_SPAWNER: 1, Const.SHRINE: 1},
-    Theme.BR_GUARDED:  {Const.TRAP: 1, Const.CHEST: 2, Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: 2, Const.BOSS_SPAWNER: 1, Const.SHRINE: 1},
-    Theme.BR_DOUBLE:   {Const.CHEST: 3, Const.LOOT_PILE: 5, Const.BOSS_SPAWNER: 2, Const.SHRINE: 1},
+    Theme.BR_HOARD:    {Tile.CHEST: 3, Tile.LOOT_PILE: 9, Tile.BOSS_SPAWNER: 1, Tile.SHRINE: 1},
+    Theme.BR_WIZARD:   {Tile.CHEST: 4, Tile.LOOT_PILE: 3, Tile.BOSS_SPAWNER: 1, Tile.SHRINE: 1},
+    Theme.BR_WEAK:     {Tile.TRAP: (0,1), Tile.CHEST: 1, Tile.LOOT_PILE: 2, Tile.MONSTER_SPAWNER: 1, Tile.BOSS_SPAWNER: 1},
+    Theme.BR_STRONG:   {Tile.HEALING_STATION: (0,1), Tile.CHEST: (1,3), Tile.LOOT_PILE: 5, Tile.BOSS_SPAWNER: 1, Tile.SHRINE: 1},
+    Theme.BR_GUARDED:  {Tile.TRAP: 1, Tile.CHEST: 2, Tile.LOOT_PILE: 3, Tile.MONSTER_SPAWNER: 2, Tile.BOSS_SPAWNER: 1, Tile.SHRINE: 1},
+    Theme.BR_DOUBLE:   {Tile.CHEST: 3, Tile.LOOT_PILE: 5, Tile.BOSS_SPAWNER: 2, Tile.SHRINE: 1},
     
-    Theme.SC_TRAPPED:  {Const.HOLE: 1, Const.TRAP: (3,5), Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 1},
-    Theme.SC_TREASURE: {Const.TRAP: (1,2), Const.CHEST: 2, Const.LOOT_PILE: 3},
-    Theme.SC_GUARDED:  {Const.WATER: (0,1), Const.TRAP: 1, Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 2},
-    Theme.SC_CHAOS:    {Const.HOLE: 2, Const.WATER: (0,1), Const.TRAP: 3, Const.CHEST: 1, Const.LOOT_PILE: 2, Const.MONSTER_SPAWNER: 3, Const.SHRINE: 1},
-    Theme.SC_BASIC:    {Const.TRAP: (0,1), Const.LOOT_PILE: (0,1)},
-    Theme.SC_FLOODED:  {Const.WATER: 4, Const.WATER_POOL: 12, Const.MONSTER_SPAWNER: (0,1)},
+    Theme.SC_TRAPPED:  {Tile.HOLE: 1, Tile.TRAP: (3,5), Tile.LOOT_PILE: 1, Tile.MONSTER_SPAWNER: 1},
+    Theme.SC_TREASURE: {Tile.TRAP: (1,2), Tile.CHEST: 2, Tile.LOOT_PILE: 3},
+    Theme.SC_GUARDED:  {Tile.WATER: (0,1), Tile.TRAP: 1, Tile.LOOT_PILE: 1, Tile.MONSTER_SPAWNER: 2},
+    Theme.SC_CHAOS:    {Tile.HOLE: 2, Tile.WATER: (0,1), Tile.TRAP: 3, Tile.CHEST: 1, Tile.LOOT_PILE: 2, Tile.MONSTER_SPAWNER: 3, Tile.SHRINE: 1},
+    Theme.SC_BASIC:    {Tile.TRAP: (0,1), Tile.LOOT_PILE: (0,1)},
+    Theme.SC_FLOODED:  {Tile.WATER: 4, Tile.WATER_POOL: 12, Tile.MONSTER_SPAWNER: (0,1)},
 
-    Theme.LC_TRAPPED:  {Const.HOLE: 2, Const.WATER: 1, Const.TRAP: (3,5), Const.LOOT_PILE: 2, Const.MONSTER_SPAWNER: 1},
-    Theme.LC_TREASURE: {Const.TRAP: 1, Const.CHEST: 2, Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: 1},
-    Theme.LC_HEALTHY:  {Const.HEALING_STATION: 1},
-    Theme.LC_GUARDED:  {Const.WATER: (0,1), Const.TRAP: 1, Const.CHEST: 1, Const.LOOT_PILE: 1, Const.MONSTER_SPAWNER: 3},
-    Theme.LC_CHAOS:    {Const.HOLE: 2, Const.WATER: 1, Const.TRAP: 3, Const.CHEST: 2, Const.LOOT_PILE: 3, Const.MONSTER_SPAWNER: (2,4), Const.SHRINE: 1},
-    Theme.LC_BASIC:    {Const.TRAP: (1,2), Const.LOOT_PILE: (0,1)},
-    Theme.LC_FLOODED:  {Const.WATER: 7, Const.WATER_POOL: 21, Const.MONSTER_SPAWNER: (1,2)},
+    Theme.LC_TRAPPED:  {Tile.HOLE: 2, Tile.WATER: 1, Tile.TRAP: (3,5), Tile.LOOT_PILE: 2, Tile.MONSTER_SPAWNER: 1},
+    Theme.LC_TREASURE: {Tile.TRAP: 1, Tile.CHEST: 2, Tile.LOOT_PILE: 3, Tile.MONSTER_SPAWNER: 1},
+    Theme.LC_HEALTHY:  {Tile.HEALING_STATION: 1},
+    Theme.LC_GUARDED:  {Tile.WATER: (0,1), Tile.TRAP: 1, Tile.CHEST: 1, Tile.LOOT_PILE: 1, Tile.MONSTER_SPAWNER: 3},
+    Theme.LC_CHAOS:    {Tile.HOLE: 2, Tile.WATER: 1, Tile.TRAP: 3, Tile.CHEST: 2, Tile.LOOT_PILE: 3, Tile.MONSTER_SPAWNER: (2,4), Tile.SHRINE: 1},
+    Theme.LC_BASIC:    {Tile.TRAP: (1,2), Tile.LOOT_PILE: (0,1)},
+    Theme.LC_FLOODED:  {Tile.WATER: 7, Tile.WATER_POOL: 21, Tile.MONSTER_SPAWNER: (1,2)},
 
-    Theme.ENTRANCE:    {Const.ENTRANCE: 1},
+    Theme.ENTRANCE:    {Tile.ENTRANCE: 1},
     Theme.EMPTY:       {}
     }
 
 FEATURE_ORDER = (
-        Const.ENTRANCE,
-        Const.WATER,
-        Const.WATER_POOL,
-        Const.HOLE,
-        Const.HEALING_STATION,
-        Const.SHRINE,
-        Const.CHEST,
-        Const.LOOT_PILE,
-        Const.LOOT_CLUSTER,
-        Const.TRAP,
-        Const.BOSS_SPAWNER,
-        Const.MONSTER_SPAWNER
+        Tile.ENTRANCE,
+        Tile.WATER,
+        Tile.WATER_POOL,
+        Tile.HOLE,
+        Tile.HEALING_STATION,
+        Tile.SHRINE,
+        Tile.CHEST,
+        Tile.LOOT_PILE,
+        Tile.LOOT_CLUSTER,
+        Tile.TRAP,
+        Tile.BOSS_SPAWNER,
+        Tile.MONSTER_SPAWNER
     )
 
-SCAN_PARAMS: dict[Const, dict[str, set[Const]]] = {
-    Const.ENTRANCE:         {"require": {Const.FLOOR}, "place_on": {Const.WALL}},
-    Const.WATER:            {"block": {Const.CHEST, Const.LOOT_PILE, Const.HOLE}},
-    Const.WATER_POOL:       {"require": {Const.WATER}, "block": {Const.CHEST, Const.LOOT_PILE, Const.HOLE}},
-    Const.HOLE:             {"block": {Const.WALL, Const.WATER, Const.LOOT_PILE}},
-    Const.HEALING_STATION:  {"require": {Const.FLOOR}, "place_on": {Const.WALL}},
-    Const.SHRINE:           {"require": {Const.FLOOR}, "place_on": {Const.WALL}},
-    Const.CHEST:            {"bias": {Const.LOOT_PILE, Const.WALL}},
-    Const.LOOT_PILE:        {"bias": {Const.CHEST}, "block": {Const.WATER, Const.HOLE}},
-    Const.LOOT_CLUSTER:     {"require": {Const.CHEST, Const.LOOT_PILE}, "block": {Const.WATER, Const.HOLE}},
-    Const.TRAP:             {"block": {Const.TRAP, Const.HEALING_STATION, Const.SHRINE}},
-    Const.BOSS_SPAWNER:     {"block": {Const.MONSTER_SPAWNER, Const.HEALING_STATION, Const.SHRINE}},
-    Const.MONSTER_SPAWNER:  {"block": {Const.BOSS_SPAWNER, Const.HEALING_STATION, Const.SHRINE}}
+SCAN_PARAMS: dict[Tile, dict[str, set[Tile]]] = {
+    Tile.ENTRANCE:         {"require": {Tile.FLOOR}, "place_on": {Tile.WALL}},
+    Tile.WATER:            {"block": {Tile.CHEST, Tile.LOOT_PILE, Tile.HOLE}},
+    Tile.WATER_POOL:       {"require": {Tile.WATER}, "block": {Tile.CHEST, Tile.LOOT_PILE, Tile.HOLE}},
+    Tile.HOLE:             {"block": {Tile.WALL, Tile.WATER, Tile.LOOT_PILE}},
+    Tile.HEALING_STATION:  {"require": {Tile.FLOOR}, "place_on": {Tile.WALL}},
+    Tile.SHRINE:           {"require": {Tile.FLOOR}, "place_on": {Tile.WALL}},
+    Tile.CHEST:            {"bias": {Tile.LOOT_PILE, Tile.WALL}},
+    Tile.LOOT_PILE:        {"bias": {Tile.CHEST}, "block": {Tile.WATER, Tile.HOLE}},
+    Tile.LOOT_CLUSTER:     {"require": {Tile.CHEST, Tile.LOOT_PILE}, "block": {Tile.WATER, Tile.HOLE}},
+    Tile.TRAP:             {"block": {Tile.TRAP, Tile.HEALING_STATION, Tile.SHRINE}},
+    Tile.BOSS_SPAWNER:     {"block": {Tile.MONSTER_SPAWNER, Tile.HEALING_STATION, Tile.SHRINE}},
+    Tile.MONSTER_SPAWNER:  {"block": {Tile.BOSS_SPAWNER, Tile.HEALING_STATION, Tile.SHRINE}}
     }
 
-DUPLICATES: dict[Const, Const] = {
-    Const.WATER_POOL: Const.WATER,
-    Const.LOOT_CLUSTER: Const.LOOT_PILE
+DUPLICATES: dict[Tile, Tile] = {
+    Tile.WATER_POOL: Tile.WATER,
+    Tile.LOOT_CLUSTER: Tile.LOOT_PILE
 }
 
 _ROOM_Y, _ROOM_X = np.ogrid[:Const.ROOM_SIZE, :Const.ROOM_SIZE]

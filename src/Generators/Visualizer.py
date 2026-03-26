@@ -24,7 +24,7 @@ from Debug import (
     reset_timings,
     write_timings_to_file
 )
-from Gen_Helpers import Theme, Const
+from Gen_Helpers import Theme, Tile, Const
 
 def _reload(root):
     subprocess.Popen([sys.executable] + sys.argv)
@@ -97,7 +97,8 @@ def _get_map_info(theme_map:array[uint8], tilemap: array[uint8], row: int, col: 
     room_row = row // Const.ROOM_SIZE
     room_col = col // Const.ROOM_SIZE
     theme = Theme(theme_map[room_row, room_col])
-    return f"Position: {row, col}\nTheme: {theme.name}\nTile: {Const(value).name}"
+    print(Tile(value))
+    return f"Position: {row, col}\nTheme: {theme.name}\nTile: {Tile(value).name}"
 
 def _run_Stage_2(timing_var: BooleanVar, time_count: IntVar, seed_var: StringVar) -> None:
     subprocess.run("cls||clear", shell = True)
@@ -117,8 +118,8 @@ def _run_Stage_2(timing_var: BooleanVar, time_count: IntVar, seed_var: StringVar
     tilemap, theme_map = Stage_2.tilemap_builder(S1_tilemap, np_rng, rand_rng)
     info = partial(_get_map_info, theme_map)
     colours: dict[int, str] = {
-        int(Const.WALL): "#000000",
-        int(Const.FLOOR): "#ffffff",
+        int(Tile.WALL): "#000000",
+        int(Tile.FLOOR): "#ffffff",
     }
     _visualize(tilemap, colours, info_func = info, scale = 3)
     return
@@ -145,17 +146,17 @@ def _run_Stage_3(timing_var: BooleanVar, time_count: IntVar, seed_var: StringVar
     tilemap = Stage_3.room_populator(tilemap, theme_map, np_rng)
     info = partial(_get_map_info, theme_map)
     colours: dict[int, str] = {
-        int(Const.WALL): "#000000",
-        int(Const.FLOOR): "#ffffff",
-        int(Const.WATER): "#1a6fcc",
-        int(Const.HOLE): "#808080",
-        int(Const.HEALING_STATION): "#22aa22",
-        int(Const.SHRINE): "#c0c0c0",
-        int(Const.CHEST): "#8b4513",
-        int(Const.LOOT_PILE): "#ffd700",
-        int(Const.TRAP): "#cc0000",
-        int(Const.BOSS_SPAWNER): "#ff8c00",
-        int(Const.MONSTER_SPAWNER): "#ff6600",
+        int(Tile.WALL): "#000000",
+        int(Tile.FLOOR): "#ffffff",
+        int(Tile.WATER): "#1a6fcc",
+        int(Tile.HOLE): "#808080",
+        int(Tile.HEALING_STATION): "#22aa22",
+        int(Tile.SHRINE): "#c0c0c0",
+        int(Tile.CHEST): "#8b4513",
+        int(Tile.LOOT_PILE): "#ffd700",
+        int(Tile.TRAP): "#cc0000",
+        int(Tile.BOSS_SPAWNER): "#ff8c00",
+        int(Tile.MONSTER_SPAWNER): "#ff6600",
     }
     _visualize(tilemap, colours, info_func=info, scale=3)
     return
