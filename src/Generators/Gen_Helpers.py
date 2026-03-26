@@ -123,11 +123,11 @@ SHAPE_TABLES: dict[int, tuple[list[Shape], list[float]]] = {
         ),
     2: (
         [Shape.CONNECTION, Shape.SMALL_ROOM, Shape.LARGE_ROOM, Shape.CORNER, Shape.SMALL_CIRCLE],
-        [0.10, 0.25, 0.30, 0.20, 0.15]
+        [0.15, 0.25, 0.25, 0.20, 0.15]
         ),
     3: (
         [Shape.CONNECTION, Shape.SMALL_ROOM, Shape.LARGE_ROOM, Shape.HALF, Shape.SMALL_CIRCLE, Shape.LARGE_CIRCLE],
-        [0.15, 0.20, 0.28, 0.17, 0.12, 0.08]
+        [0.17, 0.24, 0.22, 0.17, 0.12, 0.08]
         ),
     4: (
         [Shape.CONNECTION, Shape.SMALL_ROOM, Shape.LARGE_ROOM, Shape.LARGE_CIRCLE],
