@@ -97,7 +97,6 @@ def _get_map_info(theme_map:array[uint8], tilemap: array[uint8], row: int, col: 
     room_row = row // Const.ROOM_SIZE
     room_col = col // Const.ROOM_SIZE
     theme = Theme(theme_map[room_row, room_col])
-    print(Tile(value))
     return f"Position: {row, col}\nTheme: {theme.name}\nTile: {Tile(value).name}"
 
 def _run_Stage_2(timing_var: BooleanVar, time_count: IntVar, seed_var: StringVar) -> None:
