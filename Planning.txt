@@ -1,11 +1,13 @@
 Next Step:
-    Build Item System
+    Build Modular Item System
 
 Planned Steps:
+    Add Localized Rendering
     Add Entity support and collision
     Add Player Entity
-    Add Localized Rendering
     Add Looting Ability
     Game Timer
-    Add Pathfinding Support for Entities
     Add Enemy Entities
+    Add Pathfinding Support for Entities
+    Add Home Village
+    Add Save/Load

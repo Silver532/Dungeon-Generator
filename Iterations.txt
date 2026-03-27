@@ -1,7 +1,14 @@
-This is my 4th iteration of this project, and I am pleased to say that it is my best one yet,
-even in it's unfinished state.  Iteration 1 can be found on my "Personal Projects" repo, and
-is entirely different from what you can see here.  Iterations 2 and 3 will not be put on GitHub,
-as I no longer have the source code, and do not wish to recreate them.
+This is my 5th iteration of this project, and while I havent managed to get the same level of
+improvements from the 4th as i did leaving i3, I am proud to say that my work is only getting
+better.  While this iteration is still unfinished, I have lasted longer both feature wise and
+content wise than any other iteration, and am now in uncharted territories.
+
+Iteration 1 can be found on my "Personal Projects" repo, and is entirely different from what you
+can see here.  Iterations 2 and 3 will not be put on GitHub, as I no longer have the source code,
+and do not wish to recreate them. The only features I remain proud of from those iterations was
+the stitched tilemap and dynamic room population, both of which remain in the project, though not
+in the same state that they originated as. Iteration 4 can be found through the commit history of
+this repo, before March 20, 2026
 
 What each iteration improved on:
 Iteration 1: Started this project.  i1 is an unfinished text based dungeon crawler.
@@ -21,6 +28,15 @@ Iteration 3: Partial rewrite of i2, with dungeon generation having a complete re
              and full dungeon view. Enemies were added for this iteration, but I couldnt
              get them to do anything.
 
-Iteration 4: Current Iteration. Complete rewrite of the program. Dungeon and Room
-             generation entirely reworked. There is a major focus on optimization
-             this iteration, as well as fixing the issues from previous iterations.
+Iteration 4: Complete rewrite of the program. Dungeon and Room generation entirely
+             reworked. There is a major focus on optimization this iteration, as well
+             as fixing the issues from previous iterations.
+
+Iteration 5: Current Iteration. Pipeline rewrite from i4 after I ran into a roadblock
+             with the implementation. Lots of extra tweaks, and the debugger and visualizer
+             is the best one I have made so far. Goals here are to build a functional item
+             system before the inevitable rewrite for i6. As of writing this, I have a
+             framework being built behind the .gitignore, as I am only testing out possible
+             features before I ship anything, even into beta. This iteration is an important
+             milestone, as this is the first time I am proud enough of my code to keep the
+             vast majority through a rewrite.
