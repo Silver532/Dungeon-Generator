@@ -111,7 +111,9 @@ def _build_room(
 @timeit
 def _get_theme(room_shape: Shape, rand_rng: Random) -> Theme:
     if room_shape not in THEME_TABLES:
-        raise InvalidRoom(f"The get_theme function does not support rooms with {room_shape.name} shape")
+        raise InvalidRoom(
+            f"get_theme does not support rooms with {room_shape.name} shape"
+        )
     theme_list, probs = THEME_TABLES[room_shape]
     theme: Theme = rand_rng.choices(theme_list, probs)[0]
     return theme
