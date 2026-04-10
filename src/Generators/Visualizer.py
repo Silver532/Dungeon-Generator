@@ -68,7 +68,11 @@ def _get_dungeon_info(tilemap: array[uint8], row: int, col: int) -> str:
     )
     return f"Position: {row, col}\nExits: {dir_string}\nTile Value: {value}"
 
-def _run_Stage_1(timing_var: BooleanVar, time_count: IntVar, seed_var: StringVar) -> None:
+def _run_Stage_1(
+        timing_var: BooleanVar,
+        time_count: IntVar,
+        seed_var: StringVar
+    ) -> None:
     subprocess.run("cls||clear", shell = True)
     if timing_var.get():
         _run_timing(
@@ -92,14 +96,23 @@ def _run_Stage_1(timing_var: BooleanVar, time_count: IntVar, seed_var: StringVar
     _visualize(debug_map, colours, info_func = info, click_map = tilemap)
     return
 
-def _get_map_info(theme_map:array[uint8], tilemap: array[uint8], row: int, col: int) -> str:
+def _get_map_info(
+        theme_map:array[uint8],
+        tilemap: array[uint8], 
+        row: int,
+        col: int
+    ) -> str:
     value = tilemap[row, col]
     room_row = row // Const.ROOM_SIZE
     room_col = col // Const.ROOM_SIZE
     theme = Theme(theme_map[room_row, room_col])
     return f"Position: {row, col}\nTheme: {theme.name}\nTile: {Tile(value).name}"
 
-def _run_Stage_2(timing_var: BooleanVar, time_count: IntVar, seed_var: StringVar) -> None:
+def _run_Stage_2(
+        timing_var: BooleanVar,
+        time_count: IntVar,
+        seed_var: StringVar
+    ) -> None:
     subprocess.run("cls||clear", shell = True)
     if timing_var.get():
         _run_timing(
@@ -123,7 +136,11 @@ def _run_Stage_2(timing_var: BooleanVar, time_count: IntVar, seed_var: StringVar
     _visualize(tilemap, colours, info_func = info, scale = 3)
     return
 
-def _run_Stage_3(timing_var: BooleanVar, time_count: IntVar, seed_var: StringVar) -> None:
+def _run_Stage_3(
+        timing_var: BooleanVar,
+        time_count: IntVar,
+        seed_var: StringVar
+    ) -> None:
     subprocess.run("cls||clear", shell=True)
     if timing_var.get():
         _run_timing(
@@ -254,6 +271,9 @@ def _visualize(
     return
 
 def _main():
+    _1 = int(1e2)
+    _2 = int(1e3)
+    _3 = int(1e4)
     subprocess.run("cls||clear", shell = True)
     root = tk.Tk()
     root.title("Debugger")
@@ -265,26 +285,54 @@ def _main():
 
     seed_entry = tk.Entry(root, textvariable = seed_var)
     seed_entry.insert(0, "Seed")
-    seed_entry.bind("<FocusIn>", lambda _: seed_entry.delete(0, "end") if seed_var.get() == "Seed" else None)
-    timing_check = tk.Checkbutton(root, text = "Time Test", variable = timing_var, onvalue=True, offvalue=False)
+    seed_entry.bind(
+        "<FocusIn>",
+        lambda _: seed_entry.delete(0, "end") if seed_var.get() == "Seed" else None
+    )
+    timing_check = tk.Checkbutton(
+        root, text = "Time Test",
+        variable = timing_var,
+        onvalue=True, offvalue=False
+    )
     time_label = tk.Label(root, text = "Run Count")
-    tc_100 = tk.Radiobutton(root, text = "100", variable = time_count, value = 100)
-    tc_1000 = tk.Radiobutton(root, text = "1000", variable = time_count, value = 1000)
-    tc_10000 = tk.Radiobutton(root, text = "10000", variable = time_count, value = 10000)
-    s1_button = tk.Button(root, text="Stage 1",
-                          command = partial(_run_Stage_1, timing_var, time_count, seed_var))
-    s2_button = tk.Button(root, text="Stage 2",
-                          command = partial(_run_Stage_2, timing_var, time_count, seed_var))
-    s3_button = tk.Button(root, text="Stage 3",
-                          command = partial(_run_Stage_3, timing_var, time_count, seed_var))
+    tc_100 = tk.Radiobutton(root, text = str(_1), variable = time_count, value = _1)
+    tc_1k  = tk.Radiobutton(root, text = str(_2), variable = time_count, value = _2)
+    tc_10k = tk.Radiobutton(root, text = str(_3), variable = time_count, value = _3)
+    s1_button = tk.Button(
+        root, text="Stage 1",
+        command = partial(
+            _run_Stage_1,
+            timing_var,
+            time_count,
+            seed_var
+        )
+    )
+    s2_button = tk.Button(
+        root, text="Stage 2",
+        command = partial(
+            _run_Stage_2,
+            timing_var,
+            time_count,
+            seed_var
+        )
+    )
+    s3_button = tk.Button(
+        root, text="Stage 3",
+        command = partial(
+            _run_Stage_3,
+            timing_var,
+            time_count,
+            seed_var
+        )
+    )
     restart_button = tk.Button(root, text = "Reload", command = lambda: _reload(root))
 
     seed_entry.grid(row = 0, column = 0, sticky = "nsew")
     timing_check.grid(row = 0, column = 1, sticky = "w")
     time_label.grid(row = 1, column = 1, sticky = "w")
     tc_100.grid(row = 2, column = 1, sticky = "w")
-    tc_1000.grid(row = 3, column = 1, sticky = "w")
-    tc_10000.grid(row = 4, column = 1, sticky = "w")
+    tc_1k.grid(row = 3, column = 1, sticky = "w")
+    tc_10k.grid(row = 4, column = 1, sticky = "w")
     s1_button.grid(row = 1, sticky = "w")
     s2_button.grid(row = 2, sticky = "w")
     s3_button.grid(row = 3, sticky = "w")

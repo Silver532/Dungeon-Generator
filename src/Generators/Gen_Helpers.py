@@ -97,10 +97,10 @@ class Tile(IntEnum):
     MONSTER_SPAWNER = 10
     BOSS_SPAWNER = 11
     SHRINE = 12
-    PAINT_1 = 13
-    PAINT_2 = 14
-    PAINT_3 = 15
-    ENTRANCE = 16
+    ENTRANCE = 13
+    PAINT_1 = 14
+    PAINT_2 = 15
+    PAINT_3 = 16
 
 class S1_Const(IntEnum):
     DUNGEON_SIZE = 20
