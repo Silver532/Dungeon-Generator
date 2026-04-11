@@ -1,0 +1,297 @@
+import numpy as np
+
+from enum import IntEnum, auto
+
+class Shape(IntEnum):
+    DEAD_END = 0
+    BOSS_ROOM = auto()
+    SMALL_ROOM = auto()
+    LARGE_ROOM = auto()
+    CONNECTION = auto()
+    CORNER = auto()
+    HALF = auto()
+    SMALL_CIRCLE = auto()
+    LARGE_CIRCLE = auto()
+
+class Theme(IntEnum):
+    NULL = 0
+    EMPTY = auto()
+    ENTRANCE = auto()
+
+    DE_TRAPPED = auto()
+    DE_TREASURE = auto()
+    DE_HEALTHY = auto()
+    DE_GUARDED = auto()
+
+    BR_HOARD = auto()
+    BR_WIZARD = auto()
+    BR_WEAK = auto()
+    BR_STRONG = auto()
+    BR_GUARDED = auto()
+    BR_DOUBLE = auto()
+
+    SR_TRAPPED = auto()
+    SR_TREASURE = auto()
+    SR_GUARDED = auto()
+    SR_CHAOS = auto()
+    SR_BASIC = auto()
+    SR_FLOODED = auto()
+
+    CN_TRAPPED = auto()
+    CN_GUARDED = auto()
+    CN_BASIC = auto()
+    CN_FLOODED = auto()
+
+    LR_TRAPPED = auto()
+    LR_TREASURE = auto()
+    LR_HEALTHY = auto()
+    LR_GUARDED = auto()
+    LR_CHAOS = auto()
+    LR_BASIC = auto()
+    LR_FLOODED = auto()
+
+    CR_TRAPPED = auto()
+    CR_TREASURE = auto()
+    CR_GUARDED = auto()
+    CR_CHAOS = auto()
+    CR_BASIC = auto()
+    CR_FLOODED = auto()
+
+    HR_TRAPPED = auto()
+    HR_TREASURE = auto()
+    HR_GUARDED = auto()
+    HR_CHAOS = auto()
+    HR_BASIC = auto()
+    HR_FLOODED = auto()
+
+    SC_TRAPPED = auto()
+    SC_TREASURE = auto()
+    SC_GUARDED = auto()
+    SC_CHAOS = auto()
+    SC_BASIC = auto()
+    SC_FLOODED = auto()
+    
+    LC_TRAPPED = auto()
+    LC_TREASURE = auto()
+    LC_HEALTHY = auto()
+    LC_GUARDED = auto()
+    LC_CHAOS = auto()
+    LC_BASIC = auto()
+    LC_FLOODED = auto()
+
+class Const(IntEnum):
+    ROOM_SIZE = 17
+    HALF = ROOM_SIZE//2
+
+class Tile(IntEnum):
+    WALL = 0
+    FLOOR = 1
+    HOLE = 2
+    WATER = 3
+    WATER_POOL = 4
+    TRAP = 5
+    HEALING_STATION = 6
+    CHEST = 7
+    LOOT_PILE = 8
+    LOOT_CLUSTER = 9
+    MONSTER_SPAWNER = 10
+    BOSS_SPAWNER = 11
+    SHRINE = 12
+    ENTRANCE = 13
+    PAINT_1 = 14
+    PAINT_2 = 15
+    PAINT_3 = 16
+
+class S1_Const(IntEnum):
+    DUNGEON_SIZE = 20
+    MID = DUNGEON_SIZE//2
+    BOX_COUNT = 3
+    ERODE_COUNT = 5
+    NORTH = 1
+    EAST = 2
+    SOUTH = 4
+    WEST = 8
+    TEMP = 1
+    NO_ROOM = 0
+    ROOM = 16
+
+class InvalidRoom(Exception):
+    pass
+
+SHAPE_TABLES: dict[int, tuple[list[Shape], list[float]]] = {
+    1: (
+        [Shape.DEAD_END, Shape.BOSS_ROOM, Shape.SMALL_ROOM, Shape.SMALL_CIRCLE, Shape.LARGE_CIRCLE],
+        [0.30, 0.10, 0.35, 0.15, 0.10]
+        ),
+    2: (
+        [Shape.CONNECTION, Shape.SMALL_ROOM, Shape.LARGE_ROOM, Shape.CORNER, Shape.SMALL_CIRCLE],
+        [0.16, 0.27, 0.20, 0.22, 0.15]
+        ),
+    3: (
+        [Shape.CONNECTION, Shape.SMALL_ROOM, Shape.LARGE_ROOM, Shape.HALF, Shape.SMALL_CIRCLE, Shape.LARGE_CIRCLE],
+        [0.17, 0.24, 0.22, 0.17, 0.12, 0.08]
+        ),
+    4: (
+        [Shape.CONNECTION, Shape.SMALL_ROOM, Shape.LARGE_ROOM, Shape.LARGE_CIRCLE],
+        [0.15, 0.28, 0.40, 0.17]
+        )
+}
+
+THEME_TABLES: dict[Shape, tuple[list[Theme], list[float]]] = {
+    Shape.DEAD_END:
+    (
+        [Theme.DE_TRAPPED, Theme.DE_TREASURE, Theme.DE_HEALTHY, Theme.DE_GUARDED, Theme.EMPTY],
+        [0.20, 0.15, 0.10, 0.15, 0.40]
+    ),
+    Shape.BOSS_ROOM:
+    (
+        [Theme.BR_HOARD, Theme.BR_WIZARD, Theme.BR_WEAK, Theme.BR_STRONG, Theme.BR_GUARDED, Theme.BR_DOUBLE],
+        [0.20, 0.20, 0.20, 0.10, 0.20, 0.10]
+    ),
+    Shape.SMALL_ROOM:
+    (
+        [Theme.SR_TRAPPED, Theme.SR_TREASURE, Theme.SR_GUARDED, Theme.SR_CHAOS, Theme.SR_BASIC, Theme.SR_FLOODED, Theme.EMPTY],
+        [0.20, 0.10, 0.15, 0.10, 0.25, 0.10, 0.10]
+    ),
+    Shape.CONNECTION:
+    (
+        [Theme.CN_TRAPPED, Theme.CN_GUARDED, Theme.CN_BASIC, Theme.CN_FLOODED, Theme.EMPTY],
+        [0.20, 0.20, 0.25, 0.10, 0.25]
+    ),
+    Shape.LARGE_ROOM:
+    (
+        [Theme.LR_TRAPPED, Theme.LR_TREASURE, Theme.LR_HEALTHY, Theme.LR_GUARDED, Theme.LR_CHAOS, Theme.LR_BASIC, Theme.LR_FLOODED, Theme.EMPTY],
+        [0.20, 0.05, 0.05, 0.15, 0.10, 0.25, 0.10, 0.10]
+    ),
+    Shape.CORNER:
+    (
+        [Theme.CR_TRAPPED, Theme.CR_TREASURE, Theme.CR_GUARDED, Theme.CR_CHAOS, Theme.CR_BASIC, Theme.CR_FLOODED, Theme.EMPTY],
+        [0.20, 0.10, 0.15, 0.10, 0.25, 0.10, 0.10]
+    ),
+    Shape.HALF:
+    (
+        [Theme.HR_TRAPPED, Theme.HR_TREASURE, Theme.HR_GUARDED, Theme.HR_CHAOS, Theme.HR_BASIC, Theme.HR_FLOODED, Theme.EMPTY],
+        [0.20, 0.10, 0.15, 0.10, 0.25, 0.10, 0.10]
+    ),
+    Shape.SMALL_CIRCLE:
+    (
+        [Theme.SC_TRAPPED, Theme.SC_TREASURE, Theme.SC_GUARDED, Theme.SC_CHAOS, Theme.SC_BASIC, Theme.SC_FLOODED, Theme.EMPTY],
+        [0.20, 0.10, 0.15, 0.10, 0.25, 0.10, 0.10]
+    ),
+    Shape.LARGE_CIRCLE:
+    (
+        [Theme.LC_TRAPPED, Theme.LC_TREASURE, Theme.LC_HEALTHY, Theme.LC_GUARDED, Theme.LC_CHAOS, Theme.LC_BASIC, Theme.LC_FLOODED, Theme.EMPTY],
+        [0.20, 0.05, 0.05, 0.15, 0.10, 0.25, 0.10, 0.10]
+    ),
+}
+
+POPULATION_TABLES: dict[Theme, dict[Tile, int | tuple[int, int]]] = {
+    Theme.DE_TRAPPED:  {Tile.HOLE: 1, Tile.WATER: (0,1), Tile.TRAP: 3},
+    Theme.DE_TREASURE: {Tile.TRAP: 1, Tile.CHEST: 1, Tile.LOOT_PILE: 2, Tile.MONSTER_SPAWNER: 1},
+    Theme.DE_HEALTHY:  {Tile.HEALING_STATION: 1},
+    Theme.DE_GUARDED:  {Tile.MONSTER_SPAWNER: 1},
+
+    Theme.SR_TRAPPED:  {Tile.HOLE: 1, Tile.TRAP: (3,5), Tile.LOOT_PILE: 1, Tile.MONSTER_SPAWNER: 1},
+    Theme.SR_TREASURE: {Tile.TRAP: (1,2), Tile.CHEST: 2, Tile.LOOT_PILE: 3},
+    Theme.SR_GUARDED:  {Tile.WATER: (0,1), Tile.TRAP: 1, Tile.LOOT_PILE: 1, Tile.MONSTER_SPAWNER: 2},
+    Theme.SR_CHAOS:    {Tile.HOLE: 2, Tile.WATER: (0,1), Tile.TRAP: 3, Tile.CHEST: 1, Tile.LOOT_PILE: 2, Tile.MONSTER_SPAWNER: 3, Tile.SHRINE: 1},
+    Theme.SR_BASIC:    {Tile.TRAP: (0,1), Tile.LOOT_PILE: (0,1)},
+    Theme.SR_FLOODED:  {Tile.WATER: 5, Tile.WATER_POOL: 13, Tile.MONSTER_SPAWNER: 1},
+    
+    Theme.CN_TRAPPED:  {Tile.HOLE: 1, Tile.TRAP: (1,3), Tile.LOOT_PILE: 1},
+    Theme.CN_GUARDED:  {Tile.MONSTER_SPAWNER: 1},
+    Theme.CN_BASIC:    {Tile.LOOT_PILE: (0,1)},
+    Theme.CN_FLOODED:  {Tile.WATER: 4, Tile.WATER_POOL: 10, Tile.MONSTER_SPAWNER: (0,1)},
+    
+    Theme.LR_TRAPPED:  {Tile.HOLE: 2, Tile.WATER: 1, Tile.TRAP: (3,5), Tile.LOOT_PILE: 2, Tile.MONSTER_SPAWNER: 1},
+    Theme.LR_TREASURE: {Tile.TRAP: 1, Tile.CHEST: 2, Tile.LOOT_PILE: 3, Tile.MONSTER_SPAWNER: 1},
+    Theme.LR_HEALTHY:  {Tile.HEALING_STATION: 1},
+    Theme.LR_GUARDED:  {Tile.WATER: (0,1), Tile.TRAP: 1, Tile.CHEST: 1, Tile.LOOT_PILE: 1, Tile.MONSTER_SPAWNER: 3},
+    Theme.LR_CHAOS:    {Tile.HOLE: 2, Tile.WATER: 1, Tile.TRAP: 3, Tile.CHEST: 2, Tile.LOOT_PILE: 3, Tile.MONSTER_SPAWNER: (2,4), Tile.SHRINE: 1},
+    Theme.LR_BASIC:    {Tile.TRAP: (1,2), Tile.LOOT_PILE: (0,1)},
+    Theme.LR_FLOODED:  {Tile.WATER: 6, Tile.WATER_POOL: 18, Tile.MONSTER_SPAWNER: 1},
+    
+    Theme.CR_TRAPPED:  {Tile.HOLE: 1, Tile.TRAP: (2,4), Tile.LOOT_PILE: 1},
+    Theme.CR_TREASURE: {Tile.TRAP: 1, Tile.CHEST: 1, Tile.LOOT_PILE: 3, Tile.MONSTER_SPAWNER: 1},
+    Theme.CR_GUARDED:  {Tile.WATER: (0,1), Tile.TRAP: 1, Tile.LOOT_PILE: 1, Tile.MONSTER_SPAWNER: 2},
+    Theme.CR_CHAOS:    {Tile.HOLE: (0,1), Tile.WATER: 1, Tile.TRAP: 3, Tile.CHEST: (0,2), Tile.LOOT_PILE: 3, Tile.MONSTER_SPAWNER: (2,3), Tile.SHRINE: 1},
+    Theme.CR_BASIC:    {Tile.TRAP: (0,1), Tile.LOOT_PILE: (0,1)},
+    Theme.CR_FLOODED:  {Tile.WATER: 4, Tile.WATER_POOL: 12, Tile.MONSTER_SPAWNER: (0,1)},
+    
+    Theme.HR_TRAPPED:  {Tile.HOLE: 1, Tile.TRAP: (2,4), Tile.LOOT_PILE: 1},
+    Theme.HR_TREASURE: {Tile.TRAP: 1, Tile.CHEST: 1, Tile.LOOT_PILE: 3, Tile.MONSTER_SPAWNER: 1},
+    Theme.HR_GUARDED:  {Tile.WATER: (0,1), Tile.TRAP: 1, Tile.LOOT_PILE: 1, Tile.MONSTER_SPAWNER: 2},
+    Theme.HR_CHAOS:    {Tile.HOLE: (0,1), Tile.WATER: 1, Tile.TRAP: 3, Tile.MONSTER_SPAWNER: (2,3), Tile.SHRINE: 1, Tile.CHEST: (0,2), Tile.LOOT_PILE: 3},
+    Theme.HR_BASIC:    {Tile.TRAP: (0,1), Tile.LOOT_PILE: (0,1)},
+    Theme.HR_FLOODED:  {Tile.WATER: 5, Tile.WATER_POOL: 15, Tile.MONSTER_SPAWNER: (0,1)},
+    
+    Theme.BR_HOARD:    {Tile.CHEST: 3, Tile.LOOT_PILE: 9, Tile.BOSS_SPAWNER: 1, Tile.SHRINE: 1},
+    Theme.BR_WIZARD:   {Tile.CHEST: 4, Tile.LOOT_PILE: 3, Tile.BOSS_SPAWNER: 1, Tile.SHRINE: 1},
+    Theme.BR_WEAK:     {Tile.TRAP: (0,1), Tile.CHEST: 1, Tile.LOOT_PILE: 2, Tile.MONSTER_SPAWNER: 1, Tile.BOSS_SPAWNER: 1},
+    Theme.BR_STRONG:   {Tile.HEALING_STATION: (0,1), Tile.CHEST: (1,3), Tile.LOOT_PILE: 5, Tile.BOSS_SPAWNER: 1, Tile.SHRINE: 1},
+    Theme.BR_GUARDED:  {Tile.TRAP: 1, Tile.CHEST: 2, Tile.LOOT_PILE: 3, Tile.MONSTER_SPAWNER: 2, Tile.BOSS_SPAWNER: 1, Tile.SHRINE: 1},
+    Theme.BR_DOUBLE:   {Tile.CHEST: 3, Tile.LOOT_PILE: 5, Tile.BOSS_SPAWNER: 2, Tile.SHRINE: 1},
+    
+    Theme.SC_TRAPPED:  {Tile.HOLE: 1, Tile.TRAP: (3,5), Tile.LOOT_PILE: 1, Tile.MONSTER_SPAWNER: 1},
+    Theme.SC_TREASURE: {Tile.TRAP: (1,2), Tile.CHEST: 2, Tile.LOOT_PILE: 3},
+    Theme.SC_GUARDED:  {Tile.WATER: (0,1), Tile.TRAP: 1, Tile.LOOT_PILE: 1, Tile.MONSTER_SPAWNER: 2},
+    Theme.SC_CHAOS:    {Tile.HOLE: 2, Tile.WATER: (0,1), Tile.TRAP: 3, Tile.CHEST: 1, Tile.LOOT_PILE: 2, Tile.MONSTER_SPAWNER: 3, Tile.SHRINE: 1},
+    Theme.SC_BASIC:    {Tile.TRAP: (0,1), Tile.LOOT_PILE: (0,1)},
+    Theme.SC_FLOODED:  {Tile.WATER: 4, Tile.WATER_POOL: 12, Tile.MONSTER_SPAWNER: (0,1)},
+
+    Theme.LC_TRAPPED:  {Tile.HOLE: 2, Tile.WATER: 1, Tile.TRAP: (3,5), Tile.LOOT_PILE: 2, Tile.MONSTER_SPAWNER: 1},
+    Theme.LC_TREASURE: {Tile.TRAP: 1, Tile.CHEST: 2, Tile.LOOT_PILE: 3, Tile.MONSTER_SPAWNER: 1},
+    Theme.LC_HEALTHY:  {Tile.HEALING_STATION: 1},
+    Theme.LC_GUARDED:  {Tile.WATER: (0,1), Tile.TRAP: 1, Tile.CHEST: 1, Tile.LOOT_PILE: 1, Tile.MONSTER_SPAWNER: 3},
+    Theme.LC_CHAOS:    {Tile.HOLE: 2, Tile.WATER: 1, Tile.TRAP: 3, Tile.CHEST: 2, Tile.LOOT_PILE: 3, Tile.MONSTER_SPAWNER: (2,4), Tile.SHRINE: 1},
+    Theme.LC_BASIC:    {Tile.TRAP: (1,2), Tile.LOOT_PILE: (0,1)},
+    Theme.LC_FLOODED:  {Tile.WATER: 7, Tile.WATER_POOL: 21, Tile.MONSTER_SPAWNER: (1,2)},
+
+    Theme.ENTRANCE:    {Tile.ENTRANCE: 1},
+    Theme.EMPTY:       {}
+    }
+
+FEATURE_ORDER = (
+        Tile.ENTRANCE,
+        Tile.WATER,
+        Tile.WATER_POOL,
+        Tile.HOLE,
+        Tile.HEALING_STATION,
+        Tile.SHRINE,
+        Tile.CHEST,
+        Tile.LOOT_PILE,
+        Tile.LOOT_CLUSTER,
+        Tile.TRAP,
+        Tile.BOSS_SPAWNER,
+        Tile.MONSTER_SPAWNER
+    )
+
+SCAN_PARAMS: dict[Tile, dict[str, set[Tile]]] = {
+    Tile.ENTRANCE:         {"require": {Tile.FLOOR}, "place_on": {Tile.WALL}},
+    Tile.WATER:            {"block": {Tile.CHEST, Tile.LOOT_PILE, Tile.HOLE}},
+    Tile.WATER_POOL:       {"require": {Tile.WATER}, "block": {Tile.CHEST, Tile.LOOT_PILE, Tile.HOLE}},
+    Tile.HOLE:             {"block": {Tile.WALL, Tile.WATER, Tile.LOOT_PILE}},
+    Tile.HEALING_STATION:  {"require": {Tile.FLOOR}, "place_on": {Tile.WALL}},
+    Tile.SHRINE:           {"require": {Tile.FLOOR}, "place_on": {Tile.WALL}},
+    Tile.CHEST:            {"bias": {Tile.LOOT_PILE, Tile.WALL}},
+    Tile.LOOT_PILE:        {"bias": {Tile.CHEST}, "block": {Tile.WATER, Tile.HOLE}},
+    Tile.LOOT_CLUSTER:     {"require": {Tile.CHEST, Tile.LOOT_PILE}, "block": {Tile.WATER, Tile.HOLE}},
+    Tile.TRAP:             {"block": {Tile.TRAP, Tile.HEALING_STATION, Tile.SHRINE}},
+    Tile.BOSS_SPAWNER:     {"block": {Tile.MONSTER_SPAWNER, Tile.HEALING_STATION, Tile.SHRINE}},
+    Tile.MONSTER_SPAWNER:  {"block": {Tile.BOSS_SPAWNER, Tile.HEALING_STATION, Tile.SHRINE}}
+    }
+
+DUPLICATES: dict[Tile, Tile] = {
+    Tile.WATER_POOL: Tile.WATER,
+    Tile.LOOT_CLUSTER: Tile.LOOT_PILE
+}
+
+_ROOM_Y, _ROOM_X = np.ogrid[:Const.ROOM_SIZE, :Const.ROOM_SIZE]
+SMALL_CIRCLE_MASK = (
+    (_ROOM_Y - Const.HALF) ** 2 + (_ROOM_X - Const.HALF) ** 2 <= 3 ** 2
+)
+LARGE_CIRCLE_MASK = (
+    (_ROOM_Y - Const.HALF) ** 2 + (_ROOM_X - Const.HALF) ** 2 <= 6 ** 2
+)
+
+ONE_EXIT_ROOMS = [17, 18, 20, 24]
